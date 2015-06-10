@@ -17,8 +17,8 @@ I think we should test some postgrade features, so for now I will upload two ver
 
 Look, a these interesting features! :+1:
 
- * [inherit](http://www.postgresql.org/docs/9.1/static/ddl-schemas.html)
- * [Schemas](http://www.postgresql.org/docs/9.1/static/ddl-inherit.html)
+ * [Schemas](http://www.postgresql.org/docs/9.1/static/ddl-schemas.html)
+ * [inherit](http://www.postgresql.org/docs/9.1/static/ddl-inherit.html)
 
 
 
