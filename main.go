@@ -21,38 +21,6 @@ import (
 	"time"
 )
 
-//func Manage_goroutines(Lst_wd *owm.All_data) {
-//	channelfuncweatherdata := make(chan bool)
-//	channelfunccheckpointball := make(chan bool)
-//	defer close(channelfunccheckpointball)
-//	defer close(channelfuncweatherdata)
-//
-//	go func() {
-//		for {
-//			select {
-//			case <-time.After(5 * time.Second):
-//				channelfuncweatherdata <- true
-//			}
-//		}
-//	}()
-//	for {
-//		select {
-//		case <-channelfuncweatherdata:
-//			{
-//				err := Lst_wd.Update_weather_data()
-//				if err != nil {
-//					fmt.Println(err)
-//				} else {
-//					channelfunccheckpointball <- true
-//				}
-//			}
-//		case <-channelfunccheckpointball: /*go create_checkpointball() */
-//			Lst_wd.Print_weatherdata()
-//		}
-//	}
-//	fmt.Println("End manage_goroutines()\n")
-//}
-
 func Manage_goroutines(Lst_wd *owm.All_data) {
 	channelfuncweatherdata := make(chan bool)
 	channelfunccheckpointball := make(chan bool)
@@ -86,6 +54,7 @@ func Manage_goroutines(Lst_wd *owm.All_data) {
 
 func main() {
 	Lst_wd := new(owm.All_data)
+	Lst_ball := Get_ball()
 	go Manage_goroutines(Lst_wd)
 
 	for {
