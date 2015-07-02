@@ -48,11 +48,10 @@ CREATE TABLE type_information (
 -- Table: checkpoints
 CREATE TABLE checkpoints (
     id serial  NOT NULL,
-    longitude decimal(5,2)  NOT NULL,
-    latitude decimal(5,2)  NOT NULL,
     date date  NOT NULL,
     containerId int  NOT NULL,
     attractByMagnet boolean  NOT NULL,
+	location_ckp GEOGRAPHY(POINT,4326),
     CONSTRAINT checkpoints_pk PRIMARY KEY (id)
 );
 
@@ -64,12 +63,11 @@ CREATE INDEX Checkpoints_container_id_idx on checkpoints (containerId ASC,date A
 -- Table: container
 CREATE TABLE container (
     id serial  NOT NULL,
-    longitude decimal(5,2)  NOT NULL,
-    latitude decimal(5,2)  NOT NULL,
     direction decimal(5,2)  NOT NULL,
     speed int  NOT NULL,
     creationDate date  NOT NULL,
     Device_id int  NOT NULL,
+	location_ct GEOGRAPHY(POINT,4326),
     CONSTRAINT container_pk PRIMARY KEY (id)
 ) INHERITS (type_container);
 
@@ -114,8 +112,7 @@ CREATE INDEX Message_idx_container on message (containerId ASC);
 CREATE TABLE reception (
     id serial  NOT NULL,
     receptionTime date  NOT NULL,
-    longitude decimal(5,2)  NOT NULL,
-    latitude decimal(5,2)  NOT NULL,
+	location_rc GEOGRAPHY(POINT,4326),
     IdContainer int  NOT NULL,
     Device_id int  NOT NULL,
     CONSTRAINT reception_pk PRIMARY KEY (id)

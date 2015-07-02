@@ -34,3 +34,6 @@ This is [on GitHub](https://github.com/42MrPiou42/Wibo) so let me know if you ha
  * [markdown2  ( I use)](http://jbt.github.io/markdown-editor/)
  * [wibo vertabelo](https://my.vertabelo.com/model/Lhle9MHFFYh72rWYP1HHj0XQoBByDN6LW19uh9fD1D3VtFZPkSpCEqgN9GlKqlS6)
  * [use readme](http://stackoverflow.com/questions/10240125/working-with-readme-md-on-github-com)
+
+ http://www.powershow.com/view1/ec734-ZDc1Z/Introduction_to_PostGIS_powerpoint_ppt_presentationhttp://www.powershow.com/view1/ec734-ZDc1Z/Introduction_to_PostGIS_powerpoint_ppt_presentation
+ http://dcx.sybase.com/1200/en/dbspatial/spatial-reference-identifier.html
