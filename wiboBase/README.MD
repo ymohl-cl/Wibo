@@ -1,14 +1,14 @@
-
-
 installation postgis:
 
 You could install from brew:
 
-brew install postgis
+brew install postgis(not recomended)
 
-or get the source from
+or get the source from (recomended)
 
 [post gist](http://postgis.net/install/)
+
+config:
 
 ./configure --with-projdir=/nfs/zfs-student-3/users/2013/<your login>/.brew/Cellar/proj/4.9.1/
 ./configure --with-projdir=/nfs/zfs-student-3/users/2013/<your login>/.brew/Cellar/proj/4.9.1/ --prefix=/nfs/zfs-student-3/users/2013/<your login>/Applications/
@@ -19,6 +19,8 @@ SELECT postgis_full_version();
 
 
 [TEST]
+
+example:
 
 INSERT INTO "user" (login, password, salt, lastlogin, creationDate, mail, id_type_g, groupName) VALUES ('testlogin', 'testpass', '12345',  '1971-07-13', '1971-07-13', 'jasds@test.com', 1, 'particuler');
 
@@ -68,6 +70,8 @@ there are two OpenGIS meta-data tables:
 
 [source](http://postgis.refractions.net/documentation/manual-1.3/ch04.html#id2571655)
 [create db postgis](http://workshops.boundlessgeo.com/postgis-intro/creating_db.html)
-commmand to pass shape files:
+
+
+Commmand to pass shape files:
 
 ~/.brew/Cellar/postgresql/9.4.3/bin/shp2pgsql -s 4326 -I FRA_roads.shp  schema.FranceRoutes [redirection to ]  routes_france.sql
