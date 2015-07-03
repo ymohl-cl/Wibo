@@ -1,4 +1,32 @@
 
+
+installation postgis:
+
+You could install from brew:
+
+brew install postgis
+
+or get the source from
+
+[post gist](http://postgis.net/install/)
+
+./configure --with-projdir=/nfs/zfs-student-3/users/2013/<your login>/.brew/Cellar/proj/4.9.1/
+./configure --with-projdir=/nfs/zfs-student-3/users/2013/<your login>/.brew/Cellar/proj/4.9.1/ --prefix=/nfs/zfs-student-3/users/2013/<your login>/Applications/
+
+
+CREATE EXTENSION postgis;
+SELECT postgis_full_version();
+
+
+[TEST]
+
+INSERT INTO "user" (login, password, salt, lastlogin, creationDate, mail, id_type_g, groupName) VALUES ('testlogin', 'testpass', '12345',  '1971-07-13', '1971-07-13', 'jasds@test.com', 1, 'particuler');
+
+INSERT INTO device  (macAddr, user_id_user, lastUseMagnet, id_type_d, typeName) VALUES ('2222', 4,  '1971-07-13', 1, 'testdevice');
+
+INSERT INTO container (direction, speed, id_type_c,  typename, creationDate, device_id,  location_ct) VALUES (23.9, 222,  1, 'testdevice', '1971-07-13', 2, ST_GeographyFromText('SRID=4326; POINT(-110 30)'));
+
+
 2 WAYS  TO REPRESENT SPATIAL OBJETS:
 	1. Well-known Text (WKT).
 	2. Well-known Binary (WKB).
@@ -39,7 +67,7 @@ there are two OpenGIS meta-data tables:
 
 
 [source](http://postgis.refractions.net/documentation/manual-1.3/ch04.html#id2571655)
+[create db postgis](http://workshops.boundlessgeo.com/postgis-intro/creating_db.html)
+commmand to pass shape files:
 
-CREATE EXTENSION postgis;
-SELECT postgis_full_version();
-http://workshops.boundlessgeo.com/postgis-intro/creating_db.html
+~/.brew/Cellar/postgresql/9.4.3/bin/shp2pgsql -s 4326 -I FRA_roads.shp  schema.FranceRoutes [redirection to ]  routes_france.sql
