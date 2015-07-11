@@ -13,6 +13,7 @@
 package ballon
 
 import (
+	"container/list"
 	"owm"
 	"users"
 )
@@ -33,8 +34,8 @@ type Checkpoints struct {
 }
 
 type Coordinates struct {
-	Longitude float64
-	Latitude  float64
+	Longitude float64 `json:"lon"`
+	Latitude  float64 `json:"lat"`
 }
 
 type Wind struct {
@@ -44,19 +45,20 @@ type Wind struct {
 
 /* Date is a timestamp's creation to Ball */
 type Ball struct {
-	name        string
-	coord       Coordinates
+	Name        string      `json:"name"`
+	Coord       Coordinates `json:"coord"`
 	Wind        Wind
-	Lst_msg     []Lst_msg
-	date        int
-	Checkpoints []Checkpoints
+	Lst_msg     list.List
+	Date        int
+	Checkpoints list.List
 	Possessed   *users.User
-	List_follow []users.All_users
+	List_follow users.All_users
 	Creator     *users.User
+	Next        *Ball
 }
 
 type All_ball struct {
-	Lst_ball []Ball
+	Lst *list.List `json:"list"`
 }
 
 func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
@@ -77,8 +79,8 @@ func (Lst_ball *All_ball) Print_all_balls() {
 	return
 }
 
-// Add the user in the ball on creation ball list
 func (Lst_ball *All_ball) Get_balls(Lst_users *users.All_users) error {
-	// Get all information
+	//get all ball from database and associeted
+	// the creator, possessord and followers.
 	return nil
 }

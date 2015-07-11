@@ -2,6 +2,10 @@
 
 package users
 
+import (
+	"container/list"
+)
+
 /*
 ** Log is a last signal to device
  */
@@ -11,7 +15,7 @@ type User struct {
 }
 
 type All_users struct {
-	Lst_users []User
+	Lst_users list.List
 }
 
 func (User *User) User_is_online() bool {

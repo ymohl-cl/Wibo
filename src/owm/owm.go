@@ -40,16 +40,16 @@ type Weather_data struct {
 }
 
 type All_data struct {
-	Lst_wd []Weather_data `json:"list"`
+	Tab_wd []Weather_data `json:"list"`
 }
 
-func (Lst_wd *All_data) Update_weather_data() error {
+func (Tab_wd *All_data) Update_weather_data() error {
 	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-180,-90,180,90,10&cluster=yes`)
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&Lst_wd)
+	err = json.NewDecoder(resp.Body).Decode(&Tab_wd)
 	if err != nil {
 		return err
 	} else {
@@ -57,9 +57,9 @@ func (Lst_wd *All_data) Update_weather_data() error {
 	}
 }
 
-func (Lst_wd *All_data) Print_weatherdata() {
+func (Tab_wd *All_data) Print_weatherdata() {
 	var index int = 0
-	for _, elem := range Lst_wd.Lst_wd {
+	for _, elem := range Tab_wd.Tab_wd {
 		index++
 		fmt.Println(elem.Station_id)
 		fmt.Println(elem.Station_name)

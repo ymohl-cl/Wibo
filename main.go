@@ -17,6 +17,7 @@ package main
 
 import (
 	"ballon"
+	//	"container/list"
 	"fmt"
 	"net/http"
 	"owm"
@@ -25,7 +26,7 @@ import (
 	"users"
 )
 
-func Manage_goroutines(Lst_wd *owm.All_data, Lst_ball *ballon.All_ball) {
+func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	channelfuncweatherdata := make(chan bool)
 	channelfunccheckpointball := make(chan bool)
 	defer close(channelfunccheckpointball)
@@ -45,16 +46,16 @@ func Manage_goroutines(Lst_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 		select {
 		case <-channelfuncweatherdata:
 			{
-				err := Lst_wd.Update_weather_data()
+				err := Tab_wd.Update_weather_data()
 				if err != nil {
 					fmt.Println(err)
 				} else {
-					Lst_wd.Print_weatherdata()
+					Tab_wd.Print_weatherdata()
 				}
 			}
 		case <-channelfunccheckpointball:
 			{
-				err := Lst_ball.Create_checkpoint(Lst_wd)
+				err := Lst_ball.Create_checkpoint(Tab_wd)
 				if err != nil {
 					fmt.Println(err)
 				} else {
@@ -66,15 +67,17 @@ func Manage_goroutines(Lst_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	fmt.Println("End manage_goroutines()\n")
 }
 
-func init_all(Lst_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball) error {
-	err := Lst_wd.Update_weather_data()
+func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball) error {
+	// Get first array data
+	err := Tab_wd.Update_weather_data()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	} else {
-		Lst_wd.Print_weatherdata()
+		Tab_wd.Print_weatherdata()
 	}
 
+	// Get first list user
 	err = Lst_users.Get_users()
 	if err != nil {
 		fmt.Println(err)
@@ -83,6 +86,7 @@ func init_all(Lst_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Lst_users.Print_users()
 	}
 
+	// Get first list ballon with their follower
 	err = Lst_ball.Get_balls(Lst_users)
 	if err != nil {
 		fmt.Println(err)
@@ -94,17 +98,18 @@ func init_all(Lst_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 }
 
 func main() {
-	Lst_wd := new(owm.All_data)
+	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
 	Lst_ball := new(ballon.All_ball)
 
-	err := init_all(Lst_wd, Lst_users, Lst_ball)
+	err := init_all(Tab_wd, Lst_users, Lst_ball)
 	if err != nil {
 		return
 	}
-	go Manage_goroutines(Lst_wd, Lst_ball)
-	request.Init_handle_request()
 
+	go Manage_goroutines(Tab_wd, Lst_ball)
+
+	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)
 
 	for {
