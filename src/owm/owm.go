@@ -65,7 +65,7 @@ func (Tab_wd *All_data) Print_weatherdata() {
 		fmt.Println(elem.Station_name)
 		fmt.Println(elem.Coord)
 		fmt.Println(elem.Wind)
-		fmt.Println("--------------------\n")
+		fmt.Println("--------------------")
 	}
 	fmt.Println("nombre de stations: %d\n", index)
 }

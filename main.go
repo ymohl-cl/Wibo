@@ -17,6 +17,7 @@ package main
 
 import (
 	"ballon"
+	"sock"
 	//	"container/list"
 	"fmt"
 	"net/http"
@@ -97,6 +98,16 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	return nil
 }
 
+/*
+** Les requetes sont utilise que pour recuperer la positon
+** des ballons autour de la position recu.
+** Si il y a une modification sur un ballon, envoyer une
+** requetes a toutes les client encore ON en HTTP ou en socket
+** si elle est encore ouverte.
+** Les socket sont utilisees pour tous les autres types
+** de communications.
+ */
+
 func main() {
 	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
@@ -111,6 +122,7 @@ func main() {
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)
+	go sock.Listen(Lst_users)
 
 	for {
 		fmt.Println("manage server")

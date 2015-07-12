@@ -10,7 +10,7 @@ import (
 ** Log is a last signal to device
  */
 type User struct {
-	Device string
+	Device int64
 	Log    int
 }
 
