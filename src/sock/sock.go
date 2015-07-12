@@ -25,53 +25,60 @@ func check_checksum(buff []byte) error {
 }
 
 func add_content(buff []byte, user *users.User) (Token Lst_req_sock) {
+	tmpBuf := buff
 	TypBuff := bytes.NewBuffer(buff)
 
 	// Get NbrOctet
-	err := binary.Read(TypBuff, binary.LittleEndian, &Token.NbrOctet)
+	err := binary.Read(TypBuff, binary.BigEndian, &Token.NbrOctet)
 	if err != nil {
 		//		return nil
 	}
-	Token.NbrOctet -= 24
-	buff = TypBuff.Next(2)
+	//	Token.NbrOctet -= 24
+	tmpBuf = TypBuff.Next(2)
+	//	TypBuff = bytes.NewBuffer(buff)
 	// Get Type request
-	err = binary.Read(TypBuff, binary.LittleEndian, &Token.Type)
+	err = binary.Read(TypBuff, binary.BigEndian, &Token.Type)
 	if err != nil {
 		//		return nil
 	}
-	buff = TypBuff.Next(6)
+	tmpBuf = TypBuff.Next(6)
+	//	TypBuff = bytes.NewBuffer(buff)
 	// Get NbrPacket
-	err = binary.Read(TypBuff, binary.LittleEndian, &Token.NbrPack)
+	err = binary.Read(TypBuff, binary.BigEndian, &Token.NbrPack)
 	if err != nil {
 		//		return nil
 	}
-	buff = TypBuff.Next(4)
+	tmpBuf = TypBuff.Next(4)
+	//	TypBuff = bytes.NewBuffer(buff)
 	// Get NumPacket
-	err = binary.Read(TypBuff, binary.LittleEndian, &Token.NumPack)
+	err = binary.Read(TypBuff, binary.BigEndian, &Token.NumPack)
 	if err != nil {
 		//		return nil
 	}
-	buff = TypBuff.Next(4)
+	tmpBuf = TypBuff.Next(4)
+	//	TypBuff = bytes.NewBuffer(buff)
 	// Get IdMobile
-	err = binary.Read(TypBuff, binary.LittleEndian, &Token.IdMobile)
+	err = binary.Read(TypBuff, binary.BigEndian, &Token.IdMobile)
 	if err != nil {
 		//		return nil
 	}
-	buff = TypBuff.Next(8)
-	Token.Content = buff
-	if Token.IdMobile != user.Device {
-		//		return nil
-	}
+	tmpBuf = TypBuff.Next(8)
+	Token.Content = tmpBuf
+	//	if Token.IdMobile != user.Device {
+	//		return nil
+	//	}
 	return Token
 }
 
 func Check_finish(Lst_req *list.List) bool {
 	Last := Lst_req.Back()
+	fmt.Printf("%#v\n", Last)
+	fmt.Printf("%#v\n", Last.Value)
 	//	fmt.Println(Last.Type.(Lst_req_sock))
 	if Last != nil {
 		return true
 	} else {
-		return false
+		return true // normalement false ici
 	}
 	//	if Last.NbrPack == Last.NumPack {
 	//		return true
@@ -108,8 +115,13 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 			return
 		}
 		// Ajoute le message a la liste.
+		fmt.Println(buff)
 		toto := add_content(buff, user)
+		fmt.Println(toto.NbrOctet)
 		fmt.Println(toto.Type)
+		fmt.Println(toto.NbrPack)
+		fmt.Println(toto.NumPack)
+		fmt.Println(toto.IdMobile)
 		check := Lst_req.PushBack(toto)
 		if check == nil {
 			fmt.Println("Error decoding data")
