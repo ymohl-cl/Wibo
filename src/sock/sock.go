@@ -160,20 +160,12 @@ func add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
 
 func Check_finish(Lst_req *list.List) bool {
 	Last := Lst_req.Back()
-	//	fmt.Printf("%#v\n", Last)
-	//	fmt.Printf("%#v\n", Last.Value)
-	//	fmt.Println(Last.Type.(Lst_req_sock))
-	if Last != nil {
+
+	if Last.Value.(Lst_req_sock).NbrPack == (Last.Value.(Lst_req_sock).NumPack - 1) {
 		return true
 	} else {
-		return true // normalement false ici
+		return false // normalement false ici
 	}
-	//	if Last.NbrPack == Last.NumPack {
-	//		return true
-	//	} else {
-	//		return false
-	//	}
-	//	return false
 }
 
 func Get_answer(Lst_req *list.List) (answer []byte) {
@@ -216,6 +208,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 		if err != nil {
 			return
 		}
+		answer := buff
 		err = check_checksum(buff)
 		if err != nil {
 			fmt.Println(err)
@@ -236,12 +229,15 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 		//si c'est le cas recupere une reponse
 		//si c'est pas le cas envoi un acknoldgement.
 		if Check_finish(Lst_req) == true {
-			answer := Get_answer(Lst_req)
+			//			answer := Get_answer(Lst_req)
+			fmt.Println(answer)
 			conn.Write(answer)
 		} else {
-			answer := Get_aknowledgement(Lst_req)
+			//			answer := Get_aknowledgement(Lst_req)
+			fmt.Println(answer)
 			conn.Write(answer)
 		}
+		answer = nil
 		buff = nil
 	}
 }
