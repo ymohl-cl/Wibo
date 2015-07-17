@@ -14,6 +14,7 @@ package ballon
 
 import (
 	"container/list"
+	"fmt"
 	"owm"
 	"users"
 )
@@ -62,7 +63,15 @@ type All_ball struct {
 }
 
 func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
-	// Create all checkpoint
+	var station owm.Weather_data
+	for _, elem := range Lst_wd.Tab_wd {
+		if elem.Station_name == "Paris" {
+			station = elem
+			break
+		}
+	}
+	fmt.Println(station)
+
 	return nil
 }
 

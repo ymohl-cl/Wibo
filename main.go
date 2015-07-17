@@ -29,16 +29,17 @@ import (
 
 func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	channelfuncweatherdata := make(chan bool)
-	channelfunccheckpointball := make(chan bool)
-	defer close(channelfunccheckpointball)
+	channelfuncmoveball := make(chan bool)
+	defer close(channelfuncmoveball)
 	defer close(channelfuncweatherdata)
 
 	go func() {
 		for {
 			select {
-			case <-time.After(3600 * time.Second):
+			case <-time.After(3 * time.Hour):
 				channelfuncweatherdata <- true
-				channelfunccheckpointball <- true
+			case <-time.After(5 * time.Minute):
+				channelfuncmoveball <- true
 			}
 		}
 	}()
@@ -53,19 +54,19 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 				} else {
 					Tab_wd.Print_weatherdata()
 				}
-			}
-		case <-channelfunccheckpointball:
-			{
-				err := Lst_ball.Create_checkpoint(Tab_wd)
+				err = Lst_ball.Create_checkpoint(Tab_wd)
 				if err != nil {
 					fmt.Println(err)
 				} else {
 					Lst_ball.Print_all_balls()
 				}
 			}
+		case <-channelfuncmoveball:
+			{
+				fmt.Println("move coord on next checkpoint")
+			}
 		}
 	}
-	fmt.Println("End manage_goroutines()\n")
 }
 
 func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball) error {
@@ -95,6 +96,15 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Lst_ball.Print_all_balls()
 	}
+
+	// Get first list checkpoints ball
+	err = Lst_ball.Create_checkpoint(Tab_wd)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		Lst_ball.Print_all_balls()
+	}
+
 	return nil
 }
 
