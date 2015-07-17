@@ -17,9 +17,9 @@
 package owm
 
 import (
-	//	"encoding/json"
+	"encoding/json"
 	"fmt"
-	//	"net/http"
+	"net/http"
 )
 
 type Wind struct {
@@ -44,17 +44,17 @@ type All_data struct {
 }
 
 func (Tab_wd *All_data) Update_weather_data() error {
-	/*	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-180,-90,180,90,10&cluster=yes`)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer resp.Body.Close()
-		err = json.NewDecoder(resp.Body).Decode(&Tab_wd)
-		if err != nil {
-			return err
-		} else {
-			return nil
-		}*/
+	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-90,-180,90,180,10&cluster=yes`)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&Tab_wd)
+	if err != nil {
+		return err
+	} else {
+		return nil
+	}
 	return nil
 }
 
@@ -68,5 +68,5 @@ func (Tab_wd *All_data) Print_weatherdata() {
 		fmt.Println(elem.Wind)
 		fmt.Println("--------------------")
 	}
-	fmt.Println("nombre de stations: %d\n", index)
+	fmt.Println("nombre de stations: %d", index)
 }
