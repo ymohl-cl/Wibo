@@ -15,7 +15,7 @@ package ballon
 import (
 	"container/list"
 	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/users"
+	"github.com/Wibo/src/usr"
 )
 
 /* Type is define to know a style/type message, test:1 / photo:2 / other:3

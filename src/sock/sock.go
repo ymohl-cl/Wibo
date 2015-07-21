@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/Wibo/src/users"
+	"github.com/Wibo/src/usr"
 	"net"
 )
 
