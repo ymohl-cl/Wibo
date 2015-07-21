@@ -3,13 +3,14 @@ package usr
 
 import (
 	"container/list"
-	"fmt"
-	//"github.com/Wibo/src/db"
+	//"fmt"
+	"github.com/Wibo/src/db"
 )
 
 /*
 ** Log is a last signal to device
  */
+
 type User struct {
 	Device  int64
 	Login   string
@@ -49,7 +50,7 @@ func checkErr(err error) {
 	}
 }
 
-func initUser(uid int64, login string, mail string) *User {
+func (Lst_users *All_users) initUser(uid int64, login string, mail string) *User {
 	t := new(User)
 	t.id_user = uid
 	t.Login = login
@@ -58,19 +59,19 @@ func initUser(uid int64, login string, mail string) *User {
 }
 
 // Get all users
-func (Lst_users *All_users) Get_users(m *Env) error {
+func (Lst_users *All_users) Get_users() error {
 
 	var err error
-	lUser := User.New()
-	rows, err := m.Db.Query("SELECT id_user, login, mail FROM \"user\";")
+	//	lUser := All_users{}
+	rows, err := db.Db.Query("SELECT id_user, login, mail FROM \"user\";")
 	for rows.Next() {
 		var idUser int64
 		var login string
 		var mail string
 		err = rows.Scan(&idUser, &login, &mail)
 		checkErr(err)
-		lUser.PushBack(initUser(idUser, login, mail))
+		//lUser.List.PushBack(lUser.initUser(idUser, login, mail))
 	}
-	Lst_users = lUser
+	//	Lst_users lUser
 	return nil
 }

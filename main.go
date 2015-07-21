@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Wibo/src/db"
-	"github.com/Wibo/src/usr"
+	//"github.com/Wibo/src/usr"
 	//	"net/http"
 	"os"
 	"time"
@@ -65,5 +65,7 @@ func main() {
 	}*/
 	//http.Handler("/", db.Handler{env, db.GetIndex})
 	lUser := list.New()
-	err = lUser.Get_users(env)
+	fmt.Println(lUser)
+	fmt.Println(env)
+	//	err = lUser.initUser(1, "toto", "totomail")
 }
