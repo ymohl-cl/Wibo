@@ -64,6 +64,6 @@ func main() {
 		time.Sleep(time.Second * 30)
 	}*/
 	//http.Handler("/", db.Handler{env, db.GetIndex})
-	lUser := list.New(usr.All_users)
-	err = usr.Get_users(env)
+	lUser := list.New()
+	err = lUser.Get_users(env)
 }
