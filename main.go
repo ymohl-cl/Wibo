@@ -17,12 +17,12 @@ package main
 
 import (
 	"ballon"
-	"sock"
-	//	"container/list"
+	"container/list"
 	"fmt"
 	"net/http"
 	"owm"
 	"request"
+	"sock"
 	"time"
 	"users"
 )
@@ -64,6 +64,10 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 		case <-channelfuncmoveball:
 			{
 				fmt.Println("move coord on next checkpoint")
+				err := Lst_ball.Move_ball()
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
 		}
 	}
@@ -89,6 +93,8 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	}
 
 	// Get first list ballon with their follower
+
+	Lst_ball.Lst = list.New()
 	err = Lst_ball.Get_balls(Lst_users)
 	if err != nil {
 		fmt.Println(err)
@@ -96,6 +102,19 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Lst_ball.Print_all_balls()
 	}
+	// to test with one ball
+	tmp_lst := list.New()
+	var check_test ballon.Checkpoints
+	check_test.Coord.Longitude = 48.833086
+	check_test.Coord.Latitude = 2.316055
+
+	check_test.Date = 0
+	var my_ball = ballon.Ball{"toto", nil, ballon.Wind{}, list.New(), 0, list.New(), nil, users.All_users{}, nil, nil}
+	my_ball.Coord = tmp_lst.PushBack(check_test)
+	fmt.Println("Debug to get checkpoint coord")
+	fmt.Println(my_ball.Coord.Value)
+
+	Lst_ball.Add_new_ballon(my_ball)
 
 	// Get first list checkpoints ball
 	err = Lst_ball.Create_checkpoint(Tab_wd)
@@ -127,7 +146,6 @@ func main() {
 	if err != nil {
 		return
 	}
-
 	go Manage_goroutines(Tab_wd, Lst_ball)
 
 	request.Init_handle_request()

@@ -7,13 +7,11 @@
 package request
 
 import (
-	"fmt"
-	//	"html"
-	"net/http"
-	//	"net/url"
 	"ballon"
-	//	"container/list"
+	"container/list"
 	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 func Manage_request(w http.ResponseWriter, req *http.Request) {
@@ -22,9 +20,20 @@ func Manage_request(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(m)
 	fmt.Println(m.Encode())
 
+	// to test with one ball
+	tmp_lst := list.New()
+	var check_test ballon.Checkpoints
+	check_test.Coord.Longitude = 2.316055
+	check_test.Coord.Latitude = 48.833086
+	check_test.Date = 0
+
 	Lst_test := [2]ballon.Ball{}
-	bal1 := ballon.Ball{Name: "toto", Coord: ballon.Coordinates{Longitude: 10.1, Latitude: 11.1}}
-	bal2 := ballon.Ball{Name: "tata", Coord: ballon.Coordinates{Longitude: 42.1, Latitude: 13.1}}
+	bal1 := ballon.Ball{Name: "toto"}
+	bal2 := ballon.Ball{Name: "tata"}
+
+	bal1.Coord = tmp_lst.PushBack(check_test)
+	bal2.Coord = bal1.Coord
+
 	Lst_test[0] = bal1
 	Lst_test[1] = bal2
 
