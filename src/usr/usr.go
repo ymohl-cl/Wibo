@@ -4,7 +4,7 @@ package usr
 import (
 	"container/list"
 	"fmt"
-	"github.com/Wibo/src/db"
+	//"github.com/Wibo/src/db"
 )
 
 /*
@@ -52,7 +52,7 @@ func checkErr(err error) {
 func initUser(uid int64, login string, mail string) *User {
 	t := new(User)
 	t.id_user = uid
-	t.login = login
+	t.Login = login
 	t.mail = mail
 	return (t)
 }
@@ -61,12 +61,8 @@ func initUser(uid int64, login string, mail string) *User {
 func (Lst_users *All_users) Get_users(m *Env) error {
 
 	var err error
-	lUser := list.New(All_users)
+	lUser := User.New()
 	rows, err := m.Db.Query("SELECT id_user, login, mail FROM \"user\";")
-	if err != nil {
-		fmt.Println("error All Users")
-		return err
-	}
 	for rows.Next() {
 		var idUser int64
 		var login string

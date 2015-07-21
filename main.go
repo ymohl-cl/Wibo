@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"database/sql"
 	"fmt"
 	"github.com/Wibo/src/db"
@@ -63,6 +64,6 @@ func main() {
 		time.Sleep(time.Second * 30)
 	}*/
 	//http.Handler("/", db.Handler{env, db.GetIndex})
-	lUser := listNew(usr.All_users)
+	lUser := list.New(usr.All_users)
 	err = usr.Get_users(env)
 }
