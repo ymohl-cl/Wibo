@@ -3,6 +3,7 @@
 package sock
 
 import (
+	"answer"
 	"bytes"
 	"container/list"
 	"encoding/binary"
@@ -35,10 +36,6 @@ type Lst_req_sock struct {
 	NumPack  int32
 	IdMobile int64
 	Union    interface{}
-}
-
-func check_checksum(buff []byte) error {
-	return nil
 }
 
 func Take_position(TypBuff *bytes.Buffer) (Pos Position, er error) {
@@ -168,14 +165,6 @@ func Check_finish(Lst_req *list.List) bool {
 	}
 }
 
-func Get_answer(Lst_req *list.List) (answer []byte) {
-	return answer
-}
-
-func Get_aknowledgement(Lst_req *list.List) (answer []byte) {
-	return answer
-}
-
 func Print_token_debug(Token Lst_req_sock) {
 	fmt.Println(Token.NbrOctet)
 	fmt.Println(Token.Type)
@@ -208,12 +197,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 		if err != nil {
 			return
 		}
-		answer := buff
-		err = check_checksum(buff)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		//answer := buff
 		// Ajoute le message a la liste.
 		//		fmt.Println(buff)
 		fmt.Println("New request:")
@@ -229,12 +213,12 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 		//si c'est le cas recupere une reponse
 		//si c'est pas le cas envoi un acknoldgement.
 		if Check_finish(Lst_req) == true {
-			//			answer := Get_answer(Lst_req)
-			fmt.Println(answer)
+			answer := answer.Get_answer(Lst_req, Lst_users)
+			//			fmt.Println(answer)
 			conn.Write(answer)
 		} else {
-			//			answer := Get_aknowledgement(Lst_req)
-			fmt.Println(answer)
+			answer := answer.Get_aknowledgement(Lst_req, Lst_users)
+			//			fmt.Println(answer)
 			conn.Write(answer)
 		}
 		answer = nil
