@@ -20,7 +20,7 @@ type User struct {
 }
 
 type All_users struct {
-	Lst_users list.List
+	Lst_users *list.List
 }
 
 func (User *User) User_is_online() bool {
@@ -50,7 +50,7 @@ func checkErr(err error) {
 	}
 }
 
-func (Lst_users *All_users) initUser(uid int64, login string, mail string) *User {
+func initUser(uid int64, login string, mail string) *User {
 	t := new(User)
 	t.id_user = uid
 	t.Login = login
@@ -62,7 +62,7 @@ func (Lst_users *All_users) initUser(uid int64, login string, mail string) *User
 func (Lst_users *All_users) Get_users() error {
 
 	var err error
-	//	lUser := All_users{}
+	//	lUser := User{}
 	rows, err := db.Db.Query("SELECT id_user, login, mail FROM \"user\";")
 	for rows.Next() {
 		var idUser int64
@@ -70,7 +70,7 @@ func (Lst_users *All_users) Get_users() error {
 		var mail string
 		err = rows.Scan(&idUser, &login, &mail)
 		checkErr(err)
-		//lUser.List.PushBack(lUser.initUser(idUser, login, mail))
+		//	lUser.PushBack(initUser(idUser, login, mail))
 	}
 	//	Lst_users lUser
 	return nil
