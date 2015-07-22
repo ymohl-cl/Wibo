@@ -14,12 +14,12 @@ import (
 
 type History struct {
 	Date            time.Time
-	Type_req_client int32
+	Type_req_client int16
 }
 
 type Device struct {
 	IdMobile    int64
-	history_req *list.List //type history
+	History_req *list.List //type history
 }
 
 type User struct {
