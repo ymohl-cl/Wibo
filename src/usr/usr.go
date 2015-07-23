@@ -22,8 +22,7 @@ type User struct {
 }
 
 type All_users struct {
-	Lst_users  *list.List
-	next, prev *All_users
+	Lst_users *list.List
 }
 
 func (User *User) User_is_online() bool {
