@@ -2,8 +2,9 @@ package client
 
 import (
 	"container/list"
+	"database/sql"
 	"fmt"
-	"github.com/Wibo/src/db"
+	//"github.com/Wibo/src/db"
 )
 
 type User struct {
@@ -24,7 +25,7 @@ func checkErr(err error) {
 func Get_users() {
 	// Get all users
 	var err error
-	Db, err := db.OpenCo(err)
+	Db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=49155")
 	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\";")
 	if err != nil {
 		return
@@ -34,10 +35,9 @@ func Get_users() {
 		var login string
 		var mail string
 		err = rows.Scan(&id_user, &login, &mail)
-		checkErr(err)
 
 		fmt.Println("idUser | username |  mail ")
-		fmt.Println(id_user, login, mail)
+		fmt.Printf("+%v %v %v", id_user, login, mail)
 	}
-	return rows
+	return
 }

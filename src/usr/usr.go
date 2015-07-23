@@ -3,8 +3,10 @@ package usr
 
 import (
 	"container/list"
-	//"fmt"
+	//"database/sql"
+	"fmt"
 	"github.com/Wibo/src/db"
+	_ "github.com/lib/pq"
 )
 
 /*
@@ -20,7 +22,8 @@ type User struct {
 }
 
 type All_users struct {
-	Lst_users *list.List
+	Lst_users  *list.List
+	next, prev *All_users
 }
 
 func (User *User) User_is_online() bool {
@@ -39,8 +42,13 @@ func (Lst_users *All_users) Add_new_user(new_user *User) {
 	return
 }
 
-func (Lst_users *All_users) Print_users() {
+func (LstU *All_users) Print_users() {
 	// Print All_users
+	i := 0
+	for e := LstU.Lst_users.Front(); e != nil; e = e.Next() {
+		fmt.Printf("%v \n", e.Value.(User).mail)
+		i++
+	}
 	return
 }
 
@@ -59,19 +67,23 @@ func initUser(uid int64, login string, mail string) *User {
 }
 
 // Get all users
-func (Lst_users *All_users) Get_users() error {
+func (Lusr *All_users) Get_users() error {
 
 	var err error
-	//	lUser := User{}
-	rows, err := db.Db.Query("SELECT id_user, login, mail FROM \"user\";")
+	lUser := list.New()
+	//Db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=49155")
+	checkErr(err)
+	fmt.Printf("%v ", db.Env)
+	/*rows, err := db.Db.Query("SELECT id_user, login, mail FROM \"user\";")
+	checkErr(err)
 	for rows.Next() {
 		var idUser int64
 		var login string
-		var mail string
-		err = rows.Scan(&idUser, &login, &mail)
+		var mailq string
+		err = rows.Scan(&idUser, &login, &mailq)
 		checkErr(err)
-		//	lUser.PushBack(initUser(idUser, login, mail))
+		lUser.PushBack(User{Login: login, id_user: idUser, mail: mailq})
 	}
-	//	Lst_users lUser
-	return nil
+	Lusr.Lst_users.PushFrontList(lUser)
+	*/return nil
 }

@@ -2,20 +2,14 @@ package main
 
 import (
 	"container/list"
-	"database/sql"
 	"fmt"
 	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/usr"
 	//	"net/http"
-	"os"
+	//	"os"
+	//"log"
 	"time"
 )
-
-type Env struct {
-	Db   *sql.DB
-	Port string
-	Host string
-}
 
 func calcul_ballon() {
 	fmt.Println("Calcul position ball")
@@ -49,15 +43,11 @@ func main() {
 	//	go test1()
 	//	go test2()
 	var err error
-	Dbl, err := db.OpenCo(err)
+	DbI = new(db.Env)
+
+	_, err = DbI.OpenCo(err)
 	checkErr(err)
 	// Initialise our app-wide environment with the services/info we need.
-	env := Env{
-		Db:   Dbl,
-		Port: os.Getenv("PORT"),
-		Host: os.Getenv("HOST"),
-	}
-	defer Dbl.Close()
 	//usr.Get_users()
 	/*	for {
 		fmt.Println("manage server")
@@ -66,6 +56,8 @@ func main() {
 	//http.Handler("/", db.Handler{env, db.GetIndex})
 	my_users := new(usr.All_users)
 	my_users.Lst_users = list.New()
-	my_users.initUser(1, "toto", "totomail")
-	fmt.Println(env)
+	my_users.Get_users()
+	fmt.Println(my_users.Lst_users.Len())
+	my_users.Print_users()
+	//defer Db.Close()
 }

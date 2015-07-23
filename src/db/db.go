@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+type Env struct {
+	Db   *sql.DB
+	Port string
+	Host string
+}
+
 // Error represents a handler error. It provides methods for a HTTP status
 // code and embeds the built-in error interface.
 type Error interface {
@@ -77,7 +83,6 @@ func (m *Env) OpenCo(error) (*sql.DB, error) {
 	if err != nil {
 		return Db, errors.New("No db.driver found")
 	}
-	defer Db.Close()
 	m.Db = Db
 	return Db, err
 }
