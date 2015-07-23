@@ -3,15 +3,12 @@
 //#                                                       :::      ::::::::    #
 //#  main.go                                            :+:      :+:    :+:    #
 //#                                                   +:+ +:+         +:+      #
-//#  By: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
+//#  by: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
 //#                                               +#+#+#+#+#+   +#+            #
-//#  Created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
-//#  Updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
+//#  created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
+//#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
 //#                                                                            #
 //# ************************************************************************** #
-
-// ** Creer un nouveau fil pour effectuer un membre de fonction qui va creer un fichier
-// ** avec le nom de la date et heure de creation et la sauvegarde as log.
 
 package main
 
@@ -27,6 +24,14 @@ import (
 	"users"
 )
 
+/*
+** Manage_goroutines va gerer les differentes processus endormis
+** qui effectueront des taches tous les X temps.
+** Synchronisation des datas des vents toutes les 3 heures
+** Deplacement des ballons grace au pre calcul de checkpoint toutes les 5 minutes
+** Creation de checkpoint toutes les 3 heures.
+** !! Viendra la synchronisation du cache dans la base de donnee tous les X temps !!
+ */
 func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	channelfuncweatherdata := make(chan bool)
 	channelfuncmoveball := make(chan bool)
@@ -35,12 +40,14 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 
 	go func() {
 		for {
-			select {
-			case <-time.After(3 * time.Hour):
-				channelfuncweatherdata <- true
-			case <-time.After(5 * time.Minute):
-				channelfuncmoveball <- true
-			}
+			time.Sleep(5 * time.Minute)
+			channelfuncmoveball <- true
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(3 * time.Hour)
+			channelfuncweatherdata <- true
 		}
 	}()
 
@@ -63,7 +70,6 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 			}
 		case <-channelfuncmoveball:
 			{
-				fmt.Println("move coord on next checkpoint")
 				err := Lst_ball.Move_ball()
 				if err != nil {
 					fmt.Println(err)
@@ -73,8 +79,14 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	}
 }
 
-func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball) error {
-	// Get first array data
+/*
+** Init_all initialise toutes les datas en recuperant celles presentes dans la base de donnee
+** 1: On recupere les datas des vents.
+** 2: On recupere la liste des utilisateurs dans la base de donnee.
+** 3: On recupere la liste des ballons dans la base de donnee et on y attache les users concernes par le ballon
+** 4: On cree la liste des checkpoints pour chaque ballon.
+ */
+func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball) error {
 	err := Tab_wd.Update_weather_data()
 	if err != nil {
 		fmt.Println(err)
@@ -82,8 +94,6 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Tab_wd.Print_weatherdata()
 	}
-
-	// Get first list user
 	err = Lst_users.Get_users()
 	if err != nil {
 		fmt.Println(err)
@@ -91,9 +101,6 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Lst_users.Print_users()
 	}
-
-	// Get first list ballon with their follower
-
 	Lst_ball.Lst = list.New()
 	err = Lst_ball.Get_balls(Lst_users)
 	if err != nil {
@@ -102,47 +109,46 @@ func init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Lst_ball.Print_all_balls()
 	}
-	// to test with one ball
+
+	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
 	var check_test ballon.Checkpoints
 	check_test.Coord.Longitude = 48.833086
 	check_test.Coord.Latitude = 2.316055
-
-	check_test.Date = 0
-	var my_ball = ballon.Ball{"toto", nil, ballon.Wind{}, list.New(), 0, list.New(), nil, users.All_users{}, nil, nil}
+	check_test.Date = time.Now()
+	var my_ball = ballon.Ball{Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: list.New(), Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
 	my_ball.Coord = tmp_lst.PushBack(check_test)
 	fmt.Println("Debug to get checkpoint coord")
 	fmt.Println(my_ball.Coord.Value)
-
 	Lst_ball.Add_new_ballon(my_ball)
+	/* FIN DE LA CREATION DEBALLON POUR TEST */
 
-	// Get first list checkpoints ball
 	err = Lst_ball.Create_checkpoint(Tab_wd)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		Lst_ball.Print_all_balls()
 	}
-
 	return nil
 }
 
 /*
-** Les requetes sont utilise que pour recuperer la positon
-** des ballons autour de la position recu.
-** Si il y a une modification sur un ballon, envoyer une
-** requetes a toutes les client encore ON en HTTP ou en socket
-** si elle est encore ouverte.
-** Les socket sont utilisees pour tous les autres types
-** de communications.
+** Les 3 datats essentielle sont instancie dans le main
+** Tab_wd contient toutes les WEATHER DATA
+** Lst_users contients tous les utilisateurs
+** La liste ballon contient tous les ballons
+** Ont initialise nos 3 datas
+** On lance les goroutines
+** On initialise la reception de requete http (Pour le moment non utilise)
+** On initialise la reception de requete socket (Actuellement utilise)
+** Et on a une boucle for qui empeche la fermeture du programme.
  */
-
 func main() {
 	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
 	Lst_ball := new(ballon.All_ball)
 
-	err := init_all(Tab_wd, Lst_users, Lst_ball)
+	err := Init_all(Tab_wd, Lst_users, Lst_ball)
 	if err != nil {
 		return
 	}
@@ -153,7 +159,6 @@ func main() {
 	go sock.Listen(Lst_users)
 
 	for {
-		fmt.Println("manage server")
 		time.Sleep(time.Second * 60)
 	}
 }

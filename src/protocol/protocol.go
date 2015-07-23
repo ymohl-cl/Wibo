@@ -1,4 +1,14 @@
-// Header
+//# ************************************************************************** #
+//#                                                                            #
+//#                                                       :::      ::::::::    #
+//#  protocol.go                                        :+:      :+:    :+:    #
+//#                                                   +:+ +:+         +:+      #
+//#  By: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
+//#                                               +#+#+#+#+#+   +#+            #
+//#  Created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
+//#  Updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
+//#                                                                            #
+//# ************************************************************************** #
 
 package protocol
 
@@ -36,14 +46,13 @@ type Lst_req_sock struct {
 	Union    interface{}
 }
 
+/* Take_position est le decodeur de type 1 */
 func Take_position(TypBuff *bytes.Buffer) (Pos Position, er error) {
-	// Get Longitute
 	err := binary.Read(TypBuff, binary.BigEndian, &Pos.Longitude)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on Pos longitute")
 		return Pos, er
 	}
-	// Get Type Latitude
 	err = binary.Read(TypBuff, binary.BigEndian, &Pos.Latitude)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on Pos latitude")
@@ -52,8 +61,8 @@ func Take_position(TypBuff *bytes.Buffer) (Pos Position, er error) {
 	return Pos, er
 }
 
+/* Take_ball est le decodeur de type 2, 3, et 4 */
 func Take_ball(TypBuff *bytes.Buffer) (Id Id_ballon, er error) {
-	// Get Type Latitude
 	err := binary.Read(TypBuff, binary.BigEndian, &Id.IdBallon)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on ID_ballon")
@@ -62,8 +71,8 @@ func Take_ball(TypBuff *bytes.Buffer) (Id Id_ballon, er error) {
 	return Id, er
 }
 
+/* TaKe_newBall est le decodeur de type 5 */
 func Take_newBall(TypBuff *bytes.Buffer) (Ball Ballon, er error) {
-	// Get Title
 	var err error
 	Ball.Title, err = TypBuff.ReadString(0)
 	fmt.Println(len(Ball.Title))
@@ -72,22 +81,18 @@ func Take_newBall(TypBuff *bytes.Buffer) (Ball Ballon, er error) {
 		return Ball, er
 	}
 	TypBuff.Next((16 - len(Ball.Title)))
-	// Get Longitude_user
 	err = binary.Read(TypBuff, binary.BigEndian, &Ball.Longitude_user)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on Ball longitute")
 		return Ball, er
 	}
-	// Get Latitude_user
 	err = binary.Read(TypBuff, binary.BigEndian, &Ball.Latitude_user)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on Ball latitude")
 		return Ball, er
 	}
 	TypBuff.Next(8)
-	// Get Message
 	Ball.Message, err = TypBuff.ReadString(0)
-	fmt.Println(len(Ball.Message))
 	if 1 == len(Ball.Message) {
 		er = errors.New("Add content from socket error, ReadString return error on Ball.Message")
 		return Ball, er
@@ -95,41 +100,40 @@ func Take_newBall(TypBuff *bytes.Buffer) (Ball Ballon, er error) {
 	return Ball, er
 }
 
+/*
+** Add_content recupere le contenu du header de la requete recu dans buff et
+** l'analyse pour creer une requete exploitable par le serveur, en appelant
+** le decodeur du type specifier dans le header (Voir protocole Wibo sur trello)
+ */
 func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
 	TypBuff := bytes.NewBuffer(buff)
 
-	// Get NbrOctet
 	err := binary.Read(TypBuff, binary.BigEndian, &Token.NbrOctet)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on NbrOctet")
 		return Token, er
 	}
-	// Get Type request
 	err = binary.Read(TypBuff, binary.BigEndian, &Token.Type)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on Type request")
 		return Token, er
 	}
 	TypBuff.Next(4)
-	// Get NbrPacket
 	err = binary.Read(TypBuff, binary.BigEndian, &Token.NbrPack)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on NbrPack")
 		return Token, er
 	}
-	// Get NumPacket
 	err = binary.Read(TypBuff, binary.BigEndian, &Token.NumPack)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on NumPack")
 		return Token, er
 	}
-	// Get IdMobile
 	err = binary.Read(TypBuff, binary.BigEndian, &Token.IdMobile)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on IdMobile")
 		return Token, er
 	}
-	// Get next content on the buffer
 	switch Token.Type {
 	case 1:
 		Token.Union, er = Take_position(TypBuff)
@@ -147,22 +151,23 @@ func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
 			return Token, er
 		}
 	}
-	//	if Token.IdMobile != user.Device {
-	//		return nil
-	//	}
 	return Token, nil
 }
 
+/*
+** Check_finish verifie si une requete est entierement recu.
+ */
 func Check_finish(Lst_req *list.List) bool {
 	Last := Lst_req.Back()
 
 	if Last.Value.(Lst_req_sock).NbrPack == (Last.Value.(Lst_req_sock).NumPack - 1) {
 		return true
 	} else {
-		return false // normalement false ici
+		return false
 	}
 }
 
+/* Fonction pour faire des prints de debug sur une requete recu */
 func Print_token_debug(Token Lst_req_sock) {
 	fmt.Println(Token.NbrOctet)
 	fmt.Println(Token.Type)

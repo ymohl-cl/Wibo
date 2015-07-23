@@ -1,6 +1,21 @@
-// Header
+//# ************************************************************************** #
+//#                                                                            #
+//#                                                       :::      ::::::::    #
+//#  answer.go                                          :+:      :+:    :+:    #
+//#                                                   +:+ +:+         +:+      #
+//#  By: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
+//#                                               +#+#+#+#+#+   +#+            #
+//#  Created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
+//#  Updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
+//#                                                                            #
+//# ************************************************************************** #
 
 package answer
+
+/*
+** Ce package est distine a creer la reponse au client en respectant le
+** protocole wibo definit dans le trello, rubrique tools.
+ */
 
 import (
 	"container/list"
@@ -11,8 +26,13 @@ import (
 	"users"
 )
 
-// History is a history requete that client make to the server
-// Log is a last connection requete sock
+/*
+** Check_user verifie l'existance de l'utilisateur dans la base a l'aide de
+** son ID_mobile. Si l'utilisateur existe pas, il le rajoute et demande une
+** insertion dans la base de donnee.
+** Cette fonction retourne l'utilisateur ou error si une anomalie c'est produite
+** Check_user ajoute egalement la requete a l'historique des requetes du Device
+ */
 func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User, err error) {
 	user := Lst_users.Lst_users.Front()
 	var device *list.Element
@@ -45,6 +65,10 @@ func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User,
 	return usr, nil
 }
 
+/*
+** Check_packets_list Verifie la validite des packets suivants en partant du
+** principe que le header du premier packet est valide (traitement multi-packet).
+ */
 func Check_packets_list(Req *list.Element) bool {
 	next := Req.Next()
 	tmp := Req
@@ -70,6 +94,9 @@ func Check_packets_list(Req *list.Element) bool {
 	return false
 }
 
+/*
+** Supprime une requete traite. Gere les multi-paquets
+ */
 func Del_request_done(Lst_req *list.List) {
 	elem := Lst_req.Front()
 	for elem != nil {
@@ -82,27 +109,36 @@ func Del_request_done(Lst_req *list.List) {
 	}
 }
 
+/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete. */
 func Manage_type_1(Req *list.Element, usr *users.User) (answer []byte) {
 	return answer
 }
 
+/* Manage_type_2 Remplie le buffer avec une reponse au type 2 de la requete. */
 func Manage_type_2(Req *list.Element, usr *users.User) (answer []byte) {
-
 	return answer
 }
 
+/* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete. */
 func Manage_type_3(Req *list.Element, usr *users.User) (answer []byte) {
 	return answer
 }
 
+/* Manage_type_4 Remplie le buffer avec une reponse au type 4 de la requete. */
 func Manage_type_4(Req *list.Element, usr *users.User) (answer []byte) {
 	return answer
 }
 
+/* Manage_type_5 Remplie le buffer avec une reponse au type 5 de la requete. */
 func Manage_type_5(Req *list.Element, usr *users.User) (answer []byte) {
 	return answer
 }
 
+/*
+** Get_answer fournis une reponse approprie a la requete du client,
+** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
+** de l'utilisateur et nettoiera le flux de requetes traites.
+ */
 func Get_answer(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, err error) {
 	Req := Lst_req.Front()
 	if Req == nil {
@@ -134,6 +170,9 @@ func Get_answer(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, er
 	return answer, err
 }
 
+/*
+** Get_acknowledgement creer un buffer pour confirmation au client et le rempli.
+ */
 func Get_aknowledgement(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, err error) {
 	return answer, err
 }
