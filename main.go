@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/usr"
-	//	"net/http"
-	//	"os"
-	//"log"
 	"time"
 )
 
@@ -43,9 +40,8 @@ func main() {
 	//	go test1()
 	//	go test2()
 	var err error
-	DbI = new(db.Env)
-
-	_, err = DbI.OpenCo(err)
+	myDb := new(db.Env)
+	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 	// Initialise our app-wide environment with the services/info we need.
 	//usr.Get_users()
@@ -53,11 +49,11 @@ func main() {
 		fmt.Println("manage server")
 		time.Sleep(time.Second * 30)
 	}*/
-	//http.Handler("/", db.Handler{env, db.GetIndex})
 	my_users := new(usr.All_users)
 	my_users.Lst_users = list.New()
-	my_users.Get_users()
+	my_users.Get_users(Db)
 	fmt.Println(my_users.Lst_users.Len())
 	my_users.Print_users()
-	//defer Db.Close()
+	//newUsr := my_users.NewUser("tstast", "tsta@mail.com", "passWord")
+	my_users.Del_user(newUsr, Db)
 }
