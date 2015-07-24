@@ -13,7 +13,7 @@
 package sock
 
 import (
-	"answer"
+	//	"answer"
 	"container/list"
 	"fmt"
 	"net"
