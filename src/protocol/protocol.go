@@ -22,8 +22,8 @@ import (
 )
 
 type Position struct {
-	Longitude float32
-	Latitude  float32
+	Longitude float64
+	Latitude  float64
 }
 
 type Id_ballon struct {
@@ -32,8 +32,8 @@ type Id_ballon struct {
 
 type Ballon struct {
 	Title          string
-	Longitude_user float32
-	Latitude_user  float32
+	Longitude_user float64
+	Latitude_user  float64
 	Message        string
 }
 
@@ -42,7 +42,7 @@ type Lst_req_sock struct {
 	Type     int16
 	NbrPack  int32
 	NumPack  int32
-	IdMobile int64
+	IdMobile int64 // Deviendra une string ou un buffer ..
 	Union    interface{}
 }
 

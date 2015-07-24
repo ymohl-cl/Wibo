@@ -14,6 +14,7 @@ package sock
 
 import (
 	"answer"
+	"ballon"
 	"container/list"
 	"fmt"
 	"net"
@@ -27,7 +28,7 @@ import (
 ** et ecoute a nouveau le client.
 ** conn.Read(buff) retourne la taille du buff et error
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users) {
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
 	Lst_req := list.New()
 	user := new(users.User)
 
@@ -51,7 +52,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 		}
 		Lst_req.PushBack(Token)
 		if protocol.Check_finish(Lst_req) == true {
-			awr, err := answer.Get_answer(Lst_req, Lst_users)
+			awr, err := answer.Get_answer(Lst_req, Lst_users, Lst_ball)
 			if err != nil {
 				fmt.Println(err)
 			} else {
@@ -75,7 +76,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 ** handleConnection va recuperer et repondre au requete du client jusqu'a
 ** arriver a un etat close.
  */
-func Listen(Lst_users *users.All_users) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		fmt.Println("Error listen:", err)
@@ -87,6 +88,6 @@ func Listen(Lst_users *users.All_users) {
 		if err != nil {
 			fmt.Println("Error Accept:", err)
 		}
-		go handleConnection(conn, Lst_users)
+		go handleConnection(conn, Lst_users, Lst_ball)
 	}
 }

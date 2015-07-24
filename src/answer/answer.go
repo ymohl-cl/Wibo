@@ -18,9 +18,13 @@ package answer
  */
 
 import (
+	"ballon"
+	"bytes"
 	"container/list"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand"
 	"protocol"
 	"time"
 	"users"
@@ -109,8 +113,65 @@ func Del_request_done(Lst_req *list.List) {
 	}
 }
 
-/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete. */
-func Manage_type_1(Req *list.Element, usr *users.User) (answer []byte) {
+func Write_header(Packet []byte, Len int16, Type int16, NbrPack int32, NumPack int32) (answer []byte) {
+	Buffer := bytes.NewBuffer(Packet)
+	binary.Write(Buffer, binary.BigEndian, Len)
+	binary.Write(Buffer, binary.BigEndian, Type)
+	Buffer.Next(4)
+	binary.Write(Buffer, binary.BigEndian, NbrPack)
+	binary.Write(Buffer, binary.BigEndian, NumPack)
+	answer = Buffer.Bytes()
+	return answer
+}
+
+func Write_in_buffer_type1(Req *list.Element, list_tmp *list.List) (answer []byte, Len int16) {
+	answer = make([]byte, 1024)
+	Buffer := bytes.NewBuffer(answer)
+
+	Buffer.Next(16)
+	binary.Write(Buffer, binary.BigEndian, list_tmp.Len())
+	Buffer.Next(4)
+	elem := list_tmp.Front()
+	for elem != nil {
+		ball := elem.Value.(ballon.Ball)
+		binary.Write(Buffer, binary.BigEndian, ball.Id_ball)
+		binary.Write(Buffer, binary.BigEndian, ball.Name)
+		Buffer.Next(16 - len(ball.Name))
+		binary.Write(Buffer, binary.BigEndian, ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude)
+		binary.Write(Buffer, binary.BigEndian, ball.Coord.Value.(ballon.Checkpoints).Coord.Latitude)
+		binary.Write(Buffer, binary.BigEndian, ball.Wind.Speed)
+		binary.Write(Buffer, binary.BigEndian, ball.Wind.Degress)
+	}
+	Len = (int16)(list_tmp.Len() * 64) // 64 octet par ballon
+	Len += 16                          // 16 octet du header
+	answer = Buffer.Bytes()
+	return answer, Len
+}
+
+/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete avec un maximum de 10 ballons. */
+func Manage_type_1(Req *list.Element, usr *users.User, Lst_ball *ballon.All_ball) (answer []byte) {
+	list_tmp := list.New()
+	elem := Lst_ball.Lst.Front()
+	for elem != nil {
+		Coord := elem.Value.(ballon.Ball).Coord.Value.(ballon.Checkpoints).Coord
+		if Coord.Longitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude+0.01 && Coord.Longitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude-0.01 && Coord.Latitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude+0.01 && Coord.Latitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude-0.01 {
+			list_tmp.PushFront(elem.Value.(ballon.Ball))
+		}
+		elem = elem.Next()
+	}
+	Len := Lst_ball.Lst.Len()
+	for Len > 10 {
+		elem := list_tmp.Front()
+		random := rand.Intn(Len)
+		for elem != nil && random > 0 {
+			elem = elem.Next()
+			random -= 1
+		}
+		list_tmp.Remove(elem)
+		Len -= 1
+	}
+	answer, LenPack := Write_in_buffer_type1(Req, list_tmp)
+	answer = Write_header(answer, LenPack, 1, 1, 0)
 	return answer
 }
 
@@ -139,7 +200,7 @@ func Manage_type_5(Req *list.Element, usr *users.User) (answer []byte) {
 ** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
 ** de l'utilisateur et nettoiera le flux de requetes traites.
  */
-func Get_answer(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, err error) {
+func Get_answer(Lst_req *list.List, Lst_usr *users.All_users, Lst_ball *ballon.All_ball) (answer []byte, err error) {
 	Req := Lst_req.Front()
 	if Req == nil {
 		fmt.Println("Error get answer")
@@ -151,7 +212,7 @@ func Get_answer(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, er
 		if Check_packets_list(Req) == true {
 			switch Req.Value.(protocol.Lst_req_sock).Type {
 			case 1:
-				answer = Manage_type_1(Req, usr)
+				answer = Manage_type_1(Req, usr, Lst_ball)
 			case 2:
 				answer = Manage_type_2(Req, usr)
 			case 3:

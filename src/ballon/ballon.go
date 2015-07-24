@@ -71,6 +71,7 @@ type Wind struct {
 ** Creator est l'user qui a creer le ballon.
  */
 type Ball struct {
+	Id_ball     int64
 	Name        string
 	Coord       *list.Element
 	Wind        Wind
@@ -144,6 +145,9 @@ func (elem Ball) Get_checkpointList(station owm.Weather_data) (test Ball) {
 		}
 		elem.Checkpoints.PushBack(Checkpoints{checkpoint, time.Now()})
 	}
+	elem.Wind.Speed = station.Wind.Speed
+	elem.Wind.Degress = station.Wind.Degress
+
 	/* CECI EST UN TEST DE FONCTIONNALITE */
 	elem.Print_list_checkpoints()
 	/* FIN DU TEST */
