@@ -40,6 +40,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 			return
 		}
 		fmt.Println("New request:")
+		answer := buff
 		Token, err := protocol.Add_content(buff, user)
 		if err != nil {
 			fmt.Println(err)
@@ -50,21 +51,22 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 			/* FIN DES TESTS */
 		}
 		Lst_req.PushBack(Token)
-		if protocol.Check_finish(Lst_req) == true {
-			awr, err := answer.Get_answer(Lst_req, Lst_users)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				conn.Write(awr)
-			}
-		} else {
-			awr, err := answer.Get_aknowledgement(Lst_req, Lst_users)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				conn.Write(awr)
-			}
-		}
+		//		if protocol.Check_finish(Lst_req) == true {
+		//			awr, err := answer.Get_answer(Lst_req, Lst_users)
+		//			if err != nil {
+		//				fmt.Println(err)
+		//			} else {
+		//				conn.Write(awr)
+		//			}
+		//		} else {
+		//			awr, err := answer.Get_aknowledgement(Lst_req, Lst_users)
+		//			if err != nil {
+		//				fmt.Println(err)
+		//			} else {
+		//				conn.Write(awr)
+		conn.Write(answer)
+		//			}
+		//		}
 		buff = nil
 	}
 }
