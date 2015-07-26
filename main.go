@@ -54,6 +54,6 @@ func main() {
 	my_users.Get_users(Db)
 	fmt.Println(my_users.Lst_users.Len())
 	my_users.Print_users()
-	//newUsr := my_users.NewUser("tstast", "tsta@mail.com", "passWord")
+	newUsr := my_users.SelectUser(17, Db)
 	my_users.Del_user(newUsr, Db)
 }

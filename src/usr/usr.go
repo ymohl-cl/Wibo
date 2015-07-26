@@ -39,14 +39,12 @@ func (User *User) User_is_online() bool {
 * Delete user from id and mail
 *	TODO: del device
 **/
-func (Lst_users *All_users) Del_user(del_user *User) {
-	var err error
-	tblname := "user"
-	_, err = Db.Exec(
-		fmt.Sprint("DELETE FROM  \"%s\" WHERE user.id_user=$1 HAVING user.mail=$2", tblname),
-		del_user.Id_user, del_user.Mail)
+func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
+	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
+	_, err := stm.Exec(del_user.Id_user)
 	checkErr(err)
-	return
+	executed = true
+	return executed, err
 }
 
 /**
@@ -65,20 +63,24 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) {
 	return
 }
 
-func (LstU *All_users) Select_user(idUser int64, Db *sql.DB) *User {
+/**
+* SelectUser
+* Create an instance of an User with their data with some Id
+* return an instance User
+ */
+
+func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	var err error
-	tblname := "user"
-	row, err = Db.Exec(fmt.Sprintf("SELECT user.id_user, user.login, user.lastlogin, user.creationdate, user.mail FROM \"%s\" WHERE user.id_user=$1", tblname), idUser)
+	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	for rows.Next() {
 		var idUser int64
 		var login string
 		var mailq string
-		var creationdate string
-		var lastlogin string
-		err = rows.Scan(&idUser, &login, &mailq, &creationdate, &lastlogin)
+		err = rows.Scan(&idUser, &login, &mailq)
 		checkErr(err)
-		return initUser(login, idUser, mailq)
+		return initUser(idUser, login, mailq)
 	}
+	return nil
 }
 
 /**
