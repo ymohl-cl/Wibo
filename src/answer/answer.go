@@ -30,6 +30,62 @@ import (
 	"users"
 )
 
+type InfoBall struct {
+	Id    int64
+	Title string
+	Lon   float64
+	Lat   float64
+	Wins  float64
+	Wind  float64
+}
+
+type Pack6 struct {
+	NbrBall int32
+	Ifball  *list.List
+}
+
+type Message struct {
+	Idmess    int32
+	Size      int32
+	Idcountry int32
+	Idcity    int32
+	Message   string
+	Type_     int32
+}
+
+type Pack7 struct {
+	Nbruser int32
+	NbrMess int32
+	Mess    *list.List
+}
+
+type Acknow struct {
+	Typeack  int32
+	Status   int32
+	Idball   int64
+	IdMobile int64
+}
+
+type Header struct {
+	NbrOctet   int32
+	TypeReq    int32
+	NbrPackReq int32
+	NumPackReq int32
+}
+
+type Packet struct {
+	Head  Header
+	TPack interface{}
+}
+
+type Data struct {
+	Lst_req   *list.List
+	Lst_asw   *list.List
+	Lst_ball  *ballon.All_ball
+	Lst_users *users.All_users
+	User      users.User
+}
+
 /*
 ** Check_user verifie l'existance de l'utilisateur dans la base a l'aide de
 ** son ID_mobile. Si l'utilisateur existe pas, il le rajoute et demande une
@@ -37,23 +93,31 @@ import (
 ** Cette fonction retourne l'utilisateur ou error si une anomalie c'est produite
 ** Check_user ajoute egalement la requete a l'historique des requetes du Device
  */
-func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User, err error) {
+func Check_user(Req *list.Element, Lst_users *users.All_users) (usr users.User, err error) {
+	fmt.Println("Check_user")
 	user := Lst_users.Lst_users.Front()
+	fmt.Println(user)
 	var device *list.Element
 
 	for user != nil {
+		fmt.Println("user exist")
 		device = user.Value.(users.User).Device.Front()
+		fmt.Println("device.current")
 		for device != nil && device.Value.(users.Device).IdMobile != Req.Value.(protocol.Lst_req_sock).IdMobile {
+			fmt.Println("device.Next")
 			device = device.Next()
 		}
 		if device != nil {
+			fmt.Println("Break")
 			break
 		}
 		user = user.Next()
+		fmt.Println("user.Next")
 	}
+	fmt.Println("user no exist")
 	if user == nil {
-		usr = new(users.User)
-		hist_device := new(users.Device)
+		var usr users.User
+		var hist_device users.Device
 		usr.Device = list.New()
 		usr.Log = time.Now()
 		hist_device.IdMobile = Req.Value.(protocol.Lst_req_sock).IdMobile
@@ -61,11 +125,12 @@ func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User,
 		hist_device.History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
 		usr.Device.PushFront(hist_device)
 		Lst_users.Lst_users.PushBack(usr)
-		Lst_users.Add_new_user(usr)
+		Lst_users.Add_new_user(&usr)
 	} else {
 		device.Value.(users.Device).History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
 		usr.Log = time.Now()
 	}
+	fmt.Println("End Check_user")
 	return usr, nil
 }
 
@@ -79,10 +144,10 @@ func Check_packets_list(Req *list.Element) bool {
 	var nr protocol.Lst_req_sock
 	var tr protocol.Lst_req_sock
 
+	tr = tmp.Value.(protocol.Lst_req_sock)
 	for next != nil {
 		nr = next.Value.(protocol.Lst_req_sock)
-		tr = tmp.Value.(protocol.Lst_req_sock)
-		if tr.NbrPack == tr.NumPack-1 {
+		if tr.NbrPack == tr.NumPack+1 {
 			return true
 		} else if tr.Type != nr.Type {
 			return false
@@ -91,8 +156,9 @@ func Check_packets_list(Req *list.Element) bool {
 		}
 		next = next.Next()
 		tmp = tmp.Next()
+		tr = tmp.Value.(protocol.Lst_req_sock)
 	}
-	if tr.NbrPack == tr.NumPack-1 {
+	if tr.NbrPack == tr.NumPack+1 {
 		return true
 	}
 	return false
@@ -113,53 +179,76 @@ func Del_request_done(Lst_req *list.List) {
 	}
 }
 
-func Write_header(Packet []byte, Len int16, Type int16, NbrPack int32, NumPack int32) (answer []byte) {
-	Buffer := bytes.NewBuffer(Packet)
-	binary.Write(Buffer, binary.BigEndian, Len)
-	binary.Write(Buffer, binary.BigEndian, Type)
-	Buffer.Next(4)
-	binary.Write(Buffer, binary.BigEndian, NbrPack)
-	binary.Write(Buffer, binary.BigEndian, NumPack)
-	answer = Buffer.Bytes()
-	return answer
+func Write_header(answer Packet) (Buffer *bytes.Buffer) {
+	Buffer = new(bytes.Buffer)
+
+	binary.Write(Buffer, binary.BigEndian, answer.Head.NbrOctet)
+	binary.Write(Buffer, binary.BigEndian, answer.Head.TypeReq)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+	binary.Write(Buffer, binary.BigEndian, answer.Head.NbrPackReq)
+	binary.Write(Buffer, binary.BigEndian, answer.Head.NumPackReq)
+	return Buffer
 }
 
-func Write_in_buffer_type1(Req *list.Element, list_tmp *list.List) (answer []byte, Len int16) {
-	answer = make([]byte, 1024)
-	Buffer := bytes.NewBuffer(answer)
+func Write_type1(Req *list.Element, list_tmp *list.List) (buf []byte) {
+	fmt.Println("Write_type_1")
+	var answer Packet
+	var typesp Pack6
 
-	Buffer.Next(16)
-	binary.Write(Buffer, binary.BigEndian, list_tmp.Len())
-	Buffer.Next(4)
+	answer.Head.NbrOctet = 24
+	answer.Head.TypeReq = 6
+	answer.Head.NbrPackReq = 1
+	answer.Head.NumPackReq = 0
+	typesp.NbrBall = (int32)(list_tmp.Len())
+	typesp.Ifball = list_tmp
+	answer.TPack = typesp
 	elem := list_tmp.Front()
 	for elem != nil {
-		ball := elem.Value.(ballon.Ball)
-		binary.Write(Buffer, binary.BigEndian, ball.Id_ball)
-		binary.Write(Buffer, binary.BigEndian, ball.Name)
-		Buffer.Next(16 - len(ball.Name))
-		binary.Write(Buffer, binary.BigEndian, ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude)
-		binary.Write(Buffer, binary.BigEndian, ball.Coord.Value.(ballon.Checkpoints).Coord.Latitude)
-		binary.Write(Buffer, binary.BigEndian, ball.Wind.Speed)
-		binary.Write(Buffer, binary.BigEndian, ball.Wind.Degress)
+		answer.Head.NbrOctet += 56
+		elem = elem.Next()
 	}
-	Len = (int16)(list_tmp.Len() * 64) // 64 octet par ballon
-	Len += 16                          // 16 octet du header
-	answer = Buffer.Bytes()
-	return answer, Len
+	Buffer := Write_header(answer)
+	binary.Write(Buffer, binary.BigEndian, answer.TPack.(Pack6).NbrBall)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+	elem = answer.TPack.(Pack6).Ifball.Front()
+	for elem != nil {
+		ifb := elem.Value.(InfoBall)
+		binary.Write(Buffer, binary.BigEndian, ifb.Id)
+		Buffer.WriteString(ifb.Title)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(ifb.Title)))
+		binary.Write(Buffer, binary.BigEndian, ifb.Lon)
+		binary.Write(Buffer, binary.BigEndian, ifb.Lat)
+		binary.Write(Buffer, binary.BigEndian, ifb.Wins)
+		binary.Write(Buffer, binary.BigEndian, ifb.Wind)
+		elem = elem.Next()
+	}
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-answer.Head.NbrOctet))
+	buf = Buffer.Bytes()
+	fmt.Println(buf)
+	return buf
 }
 
-/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete avec un maximum de 10 ballons. */
-func Manage_type_1(Req *list.Element, usr *users.User, Lst_ball *ballon.All_ball) (answer []byte) {
+/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete avec un maximum de 10 ballons et de 1 packet par requete*/
+func Manage_type_1(Req *list.Element, Data *Data) {
 	list_tmp := list.New()
-	elem := Lst_ball.Lst.Front()
+
+	elem := Data.Lst_ball.Lst.Front()
 	for elem != nil {
 		Coord := elem.Value.(ballon.Ball).Coord.Value.(ballon.Checkpoints).Coord
 		if Coord.Longitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude+0.01 && Coord.Longitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude-0.01 && Coord.Latitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude+0.01 && Coord.Latitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude-0.01 {
-			list_tmp.PushFront(elem.Value.(ballon.Ball))
+			ball := elem.Value.(ballon.Ball)
+			var ifball InfoBall
+			ifball.Id = ball.Id_ball
+			ifball.Title = ball.Name
+			ifball.Lon = ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude
+			ifball.Lat = ball.Coord.Value.(ballon.Checkpoints).Coord.Latitude
+			ifball.Wins = ball.Wind.Speed
+			ifball.Wind = ball.Wind.Degress
+			list_tmp.PushFront(ifball)
 		}
 		elem = elem.Next()
 	}
-	Len := Lst_ball.Lst.Len()
+	Len := list_tmp.Len()
 	for Len > 10 {
 		elem := list_tmp.Front()
 		random := rand.Intn(Len)
@@ -170,29 +259,176 @@ func Manage_type_1(Req *list.Element, usr *users.User, Lst_ball *ballon.All_ball
 		list_tmp.Remove(elem)
 		Len -= 1
 	}
-	answer, LenPack := Write_in_buffer_type1(Req, list_tmp)
-	answer = Write_header(answer, LenPack, 1, 1, 0)
-	return answer
+	answer := Write_type1(Req, list_tmp)
+	Data.Lst_asw.PushBack(answer)
+}
+
+/*func Str_cut_n(str string, n int) (s1 string, s2 string) {
+	s1 = make(string)
+	s2 = ""
+	i := 0
+	for i < n {
+		s1 + 1 = str[i]
+		i++
+	}
+	j := 0
+	size := len(str)
+	for i < size {
+		s2[i] = str[j]
+		i++
+		j++
+	}
+	return s1, s2
+}*/
+
+func Cut_messagemultipack(pack Packet, msg Message) (tmp_lst *list.List) {
+	tmp_lst = list.New()
+	size := msg.Size
+
+	for size != 0 {
+		if 16+pack.Head.NbrOctet >= 1024 {
+			tmp_lst.PushBack(pack)
+			pack = Packet{}
+			typesp := Pack7{}
+			pack.Head.NbrOctet = 24
+			typesp.Mess = list.New()
+			pack.TPack = typesp
+		} else {
+			newMess := Message{}
+			if msg.Size+16+pack.Head.NbrOctet < 1024 {
+				pack.Head.NbrOctet += 16 + msg.Size
+				newMess.Size = msg.Size
+				newMess.Idmess = msg.Idmess
+				newMess.Idcountry = msg.Idcountry
+				newMess.Idcity = msg.Idcity
+				newMess.Message = msg.Message
+				newMess.Type_ = msg.Type_
+				pack.TPack.(Pack7).Mess.PushBack(newMess)
+				size -= msg.Size
+			} else {
+				newMess.Size = 1024 - pack.Head.NbrOctet - 16
+				size = size - newMess.Size
+				pack.Head.NbrOctet += 16 + newMess.Size
+				newMess.Idmess = msg.Idmess
+				newMess.Idcountry = msg.Idcountry
+				newMess.Idcity = msg.Idcity
+				//newMess.Message = n octets de la string
+				newMess.Type_ = msg.Type_
+				pack.TPack.(Pack7).Mess.PushBack(newMess)
+			}
+		}
+	}
+	tmp := tmp_lst.Back()
+	if tmp.Value.(Packet) != pack {
+		tmp_lst.PushBack(pack)
+	}
+	return tmp_lst
+}
+
+func Write_type_2(Ball ballon.Ball) (lst_tmsg *list.List) {
+	fmt.Println("Write_type_2")
+	var pack Packet
+	var typesp Pack7
+
+	lst_pack := list.New()
+	pack.Head.NbrOctet = 24
+	pack.Head.NumPackReq = 0
+	typesp.Mess = list.New()
+	pack.TPack = typesp
+	elem := Ball.Lst_msg.Front()
+	for elem != nil {
+		msg := elem.Value.(Message)
+		if msg.Size+16+pack.Head.NbrOctet > 1024 {
+			tmp_lst := Cut_messagemultipack(pack, msg)
+			tmp := tmp_lst.Back()
+			pack = (tmp_lst.Remove(tmp)).(Packet)
+			lst_pack.PushBackList(tmp_lst)
+		} else {
+			newMess := Message{}
+			pack.Head.NbrOctet += 16 + msg.Size
+			newMess.Size = msg.Size
+			newMess.Idmess = msg.Idmess
+			newMess.Idcountry = msg.Idcountry
+			newMess.Idcity = msg.Idcity
+			newMess.Message = msg.Message
+			newMess.Type_ = msg.Type_
+			pack.TPack.(Pack7).Mess.PushBack(newMess)
+		}
+		elem = elem.Next()
+	}
+	tmp := lst_pack.Back()
+	if tmp.Value.(Packet) != pack {
+		lst_pack.PushBack(pack)
+	}
+	elem = lst_pack.Front()
+	numPack := 0
+	NbrPack := lst_pack.Len()
+	follow := Ball.List_follow.Len()
+	for elem != nil {
+		tp := elem.Value.(Packet)
+		tp.Head.TypeReq = 7
+		tp.Head.NbrPackReq = (int32)(NbrPack)
+		tp.Head.NumPackReq = (int32)(numPack)
+		numPack += 1
+		tmp := Pack7{}
+		tmp.Mess = tp.TPack.(Pack7).Mess
+		tmp.Nbruser = (int32)(follow)
+		tmp.NbrMess = (int32)(tmp.Mess.Len())
+		elem = elem.Next()
+	}
+	lst_tmsg = list.New()
+	elem = lst_pack.Front()
+	for elem != nil {
+		tpack := elem.Value.(Packet)
+		Buffer := Write_header(tpack)
+		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).Nbruser)
+		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).NbrMess)
+		tmess := tpack.TPack.(Pack7).Mess.Front()
+		for tmess != nil {
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idmess)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Size)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idcountry)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idcity)
+			Buffer.WriteString(tmess.Value.(Message).Message)
+			tmess = tmess.Next()
+		}
+		elem = elem.Next()
+		lst_tmsg.PushBack(Buffer.Bytes())
+	}
+	return lst_tmsg
 }
 
 /* Manage_type_2 Remplie le buffer avec une reponse au type 2 de la requete. */
-func Manage_type_2(Req *list.Element, usr *users.User) (answer []byte) {
-	return answer
+func Manage_type_2(Req *list.Element, Data *Data) {
+	elem := Data.Lst_ball.Lst.Front()
+	for elem != nil && elem.Value.(ballon.Ball).Id_ball != Req.Value.(protocol.Lst_req_sock).Union.(protocol.Id_ballon).IdBallon {
+		elem = elem.Next()
+	}
+	if elem != nil {
+		ball := elem.Value.(ballon.Ball)
+		ball.Possessed = &Data.User
+		ball.List_follow.PushFront(Data.User)
+		Lst_answer := Write_type_2(ball)
+		Data.Lst_asw.PushBackList(Lst_answer)
+	} else {
+		// Acknowledgement negatif
+		fmt.Println("Ballon not found") // Ball not found
+	}
 }
 
 /* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete. */
-func Manage_type_3(Req *list.Element, usr *users.User) (answer []byte) {
-	return answer
+func Manage_type_3(Req *list.Element, Data *Data) {
+
 }
 
 /* Manage_type_4 Remplie le buffer avec une reponse au type 4 de la requete. */
-func Manage_type_4(Req *list.Element, usr *users.User) (answer []byte) {
-	return answer
+func Manage_type_4(Req *list.Element, Data *Data) {
+
 }
 
 /* Manage_type_5 Remplie le buffer avec une reponse au type 5 de la requete. */
-func Manage_type_5(Req *list.Element, usr *users.User) (answer []byte) {
-	return answer
+func Manage_type_5(Req *list.Element, Data *Data) {
+
 }
 
 /*
@@ -200,35 +436,38 @@ func Manage_type_5(Req *list.Element, usr *users.User) (answer []byte) {
 ** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
 ** de l'utilisateur et nettoiera le flux de requetes traites.
  */
-func Get_answer(Lst_req *list.List, Lst_usr *users.All_users, Lst_ball *ballon.All_ball) (answer []byte, err error) {
-	Req := Lst_req.Front()
+func (Data *Data) Get_answer() (err error) {
+	fmt.Println("Get_answer")
+	Req := Data.Lst_req.Front()
+	fmt.Println(Req.Value.(protocol.Lst_req_sock))
 	if Req == nil {
 		fmt.Println("Error get answer")
 	}
-	usr, err := Check_user(Req, Lst_usr)
+	fmt.Println(Data)
+	Data.User, err = Check_user(Req, Data.Lst_users)
 	if err != nil {
 		fmt.Println(err)
 	} else {
 		if Check_packets_list(Req) == true {
 			switch Req.Value.(protocol.Lst_req_sock).Type {
 			case 1:
-				answer = Manage_type_1(Req, usr, Lst_ball)
+				Manage_type_1(Req, Data)
 			case 2:
-				answer = Manage_type_2(Req, usr)
+				Manage_type_2(Req, Data)
 			case 3:
-				answer = Manage_type_3(Req, usr)
+				Manage_type_3(Req, Data)
 			case 4:
-				answer = Manage_type_4(Req, usr)
+				Manage_type_4(Req, Data)
 			case 5:
-				answer = Manage_type_5(Req, usr)
+				Manage_type_5(Req, Data)
 			}
 		}
-		Del_request_done(Lst_req)
-		return answer, nil
+		Del_request_done(Data.Lst_req)
+		return nil
 	}
-	Del_request_done(Lst_req)
+	Del_request_done(Data.Lst_req)
 	err = errors.New("Failed check user")
-	return answer, err
+	return err
 }
 
 /*

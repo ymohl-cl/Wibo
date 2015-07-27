@@ -14,11 +14,9 @@ package protocol
 
 import (
 	"bytes"
-	"container/list"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"users"
 )
 
 type Position struct {
@@ -105,7 +103,7 @@ func Take_newBall(TypBuff *bytes.Buffer) (Ball Ballon, er error) {
 ** l'analyse pour creer une requete exploitable par le serveur, en appelant
 ** le decodeur du type specifier dans le header (Voir protocole Wibo sur trello)
  */
-func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
+func Add_content(buff []byte) (Token Lst_req_sock, er error) {
 	TypBuff := bytes.NewBuffer(buff)
 
 	err := binary.Read(TypBuff, binary.BigEndian, &Token.NbrOctet)
@@ -134,6 +132,7 @@ func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
 		er = errors.New("Add content from socket error, Binary.Read return error on IdMobile")
 		return Token, er
 	}
+	TypBuff.Next(32)
 	switch Token.Type {
 	case 1:
 		Token.Union, er = Take_position(TypBuff)
@@ -152,19 +151,6 @@ func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
 		}
 	}
 	return Token, nil
-}
-
-/*
-** Check_finish verifie si une requete est entierement recu.
- */
-func Check_finish(Lst_req *list.List) bool {
-	Last := Lst_req.Back()
-
-	if Last.Value.(Lst_req_sock).NbrPack == (Last.Value.(Lst_req_sock).NumPack - 1) {
-		return true
-	} else {
-		return false
-	}
 }
 
 /* Fonction pour faire des prints de debug sur une requete recu */

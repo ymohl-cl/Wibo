@@ -29,11 +29,15 @@ import (
 ** conn.Read(buff) retourne la taille du buff et error
  */
 func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
-	Lst_req := list.New()
-	user := new(users.User)
+	Data := new(answer.Data)
+	Data.Lst_req = list.New()
+	Data.Lst_asw = list.New()
+	Data.Lst_ball = Lst_ball
+	Data.Lst_users = Lst_users
 
 	defer conn.Close()
-	defer Lst_req.Init()
+	defer Data.Lst_req.Init()
+	defer Data.Lst_asw.Init()
 	for {
 		buff := make([]byte, 1024)
 		_, err := conn.Read(buff)
@@ -41,7 +45,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 			return
 		}
 		fmt.Println("New request:")
-		Token, err := protocol.Add_content(buff, user)
+		Token, err := protocol.Add_content(buff)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -50,19 +54,34 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 			protocol.Print_token_debug(Token)
 			/* FIN DES TESTS */
 		}
-		Lst_req.PushBack(Token)
-		if protocol.Check_finish(Lst_req) == true {
-			awr, err := answer.Get_answer(Lst_req, Lst_users, Lst_ball)
+		fmt.Println(Token)
+		Data.Lst_req.PushBack(Token)
+		if answer.Check_packets_list(Data.Lst_req.Front()) == true {
+			fmt.Println("check finish: ok")
+			err = Data.Get_answer()
 			if err != nil {
+				fmt.Println("Erreur Data.Get_answer")
 				fmt.Println(err)
 			} else {
-				conn.Write(awr)
+				fmt.Println("Packet found and send")
+				Front := Data.Lst_asw.Front()
+				if Front != nil {
+					fmt.Println("Front == nil")
+					fmt.Println("exit")
+				} else {
+					fmt.Println("Front != nil")
+					fmt.Println(Front)
+				}
+				conn.Write(Front.Value.([]byte))
+				Data.Lst_asw.Remove(Front)
 			}
 		} else {
-			awr, err := answer.Get_aknowledgement(Lst_req, Lst_users)
+			fmt.Println("Check finish: ko")
+			awr, err := answer.Get_aknowledgement(Data.Lst_req, Lst_users)
 			if err != nil {
 				fmt.Println(err)
 			} else {
+				fmt.Println(awr)
 				conn.Write(awr)
 			}
 		}

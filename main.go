@@ -94,6 +94,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	} else {
 		Tab_wd.Print_weatherdata()
 	}
+	Lst_users.Lst_users = list.New()
 	err = Lst_users.Get_users()
 	if err != nil {
 		fmt.Println(err)
@@ -116,7 +117,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	check_test.Coord.Longitude = 48.833086
 	check_test.Coord.Latitude = 2.316055
 	check_test.Date = time.Now()
-	var my_ball = ballon.Ball{Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: list.New(), Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	var my_ball = ballon.Ball{Id_ball: 42, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: list.New(), Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
 	my_ball.Coord = tmp_lst.PushBack(check_test)
 	fmt.Println("Debug to get checkpoint coord")
 	fmt.Println(my_ball.Coord.Value)

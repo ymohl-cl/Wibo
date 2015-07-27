@@ -29,9 +29,12 @@ import (
 ** Le premier message de la liste est le message de creation du ballon.
  */
 type Lst_msg struct {
-	Content string
-	Size    int
-	Type_   int
+	Id_Message int32
+	Size       int32
+	Idcountry  int32
+	Idcity     int32
+	Content    string
+	Type_      int32
 }
 
 type Coordinates struct {
