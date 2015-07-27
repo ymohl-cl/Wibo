@@ -3,8 +3,9 @@ package main
 import (
 	"container/list"
 	"fmt"
+	"github.com/Wibo/src/ballon"
 	"github.com/Wibo/src/db"
-	"github.com/Wibo/src/usr"
+	"github.com/Wibo/src/users"
 	"time"
 )
 
@@ -44,16 +45,18 @@ func main() {
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 	// Initialise our app-wide environment with the services/info we need.
-	//usr.Get_users()
+	//users.Get_users()
 	/*	for {
 		fmt.Println("manage server")
 		time.Sleep(time.Second * 30)
 	}*/
-	my_users := new(usr.All_users)
+	my_users := new(users.All_users)
 	my_users.Lst_users = list.New()
 	my_users.Get_users(Db)
-	fmt.Println(my_users.Lst_users.Len())
 	my_users.Print_users()
-	newUsr := my_users.SelectUser(17, Db)
-	my_users.Del_user(newUsr, Db)
+	ball := new(ballon.All_ball)
+	ball.Lst = list.New()
+	ball.GetListBallsByUser(2, Db)
+	//newUsr := my_users.SelectUser(17, Db)
+	//my_users.Del_user(newUsr, Db)
 }
