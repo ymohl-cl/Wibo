@@ -1,0 +1,3 @@
+# Ignorer les objets et les archives
+*.[oa]
+*.swp
