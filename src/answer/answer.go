@@ -263,23 +263,14 @@ func Manage_type_1(Req *list.Element, Data *Data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
-/*func Str_cut_n(str string, n int) (s1 string, s2 string) {
-	s1 = make(string)
-	s2 = ""
-	i := 0
-	for i < n {
-		s1 + 1 = str[i]
-		i++
-	}
-	j := 0
-	size := len(str)
-	for i < size {
-		s2[i] = str[j]
-		i++
-		j++
-	}
+func Str_cut_n(str string, n int) (s1 string, s2 string) {
+	Bstr := bytes.NewBufferString(str)
+	Bs1 := Bstr.Next(n)
+	s2 = Bstr.String()
+	tmp := bytes.NewBuffer(Bs1)
+	s1 = tmp.String()
 	return s1, s2
-}*/
+}
 
 func Cut_messagemultipack(pack Packet, msg Message) (tmp_lst *list.List) {
 	tmp_lst = list.New()
@@ -312,7 +303,7 @@ func Cut_messagemultipack(pack Packet, msg Message) (tmp_lst *list.List) {
 				newMess.Idmess = msg.Idmess
 				newMess.Idcountry = msg.Idcountry
 				newMess.Idcity = msg.Idcity
-				//newMess.Message = n octets de la string
+				newMess.Message, msg.Message = Str_cut_n(msg.Message, int(newMess.Size))
 				newMess.Type_ = msg.Type_
 				pack.TPack.(Pack7).Mess.PushBack(newMess)
 			}
@@ -407,6 +398,8 @@ func Manage_type_2(Req *list.Element, Data *Data) {
 	if elem != nil {
 		ball := elem.Value.(ballon.Ball)
 		ball.Possessed = &Data.User
+		// Rajouter checkpoint actuel au ballon qui est celui de l'utilisateur.
+		// Dans l'application move checkpoint, voir pour que si le ballon est possessed il ne faut pas qu'il se deplace.
 		ball.List_follow.PushFront(Data.User)
 		Lst_answer := Write_type_2(ball)
 		Data.Lst_asw.PushBackList(Lst_answer)
