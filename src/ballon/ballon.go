@@ -22,6 +22,7 @@ import (
 	_ "github.com/lib/pq"
 	"math"
 	//	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -75,12 +76,14 @@ type Wind struct {
 ** Creator est l'user qui a creer le ballon.
  */
 type Ball struct {
+	//idBall      int64
 	Name        string
-	Coord       *list.Element
+	Position    Coordinates
 	Wind        Wind
 	Lst_msg     *list.List
 	Date        time.Time
 	Checkpoints *list.List
+	Coord       *list.Element
 	Possessed   *users.User
 	List_follow *list.List
 	Creator     *users.User
@@ -254,24 +257,60 @@ func (Lb *All_ball) GetListBallsByUser(idUser int64, Db *sql.DB) *list.List {
 		checkErr(err)
 		result := strings.Split(infoCont, ",")
 		for i := range result {
-			if i == 7 {
-				// Return true if 'value' char.
-				f := func(c rune) bool {
-					return c == '(' || c == '(' || c == ')' || c == '"' ||
-						c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
-						c == 'T'
-				}
-				// Separate into fields with func.
-				fields := strings.FieldsFunc(result[i], f)
-				point := strings.Fields(fields[0])
-				fmt.Printf("lon : %v\n", point[0])
-				fmt.Printf("lat : %v\n", point[1])
-			} else {
-				fmt.Println(result[i])
-			}
+			fmt.Printf("%v id ballon\n", GetIdBall(result[0]))
+			fmt.Printf("%v and position %v\n", result[i], i)
+			lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
+				Wind: GetWin(result[5], result[4])})
 		}
 	}
 	return lBallon
+}
+
+func GetDateFormat(qdate string) (fdate time.Time) {
+	// TODO Choose a date format layout
+	fdate, err := time.Parse("2006-01-02", qdate)
+	checkErr(err)
+	return fdate
+}
+
+func GetIdBall(idB string) int {
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(idB, f)
+	// Separate into cordinates  with Fields.
+	ids := strings.Fields(fields[0])
+	id, _ := strconv.Atoi(ids[0])
+	return (id)
+}
+
+func GetCord(position string) Coordinates {
+
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"' ||
+			c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
+			c == 'T'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(position, f)
+	// Separate into cordinates  with Fields.
+	point := strings.Fields(fields[0])
+	long, _ := strconv.ParseFloat(point[0], 4)
+	lat, _ := strconv.ParseFloat(point[1], 4)
+	return (Coordinates{Longitude: long, Latitude: lat})
+}
+
+func GetWin(speed string, direction string) Wind {
+	sf, _ := strconv.ParseFloat(speed, 4)
+	df, _ := strconv.ParseFloat(direction, 4)
+	return (Wind{Speed: sf, Degress: df})
+}
+
+func GetMessagesBall(idBall int) *list.List {
+	return nil
 }
 
 /**
