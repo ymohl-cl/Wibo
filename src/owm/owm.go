@@ -45,6 +45,16 @@ type All_data struct {
 	Tab_wd []Weather_data `json:"list"`
 }
 
+func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
+	for _, elem := range Tab_wd.Tab_wd {
+		if elem.Station_name == "Paris" {
+			station = elem
+			break
+		}
+	}
+	return station
+}
+
 /*
 ** Update_weather_data fait une requete a l'api Open weather map
 ** Decode le format JSON et remplis le Tab_wd

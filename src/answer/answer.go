@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"owm"
 	"protocol"
 	"time"
 	"users"
@@ -67,8 +68,8 @@ type Acknow struct {
 }
 
 type Header struct {
-	NbrOctet   int32
-	TypeReq    int32
+	NbrOctet   int16
+	TypeReq    int16
 	NbrPackReq int32
 	NumPackReq int32
 }
@@ -286,8 +287,8 @@ func Cut_messagemultipack(pack Packet, msg Message) (tmp_lst *list.List) {
 			pack.TPack = typesp
 		} else {
 			newMess := Message{}
-			if msg.Size+16+pack.Head.NbrOctet < 1024 {
-				pack.Head.NbrOctet += 16 + msg.Size
+			if int16(msg.Size)+16+pack.Head.NbrOctet < 1024 {
+				pack.Head.NbrOctet += 16 + (int16)(msg.Size)
 				newMess.Size = msg.Size
 				newMess.Idmess = msg.Idmess
 				newMess.Idcountry = msg.Idcountry
@@ -297,9 +298,9 @@ func Cut_messagemultipack(pack Packet, msg Message) (tmp_lst *list.List) {
 				pack.TPack.(Pack7).Mess.PushBack(newMess)
 				size -= msg.Size
 			} else {
-				newMess.Size = 1024 - pack.Head.NbrOctet - 16
+				newMess.Size = 1024 - int32(pack.Head.NbrOctet) - 16
 				size = size - newMess.Size
-				pack.Head.NbrOctet += 16 + newMess.Size
+				pack.Head.NbrOctet += 16 + int16(newMess.Size)
 				newMess.Idmess = msg.Idmess
 				newMess.Idcountry = msg.Idcountry
 				newMess.Idcity = msg.Idcity
@@ -328,15 +329,18 @@ func Write_type_2(Ball ballon.Ball) (lst_tmsg *list.List) {
 	pack.TPack = typesp
 	elem := Ball.Lst_msg.Front()
 	for elem != nil {
+		fmt.Println("Mess of ball found")
 		msg := elem.Value.(Message)
-		if msg.Size+16+pack.Head.NbrOctet > 1024 {
+		if int16(msg.Size)+16+pack.Head.NbrOctet > 1024 {
+			fmt.Println("Depassement de buffer !cut! ")
 			tmp_lst := Cut_messagemultipack(pack, msg)
 			tmp := tmp_lst.Back()
 			pack = (tmp_lst.Remove(tmp)).(Packet)
 			lst_pack.PushBackList(tmp_lst)
 		} else {
+			fmt.Println("In the buffer OK")
 			newMess := Message{}
-			pack.Head.NbrOctet += 16 + msg.Size
+			pack.Head.NbrOctet += 16 + int16(msg.Size)
 			newMess.Size = msg.Size
 			newMess.Idmess = msg.Idmess
 			newMess.Idcountry = msg.Idcountry
@@ -348,12 +352,15 @@ func Write_type_2(Ball ballon.Ball) (lst_tmsg *list.List) {
 		elem = elem.Next()
 	}
 	tmp := lst_pack.Back()
-	if tmp.Value.(Packet) != pack {
+	if tmp == nil || tmp.Value.(Packet) != pack {
 		lst_pack.PushBack(pack)
 	}
 	elem = lst_pack.Front()
 	numPack := 0
 	NbrPack := lst_pack.Len()
+	if NbrPack == 0 {
+		NbrPack = 1
+	}
 	follow := Ball.List_follow.Len()
 	for elem != nil {
 		tp := elem.Value.(Packet)
@@ -365,12 +372,17 @@ func Write_type_2(Ball ballon.Ball) (lst_tmsg *list.List) {
 		tmp.Mess = tp.TPack.(Pack7).Mess
 		tmp.Nbruser = (int32)(follow)
 		tmp.NbrMess = (int32)(tmp.Mess.Len())
+		tp.TPack = tmp
+		elem.Value = tp
 		elem = elem.Next()
 	}
 	lst_tmsg = list.New()
 	elem = lst_pack.Front()
 	for elem != nil {
 		tpack := elem.Value.(Packet)
+		fmt.Println("Debeug")
+		fmt.Println(tpack)
+		fmt.Println(elem.Value.(Packet))
 		Buffer := Write_header(tpack)
 		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).Nbruser)
 		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).NbrMess)
@@ -383,15 +395,44 @@ func Write_type_2(Ball ballon.Ball) (lst_tmsg *list.List) {
 			Buffer.WriteString(tmess.Value.(Message).Message)
 			tmess = tmess.Next()
 		}
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.Head.NbrOctet))
 		elem = elem.Next()
 		lst_tmsg.PushBack(Buffer.Bytes())
 	}
 	return lst_tmsg
 }
 
+/* Write_type_Ack */
+func Manage_typeack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer []byte) {
+	tpack := Packet{}
+
+	tpack.Head.NbrOctet = int16(72)
+	tpack.Head.TypeReq = int16(8)
+	tpack.Head.NbrPackReq = int32(1)
+	tpack.Head.NumPackReq = int32(0)
+	Buffer := Write_header(tpack)
+	binary.Write(Buffer, binary.BigEndian, Type)
+	binary.Write(Buffer, binary.BigEndian, value)
+	if Type == 5 {
+		binary.Write(Buffer, binary.BigEndian, int64(0))
+	} else {
+		binary.Write(Buffer, binary.BigEndian, IdBallon)
+	}
+	binary.Write(Buffer, binary.BigEndian, IdMobile)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 32))
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.Head.NbrOctet))
+	answer = Buffer.Bytes()
+	return answer
+}
+
 /* Manage_type_2 Remplie le buffer avec une reponse au type 2 de la requete. */
 func Manage_type_2(Req *list.Element, Data *Data) {
 	elem := Data.Lst_ball.Lst.Front()
+	treq := Req.Value.(protocol.Lst_req_sock)
+
+	fmt.Println("Manage type 2")
+	fmt.Println(elem.Value.(ballon.Ball).Id_ball)
+	fmt.Println(Req.Value.(protocol.Lst_req_sock).Union.(protocol.Id_ballon).IdBallon)
 	for elem != nil && elem.Value.(ballon.Ball).Id_ball != Req.Value.(protocol.Lst_req_sock).Union.(protocol.Id_ballon).IdBallon {
 		elem = elem.Next()
 	}
@@ -400,28 +441,90 @@ func Manage_type_2(Req *list.Element, Data *Data) {
 		ball.Possessed = &Data.User
 		// Rajouter checkpoint actuel au ballon qui est celui de l'utilisateur.
 		// Dans l'application move checkpoint, voir pour que si le ballon est possessed il ne faut pas qu'il se deplace.
+		// Verifier si le ballon n'est pas deja possessed
 		ball.List_follow.PushFront(Data.User)
 		Lst_answer := Write_type_2(ball)
 		Data.Lst_asw.PushBackList(Lst_answer)
 	} else {
-		// Acknowledgement negatif
-		fmt.Println("Ballon not found") // Ball not found
+		answer := Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+		Data.Lst_asw.PushBack(answer)
+		fmt.Println("Ballon not found")
 	}
 }
 
 /* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete. */
 func Manage_type_3(Req *list.Element, Data *Data) {
+	treq := Req.Value.(protocol.Lst_req_sock)
 
+	elem := Data.Lst_ball.Lst.Front()
+	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Union.(protocol.Id_ballon).IdBallon {
+		elem = elem.Next()
+	}
+	var answer []byte
+	if elem != nil {
+		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+	} else {
+		elem.Value.(ballon.Ball).List_follow.PushBack(Data.User)
+		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(1))
+	}
+	Data.Lst_asw.PushBack(answer)
 }
 
 /* Manage_type_4 Remplie le buffer avec une reponse au type 4 de la requete. */
 func Manage_type_4(Req *list.Element, Data *Data) {
-
+	treq := Req.Value.(protocol.Lst_req_sock)
+	elem := Data.Lst_ball.Lst.Front()
+	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Union.(protocol.Id_ballon).IdBallon {
+		elem = elem.Next()
+	}
+	var answer []byte
+	var dvc *list.Element = nil
+	var users_l *list.Element = nil
+	if elem != nil {
+		users_l = elem.Value.(ballon.Ball).List_follow.Front()
+		for users_l != nil {
+			user := users_l.Value.(users.User)
+			dvc = user.Device.Front()
+			for dvc != nil && dvc.Value.(users.Device).IdMobile != treq.IdMobile {
+				dvc = dvc.Next()
+			}
+			users_l = users_l.Next()
+		}
+	}
+	if dvc != nil {
+		elem.Value.(ballon.Ball).List_follow.Remove(users_l)
+		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(1))
+	} else {
+		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
 }
 
 /* Manage_type_5 Remplie le buffer avec une reponse au type 5 de la requete. */
-func Manage_type_5(Req *list.Element, Data *Data) {
+func Manage_type_5(Req *list.Element, Data *Data, Tab_wd *owm.All_data) {
+	var ball ballon.Ball
+	var newBall protocol.Ballon
+	var mess ballon.Lst_msg
 
+	newBall = Req.Value.(protocol.Lst_req_sock).Union.(protocol.Ballon)
+	Data.Lst_ball.Id_max++
+	ball.Id_ball = Data.Lst_ball.Id_max
+	ball.Name = newBall.Title
+	ball.Lst_msg = list.New()
+	mess.Id_Message = 0
+	mess.Size = (int32)(len(newBall.Message))
+	mess.Content = newBall.Message
+	mess.Type_ = 1
+	ball.Lst_msg.PushFront(mess)
+	ball.Date = time.Now()
+	ball.Possessed = &(Data.User)
+	ball.List_follow.PushFront(Data.User)
+	ball.Creator = &(Data.User)
+	ball.Get_checkpointList(Tab_wd.Get_Paris())
+	Data.Lst_ball.Lst.PushFront(ball)
+	treq := Req.Value.(protocol.Lst_req_sock)
+	answer := Manage_typeack(treq.Type, treq.IdMobile, ball.Id_ball, int32(1))
+	Data.Lst_asw.PushBack(answer)
 }
 
 /*
@@ -429,7 +532,7 @@ func Manage_type_5(Req *list.Element, Data *Data) {
 ** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
 ** de l'utilisateur et nettoiera le flux de requetes traites.
  */
-func (Data *Data) Get_answer() (err error) {
+func (Data *Data) Get_answer(Tab_wd *owm.All_data) (err error) {
 	fmt.Println("Get_answer")
 	Req := Data.Lst_req.Front()
 	fmt.Println(Req.Value.(protocol.Lst_req_sock))
@@ -452,7 +555,7 @@ func (Data *Data) Get_answer() (err error) {
 			case 4:
 				Manage_type_4(Req, Data)
 			case 5:
-				Manage_type_5(Req, Data)
+				Manage_type_5(Req, Data, Tab_wd)
 			}
 		}
 		Del_request_done(Data.Lst_req)

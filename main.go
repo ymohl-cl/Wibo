@@ -157,7 +157,7 @@ func main() {
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)
-	go sock.Listen(Lst_users, Lst_ball)
+	go sock.Listen(Lst_users, Lst_ball, Tab_wd)
 
 	for {
 		time.Sleep(time.Second * 60)

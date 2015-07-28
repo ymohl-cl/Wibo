@@ -18,6 +18,7 @@ import (
 	"container/list"
 	"fmt"
 	"net"
+	"owm"
 	"protocol"
 	"users"
 )
@@ -28,24 +29,29 @@ import (
 ** et ecoute a nouveau le client.
 ** conn.Read(buff) retourne la taille du buff et error
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
 	Data := new(answer.Data)
 	Data.Lst_req = list.New()
 	Data.Lst_asw = list.New()
 	Data.Lst_ball = Lst_ball
 	Data.Lst_users = Lst_users
 
+	fmt.Println("Start handle Connection")
 	defer conn.Close()
 	defer Data.Lst_req.Init()
 	defer Data.Lst_asw.Init()
 	for {
 		buff := make([]byte, 1024)
-		_, err := conn.Read(buff)
-		if err != nil {
+		size, err := conn.Read(buff)
+		if err != nil || size != 1024 {
+			fmt.Printf("Read Error, size: %d", size)
 			return
 		}
+		fmt.Println("Read End")
+		fmt.Println(buff)
 		fmt.Println("New request:")
 		Token, err := protocol.Add_content(buff)
+		fmt.Println("Add content SUCCESS")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -58,7 +64,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 		Data.Lst_req.PushBack(Token)
 		if answer.Check_packets_list(Data.Lst_req.Front()) == true {
 			fmt.Println("check finish: ok")
-			err = Data.Get_answer()
+			err = Data.Get_answer(Tab_wd)
 			if err != nil {
 				fmt.Println("Erreur Data.Get_answer")
 				fmt.Println(err)
@@ -66,10 +72,11 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				fmt.Println("Packet found and send")
 				Front := Data.Lst_asw.Front()
 				if Front != nil {
-					fmt.Println("Front == nil")
+					fmt.Println(Front.Value.([]byte))
+					fmt.Println("Front != nil")
 					fmt.Println("exit")
 				} else {
-					fmt.Println("Front != nil")
+					fmt.Println("Front == nil")
 					fmt.Println(Front)
 				}
 				conn.Write(Front.Value.([]byte))
@@ -95,7 +102,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 ** handleConnection va recuperer et repondre au requete du client jusqu'a
 ** arriver a un etat close.
  */
-func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		fmt.Println("Error listen:", err)
@@ -107,6 +114,6 @@ func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball) {
 		if err != nil {
 			fmt.Println("Error Accept:", err)
 		}
-		go handleConnection(conn, Lst_users, Lst_ball)
+		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd)
 	}
 }

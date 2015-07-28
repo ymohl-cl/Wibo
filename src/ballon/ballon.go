@@ -92,7 +92,8 @@ type Ball struct {
  */
 type All_ball struct {
 	sync.RWMutex
-	Lst *list.List
+	Lst    *list.List
+	Id_max int64
 }
 
 /* Print_list_checkpoints print la liste de checkpoints d'un ballon */
@@ -167,12 +168,8 @@ func (elem Ball) Get_checkpointList(station owm.Weather_data) (test Ball) {
  */
 func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 	var station owm.Weather_data
-	for _, elem := range Lst_wd.Tab_wd {
-		if elem.Station_name == "Paris" {
-			station = elem
-			break
-		}
-	}
+
+	station = Lst_wd.Get_Paris()
 	Lst_ball.Lock()
 	defer Lst_ball.Unlock()
 	fmt.Println(station)

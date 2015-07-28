@@ -62,6 +62,9 @@ func Take_position(TypBuff *bytes.Buffer) (Pos Position, er error) {
 /* Take_ball est le decodeur de type 2, 3, et 4 */
 func Take_ball(TypBuff *bytes.Buffer) (Id Id_ballon, er error) {
 	err := binary.Read(TypBuff, binary.BigEndian, &Id.IdBallon)
+
+	fmt.Println("Take_ball")
+	fmt.Println(Id.IdBallon)
 	if err != nil {
 		er = errors.New("Add content from socket error, Binary.Read return error on ID_ballon")
 		return Id, er
