@@ -15,13 +15,14 @@ package ballon
 import (
 	"container/list"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Wibo/src/owm"
 	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
 	"math"
+	//	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -235,7 +236,7 @@ func checkErr(err error) {
 /**
 * GetListBallsByUser
 * getContainersByUserId is a native psql function with
-* RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont     integer, creationdate date, deviceid integer, locationcont text)
+* RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
 func (Lb *All_ball) GetListBallsByUser(idUser int64, Db *sql.DB) *list.List {
 
@@ -245,14 +246,30 @@ func (Lb *All_ball) GetListBallsByUser(idUser int64, Db *sql.DB) *list.List {
 	checkErr(err)
 	rows, err := stm.Query(idUser)
 	checkErr(err)
+	// regex to find words
+	//r, err := regexp.Compile(`[:print:]\w+`)// getName
 	for rows.Next() {
 		var infoCont string
 		err = rows.Scan(&infoCont)
 		checkErr(err)
-		buf, err := json.MarshalIndent(infoCont, "", "\t")
-		checkErr(err)
-		fmt.Printf("%v \n", infoCont)
-		fmt.Printf("%v \n", buf)
+		result := strings.Split(infoCont, ",")
+		for i := range result {
+			if i == 7 {
+				// Return true if 'value' char.
+				f := func(c rune) bool {
+					return c == '(' || c == '(' || c == ')' || c == '"' ||
+						c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
+						c == 'T'
+				}
+				// Separate into fields with func.
+				fields := strings.FieldsFunc(result[i], f)
+				point := strings.Fields(fields[0])
+				fmt.Printf("lon : %v\n", point[0])
+				fmt.Printf("lat : %v\n", point[1])
+			} else {
+				fmt.Println(result[i])
+			}
+		}
 	}
 	return lBallon
 }
