@@ -34,9 +34,10 @@ import (
 ** Le premier message de la liste est le message de creation du ballon.
  */
 type Lst_msg struct {
-	Content string
-	Size    int
-	Type_   int
+	Content   string
+	Size      int
+	Type_     int
+	IdMessage int
 }
 
 type Coordinates struct {
@@ -76,7 +77,7 @@ type Wind struct {
 ** Creator est l'user qui a creer le ballon.
  */
 type Ball struct {
-	//idBall      int64
+	IdBall      int64
 	Name        string
 	Position    Coordinates
 	Wind        Wind
@@ -217,12 +218,40 @@ func (Lst_ball *All_ball) Add_new_ballon(new_ball Ball) {
 	return
 }
 
-func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
-	return
+/**
+* InsertBallon
+	Insert new container with the follow values
+ id_type_c    | integer                | not null
+ typename     | character varying(255) | not null
+ id           | integer                | not null
+ direction    | numeric(5,2)           | not null
+ speed        | integer                | not null
+ TODO: Set automatic timestamp psql now() NOTE: format YY-MM-DD
+ creationdate | date                   | not null
+ device_id    | integer                | not null
+ location_ct  | geography(Point,4326)  |
+ idcreator    | integer                |
+ titlename    | character varying(255) |
+ ianix        | integer                | NOTE: Yannick control index
+*/
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (executed bool, err error) {
+	stm, err := Db.Prepare(
+		"INSERT INTO  container (id_type_c, typename, direction, speed, creationdate, device_id, location_ct, idcreator, titlename, ianix) VALUES($1, $2, $3, $4, $5, $6, ST_GeographyFromText('SRID=4326; POINT($7, $8)'), $9, $10, $11)")
+	_, err = stm.Exec(1, "text", newBall.Wind.Degress, newBall.Wind.Speed, time.Now(), 3,
+		newBall.Position.Longitude, newBall.Position.Latitude, newBall.Creator.Id_user, newBall.Name, newBall.IdBall)
+	checkErr(err)
+	executed = true
+	return executed, err
 }
 
 func (Lst_ball *All_ball) Print_all_balls() {
-	// Print list to debug
+	i := 0
+	for e := Lst_ball.Lst.Front(); e != nil; e = e.Next() {
+		fmt.Printf("%v | %v | %v | %v | %v | iduser %v\n", e.Value.(Ball).Name, e.Value.(Ball).Position.Longitude,
+			e.Value.(Ball).Position.Latitude, e.Value.(Ball).Wind.Speed, e.Value.(Ball).Wind.Degress,
+			e.Value.(Ball).Creator.Id_user)
+		i++
+	}
 	return
 }
 
@@ -241,13 +270,13 @@ func checkErr(err error) {
 * getContainersByUserId is a native psql function with
 * RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
-func (Lb *All_ball) GetListBallsByUser(idUser int64, Db *sql.DB) *list.List {
+func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List {
 
 	var err error
 	lBallon := list.New()
 	stm, err := Db.Prepare("SELECT getContainersByUserId($1)")
 	checkErr(err)
-	rows, err := stm.Query(idUser)
+	rows, err := stm.Query(userl.Id_user)
 	checkErr(err)
 	// regex to find words
 	//r, err := regexp.Compile(`[:print:]\w+`)// getName
@@ -256,16 +285,15 @@ func (Lb *All_ball) GetListBallsByUser(idUser int64, Db *sql.DB) *list.List {
 		err = rows.Scan(&infoCont)
 		checkErr(err)
 		result := strings.Split(infoCont, ",")
-		for i := range result {
-			fmt.Printf("%v id ballon\n", GetIdBall(result[0]))
-			fmt.Printf("%v and position %v\n", result[i], i)
-			lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
-				Wind: GetWin(result[5], result[4])})
-		}
+		lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
+			Wind: GetWin(result[3], result[4]), Lst_msg: GetMessagesBall(GetIdBall(result[0]), Db), Creator: &userl})
 	}
 	return lBallon
 }
 
+/*
+NOTE: maybe this function will disapear beacause psql could make it automatically
+*/
 func GetDateFormat(qdate string) (fdate time.Time) {
 	// TODO Choose a date format layout
 	fdate, err := time.Parse("2006-01-02", qdate)
@@ -273,6 +301,12 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	return fdate
 }
 
+/**
+* GetIdBall
+* Parse and []string with the id Value
+* Get and array parsed and convert this value
+* return the id
+ */
 func GetIdBall(idB string) int {
 	// Return true if 'value' char.
 	f := func(c rune) bool {
@@ -286,6 +320,13 @@ func GetIdBall(idB string) int {
 	return (id)
 }
 
+/**
+* GetCord
+* Parse query function POINT(longitude latitude)
+* Get the Values between the parenthesis
+* convert them to float
+* create and new Cooridantes element and return it
+**/
 func GetCord(position string) Coordinates {
 
 	// Return true if 'value' char.
@@ -298,19 +339,47 @@ func GetCord(position string) Coordinates {
 	fields := strings.FieldsFunc(position, f)
 	// Separate into cordinates  with Fields.
 	point := strings.Fields(fields[0])
-	long, _ := strconv.ParseFloat(point[0], 4)
-	lat, _ := strconv.ParseFloat(point[1], 4)
+	long, _ := strconv.ParseFloat(point[0], 6)
+	lat, _ := strconv.ParseFloat(point[1], 6)
 	return (Coordinates{Longitude: long, Latitude: lat})
 }
 
+/**
+* GetWin
+* Take to strings to Parse their value to Float
+* return a new Instace of Wind with float values
+**/
+
 func GetWin(speed string, direction string) Wind {
-	sf, _ := strconv.ParseFloat(speed, 4)
-	df, _ := strconv.ParseFloat(direction, 4)
+	sf, _ := strconv.ParseFloat(speed, 6)
+	df, _ := strconv.ParseFloat(direction, 6)
 	return (Wind{Speed: sf, Degress: df})
 }
 
-func GetMessagesBall(idBall int) *list.List {
-	return nil
+/**
+* GetMessageBall
+* Query the message who concern an idContainer by timestamp
+* Create a new list of message by id Container
+* Create an element of list
+* Push back this element in a new  list of message
+* return the list
+**/
+
+func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
+	Mlist := list.New()
+	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
+	checkErr(err)
+	rows, err := stm.Query(idBall)
+	checkErr(err)
+	for rows.Next() {
+		var idm int
+		var message string
+		var idType int
+		err = rows.Scan(&idm, &message, &idType)
+		checkErr(err)
+		Mlist.PushBack(Lst_msg{Content: message, Type_: idType, IdMessage: idm})
+	}
+	return Mlist
 }
 
 /**
@@ -321,11 +390,11 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, Db *sql.DB) error {
 	lMasterBall := list.New()
 	i := 0
 	for e := LstU.Lst_users.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v \n", e.Value.(users.User).Id_user, e.Value.(users.User).Login)
+		fmt.Printf("%v | %v \n", e.Value.(users.User).Id_user, e.Value.(users.User).Login)
+		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), Db))
 		i++
 	}
 	Lb.Lst = Lb.Lst.Init()
-	Lb.Lst.PushFrontList(lMasterBall)
-	fmt.Println(lMasterBall)
+	Lb.Lst.PushBackList(lMasterBall)
 	return nil
 }
