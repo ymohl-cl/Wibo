@@ -28,13 +28,6 @@ import (
 ** et ecoute a nouveau le client.
 ** conn.Read(buff) retourne la taille du buff et error
  */
-
-/*
-** handleConnection recoit une requete, lance le traitement de cette requete
-** Ensuite il ecrit la reponse en retour du traitement pour l'envoyer
-** et ecoute a nouveau le client.
-** conn.Read(buff) retourne la taille du buff et error
- */
 func handleConnection(conn net.Conn, Lst_users *users.All_users, Db *sql.DB) {
 	Lst_req := list.New()
 	user := new(users.User)
