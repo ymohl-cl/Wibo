@@ -13,6 +13,7 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"ballon"
 	"container/list"
 	"fmt"
@@ -51,6 +52,25 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 		}
 	}()
 
+=======
+	"container/list"
+	"fmt"
+	"github.com/Wibo/src/ballon"
+	"github.com/Wibo/src/db"
+	"github.com/Wibo/src/users"
+	"time"
+)
+
+func calcul_ballon() {
+	fmt.Println("Calcul position ball")
+}
+
+func check_weather_data() {
+	fmt.Println("Get weather data")
+}
+
+func test1() {
+>>>>>>> testMerge
 	for {
 		select {
 		case <-channelfuncweatherdata:
@@ -79,6 +99,7 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 	}
 }
 
+<<<<<<< HEAD
 /*
 ** Init_all initialise toutes les datas en recuperant celles presentes dans la base de donnee
 ** 1: On recupere les datas des vents.
@@ -93,6 +114,12 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		return err
 	} else {
 		Tab_wd.Print_weatherdata()
+=======
+func test2() {
+	for {
+		time.Sleep(time.Second * 100)
+		check_weather_data()
+>>>>>>> testMerge
 	}
 	err = Lst_users.Get_users()
 	if err != nil {
@@ -132,6 +159,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	return nil
 }
 
+<<<<<<< HEAD
 /*
 ** Les 3 datats essentielle sont instancie dans le main
 ** Tab_wd contient toutes les WEATHER DATA
@@ -161,4 +189,35 @@ func main() {
 	for {
 		time.Sleep(time.Second * 60)
 	}
+=======
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func main() {
+	//	go test1()
+	//	go test2()
+	var err error
+	myDb := new(db.Env)
+	Db, err := myDb.OpenCo(err)
+	checkErr(err)
+	// Initialise our app-wide environment with the services/info we need.
+	//users.Get_users()
+	/*	for {
+		fmt.Println("manage server")
+		time.Sleep(time.Second * 30)
+	}*/
+	my_users := new(users.All_users)
+	my_users.Lst_users = list.New()
+	my_users.Get_users(Db)
+	ball := new(ballon.All_ball)
+	ball.Lst = list.New()
+	newUsr := my_users.SelectUser(2, Db)
+	ball.GetListBallsByUser(*newUsr, Db)
+	ball.Get_balls(my_users, Db)
+	ball.Print_all_balls()
+	//my_users.Del_user(newUsr, Db)
+>>>>>>> testMerge
 }

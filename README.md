@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 README
 -
 
@@ -12,3 +13,6 @@ Les goroutines sont endormis et se reveillent tous les X temps pour effectuer un
 Project is start :D !
 ]
 >>>>>>> serveur_0_0_2
+=======
+# Wibo jbernabe
+>>>>>>> testMerge
