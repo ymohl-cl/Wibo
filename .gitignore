@@ -1,5 +1,6 @@
 # Ignorer les objets et les archives
 *.[oa]i
+_vendor/**/*
 # Vim extensions
 *.swp
 [._]*.s[a-w][a-z]
