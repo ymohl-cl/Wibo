@@ -84,7 +84,6 @@ type Ball struct {
 	Lst_msg     *list.List
 	Date        time.Time
 	Checkpoints *list.List
-	Coord       *list.Element
 	Possessed   *users.User
 	List_follow *list.List
 	Creator     *users.User

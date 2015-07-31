@@ -36,7 +36,7 @@ type User struct {
 	Id_user   int64
 	Mail      string
 	Password  string
-	Log       int
+	Log       time.Time
 	LastLogin string
 }
 

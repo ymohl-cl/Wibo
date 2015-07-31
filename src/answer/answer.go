@@ -19,11 +19,12 @@ package answer
 
 import (
 	"container/list"
+	"database/sql"
 	"errors"
 	"fmt"
-	"protocol"
+	"github.com/Wibo/src/protocol"
+	"github.com/Wibo/src/users"
 	"time"
-	"users"
 )
 
 /*
@@ -33,7 +34,7 @@ import (
 ** Cette fonction retourne l'utilisateur ou error si une anomalie c'est produite
 ** Check_user ajoute egalement la requete a l'historique des requetes du Device
  */
-func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User, err error) {
+func Check_user(Req *list.Element, Lst_users *users.All_users, Db *sql.DB) (usr *users.User, err error) {
 	user := Lst_users.Lst_users.Front()
 	var device *list.Element
 
@@ -57,7 +58,7 @@ func Check_user(Req *list.Element, Lst_users *users.All_users) (usr *users.User,
 		hist_device.History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
 		usr.Device.PushFront(hist_device)
 		Lst_users.Lst_users.PushBack(usr)
-		Lst_users.Add_new_user(usr)
+		Lst_users.Add_new_user(usr, Db)
 	} else {
 		device.Value.(users.Device).History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
 		usr.Log = time.Now()
@@ -139,12 +140,12 @@ func Manage_type_5(Req *list.Element, usr *users.User) (answer []byte) {
 ** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
 ** de l'utilisateur et nettoiera le flux de requetes traites.
  */
-func Get_answer(Lst_req *list.List, Lst_usr *users.All_users) (answer []byte, err error) {
+func Get_answer(Lst_req *list.List, Lst_usr *users.All_users, Db *sql.DB) (answer []byte, err error) {
 	Req := Lst_req.Front()
 	if Req == nil {
 		fmt.Println("Error get answer")
 	}
-	usr, err := Check_user(Req, Lst_usr)
+	usr, err := Check_user(Req, Lst_usr, Db)
 	if err != nil {
 		fmt.Println(err)
 	} else {
