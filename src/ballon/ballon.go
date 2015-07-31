@@ -14,15 +14,6 @@ package ballon
 
 import (
 	"container/list"
-<<<<<<< HEAD
-	"errors"
-	"fmt"
-	"math"
-	"owm"
-	"sync"
-	"time"
-	"users"
-=======
 	"database/sql"
 	"errors"
 	"fmt"
@@ -30,12 +21,10 @@ import (
 	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
 	"math"
-	//	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
->>>>>>> testMerge
 )
 
 /*
@@ -44,16 +33,10 @@ import (
 ** Le premier message de la liste est le message de creation du ballon.
  */
 type Lst_msg struct {
-<<<<<<< HEAD
-	Content string
-	Size    int
-	Type_   int
-=======
 	Content   string
 	Size      int
 	Type_     int
 	IdMessage int
->>>>>>> testMerge
 }
 
 type Coordinates struct {
@@ -93,22 +76,15 @@ type Wind struct {
 ** Creator est l'user qui a creer le ballon.
  */
 type Ball struct {
-<<<<<<< HEAD
 	Name        string
 	Coord       *list.Element
-=======
 	IdBall      int64
-	Name        string
 	Position    Coordinates
->>>>>>> testMerge
 	Wind        Wind
 	Lst_msg     *list.List
 	Date        time.Time
 	Checkpoints *list.List
-<<<<<<< HEAD
-=======
 	Coord       *list.Element
->>>>>>> testMerge
 	Possessed   *users.User
 	List_follow *list.List
 	Creator     *users.User
@@ -242,28 +218,11 @@ func (Lst_ball *All_ball) Add_new_ballon(new_ball Ball) {
 	return
 }
 
-<<<<<<< HEAD
 /* Update_new_ballon va mettre a jour un ballon suite a une requete client. */
 func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
 	return
 }
 
-/* Print_all_ball print la liste de tous les ballons, utile pour debeuguer. */
-func (Lst_ball *All_ball) Print_all_balls() {
-	return
-}
-
-/*
-** Get_balls recupere tous les ballons de la base de donnee.
-** Elle rattache egalement a chaque ballon tous les utilisateurs associes.
- */
-func (Lst_ball *All_ball) Get_balls(Lst_users *users.All_users) error {
-	Lst_ball.Lock()
-	//  ...
-	//  traitement
-	//  ...
-	Lst_ball.Unlock()
-=======
 /**
 * InsertBallon
 	Insert new container with the follow values
@@ -442,6 +401,5 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, Db *sql.DB) error {
 	}
 	Lb.Lst = Lb.Lst.Init()
 	Lb.Lst.PushBackList(lMasterBall)
->>>>>>> testMerge
 	return nil
 }

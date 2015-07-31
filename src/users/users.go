@@ -1,32 +1,7 @@
-<<<<<<< HEAD
-//# ************************************************************************** #
-//#                                                                            #
-//#                                                       :::      ::::::::    #
-//#  users.go                                           :+:      :+:    :+:    #
-//#                                                   +:+ +:+         +:+      #
-//#  by: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
-//#                                               +#+#+#+#+#+   +#+            #
-//#  created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
-//#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
-//#                                                                            #
-//# ************************************************************************** #
-
-=======
-//header
->>>>>>> testMerge
 package users
 
 import (
 	"container/list"
-<<<<<<< HEAD
-	"time"
-)
-
-/*
-** Date est la date a laquelle la requete a ete effectue.
-** Type_req_client et le type de requete effectue.
- */
-=======
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -37,42 +12,21 @@ import (
 ** Date est la date a laquelle la requete a ete effectue.
 ** Type_req_client et le type de requete effectue.
 **/
->>>>>>> testMerge
 type History struct {
 	Date            time.Time
 	Type_req_client int16
 }
 
-<<<<<<< HEAD
-/*
-=======
 /**
 ** -type Device
->>>>>>> testMerge
 ** IdMobile est l'identifiant unique du mobile.
 ** Pour le moment le format exact de l'IdMobile est inconnu.
 ** History_req est une liste qui sera l'historique des requetes du client
 ** depuis ce device.
-<<<<<<< HEAD
- */
-type Device struct {
-	IdMobile    int64
-	History_req *list.List
-}
-
-/*
-** Device est la liste des devices de l'utilisateur
-** Log est la date de dernier signe de vie utilisateur
- */
-type User struct {
-	Device *list.List
-	Log    time.Time
-=======
 **/
 
 type Device struct {
-	IdMobile int64
-	//This is not a good control or data, I did sommething similar already and its dangereous.
+	IdMobile    int64
 	History_req *list.List
 }
 
@@ -84,56 +38,23 @@ type User struct {
 	Password  string
 	Log       int
 	LastLogin string
->>>>>>> testMerge
 }
 
 type All_users struct {
 	Lst_users *list.List
 }
 
-<<<<<<< HEAD
 /* Definis si l'utilisateur est considere en ligne ou pas avec un timeout de 2 min */
 func (User *User) User_is_online() bool {
 	t_now := time.Now()
 	t_user := User.Log
 	if t_user.Hour() == t_now.Hour() && t_user.Minute() > t_now.Minute()-2 {
-=======
-func (User *User) User_is_online() bool {
-	if User.Log == 0 {
->>>>>>> testMerge
 		return true
 	} else {
 		return false
 	}
 }
 
-<<<<<<< HEAD
-/*
-** Del_user va supprimer un user directement dans la base de donnee et dans sa propre liste,
-** un utilisateur passe en parametre.
- */
-func (Lst_users *All_users) Del_user(del_user *User) {
-	return
-}
-
-/*
-** Add_new_user va rajouter directement dans la base de donnee, un utilisateur
-** passer en parametre.
- */
-func (Lst_users *All_users) Add_new_user(new_user *User) {
-	return
-}
-
-/* Print_users print tous les utilisateurs */
-func (Lst_users *All_users) Print_users() {
-	return
-}
-
-/*
-** Get_users va recuperer tous les utilisateurs dans la base de donnee.
- */
-func (Lst_users *All_users) Get_users() error {
-=======
 /**
 * Delete user from id and mail
 *	TODO: del device
@@ -271,6 +192,5 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	}
 	Lusr.Lst_users = Lusr.Lst_users.Init()
 	Lusr.Lst_users.PushFrontList(lUser)
->>>>>>> testMerge
 	return nil
 }

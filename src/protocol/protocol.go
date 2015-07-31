@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"users"
+	"github.com/Wibo/src/users"
 )
 
 type Position struct {

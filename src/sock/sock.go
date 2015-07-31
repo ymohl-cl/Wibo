@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 //# ************************************************************************** #
 //#                                                                            #
 //#                                                       :::      ::::::::    #
@@ -10,20 +9,15 @@
 //#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
 //#                                                                            #
 //# ************************************************************************** #
-=======
-// header
->>>>>>> testMerge
 
 package sock
 
 import (
-<<<<<<< HEAD
 	"answer"
 	"container/list"
 	"fmt"
+	"github.com/Wibo/src/protocol"
 	"net"
-	"protocol"
-	"users"
 )
 
 /*
@@ -32,15 +26,6 @@ import (
 ** et ecoute a nouveau le client.
 ** conn.Read(buff) retourne la taille du buff et error
  */
-=======
-	"bytes"
-	"container/list"
-	"encoding/binary"
-	"errors"
-	"fmt"
-	"github.com/Wibo/src/usr"
-	"net"
-)
 
 type Position struct {
 	Longitude float32
@@ -234,7 +219,6 @@ func Print_token_debug(Token Lst_req_sock) {
 	}
 }
 
->>>>>>> testMerge
 func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 	Lst_req := list.New()
 	user := new(users.User)
@@ -243,7 +227,6 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 	defer Lst_req.Init()
 	for {
 		buff := make([]byte, 1024)
-<<<<<<< HEAD
 		_, err := conn.Read(buff)
 		if err != nil {
 			return
@@ -273,51 +256,17 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users) {
 			} else {
 				conn.Write(awr)
 			}
-=======
-		_, err := conn.Read(buff) // conn.Read(buff) retourne la taille du buffer et err
-		if err != nil {
-			return
-		}
-		err = check_checksum(buff)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		// Ajoute le message a la liste.
-		//		fmt.Println(buff)
-		fmt.Println("New request:")
-		Token, err := add_content(buff, user)
-		if err != nil {
-			fmt.Println(err)
-			return
-		} else { // debug
-			Print_token_debug(Token)
-		}
-		Lst_req.PushBack(Token)
-		// Verifie si la liste est complete
-		//si c'est le cas recupere une reponse
-		//si c'est pas le cas envoi un acknoldgement.
-		if Check_finish(Lst_req) == true {
-			answer := Get_answer(Lst_req)
-			conn.Write(answer)
-		} else {
-			answer := Get_aknowledgement(Lst_req)
-			conn.Write(answer)
->>>>>>> testMerge
 		}
 		buff = nil
 	}
 }
 
-<<<<<<< HEAD
 /*
 ** Listen va ecouter les connections entrante sur le port 8081
 ** Elle va accepter une demande de connection et lancer le handleConnection
 ** handleConnection va recuperer et repondre au requete du client jusqu'a
 ** arriver a un etat close.
  */
-=======
->>>>>>> testMerge
 func Listen(Lst_users *users.All_users) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
