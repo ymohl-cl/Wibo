@@ -13,9 +13,9 @@
 package sock
 
 import (
-	"answer"
 	"container/list"
 	"fmt"
+	"github.com/Wibo/src/answer"
 	"github.com/Wibo/src/protocol"
 	"net"
 )

@@ -64,22 +64,6 @@ func (Tab_wd *All_data) Update_weather_data() error {
 	return nil
 }
 
-/* Print_weatherdata() Print la liste de toutes les stations et leurs vents */
-func (Tab_wd *All_data) Update_weather_data() error {
-	/*	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-180,-90,180,90,10&cluster=yes`)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer resp.Body.Close()
-		err = json.NewDecoder(resp.Body).Decode(&Tab_wd)
-		if err != nil {
-			return err
-		} else {
-			return nil
-		}*/
-	return nil
-}
-
 func (Tab_wd *All_data) Print_weatherdata() {
 	var index int = 0
 	for _, elem := range Tab_wd.Tab_wd {
