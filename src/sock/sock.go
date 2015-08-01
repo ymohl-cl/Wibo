@@ -17,6 +17,7 @@ import (
 	"ballon"
 	"container/list"
 	"fmt"
+	"io"
 	"net"
 	"owm"
 	"protocol"
@@ -24,10 +25,8 @@ import (
 )
 
 /*
-** handleConnection recoit une requete, lance le traitement de cette requete
-** Ensuite il ecrit la reponse en retour du traitement pour l'envoyer
-** et ecoute a nouveau le client.
-** conn.Read(buff) retourne la taille du buff et error
+** handleConnection received client's requests and manages the exchange with
+** client
  */
 func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
 	Data := new(answer.Data)
@@ -43,51 +42,44 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	for {
 		buff := make([]byte, 1024)
 		size, err := conn.Read(buff)
-		if err != nil || size != 1024 {
+		if err != nil && err == io.EOF {
+		} else if err != nil {
 			fmt.Printf("Read Error, size: %d", size)
 			return
-		}
-		fmt.Println("Read End")
-		fmt.Println(buff)
-		fmt.Println("New request:")
-		Token, err := protocol.Add_content(buff)
-		fmt.Println("Add content SUCCESS")
-		if err != nil {
-			fmt.Println(err)
-			return
 		} else {
-			/* ! CECI EST POUR FAIRE DES TESTS ! */
-			protocol.Print_token_debug(Token)
-			/* FIN DES TESTS */
-		}
-		fmt.Println(Token)
-		Data.Lst_req.PushBack(Token)
-		if answer.Check_packets_list(Data.Lst_req.Front()) == true {
-			fmt.Println("check finish: ok")
-			err = Data.Get_answer(Tab_wd)
+			fmt.Println("Received")
+			fmt.Println(buff)
+			fmt.Println("decode ...")
+			Token := new(protocol.Lst_req_sock)
+			err := Token.Get_request(buff)
+			fmt.Println("Second test")
+			fmt.Println(Token)
 			if err != nil {
-				fmt.Println("Erreur Data.Get_answer")
 				fmt.Println(err)
+				return
 			} else {
-				fmt.Println("Packet found and send")
-				Front := Data.Lst_asw.Front()
-				if Front != nil {
-					fmt.Println(Front.Value.([]byte))
-					fmt.Println("Front != nil")
-					fmt.Println("exit")
-				} else {
-					fmt.Println("Front == nil")
-					fmt.Println(Front)
-				}
-				conn.Write(Front.Value.([]byte))
-				Data.Lst_asw.Remove(Front)
+				/* ! CECI EST POUR FAIRE DES TESTS ! */
+				fmt.Println("Receive:")
+				Token.Print_token_debug()
+				/* FIN DES TESTS */
 			}
-		} else {
-			fmt.Println("Check finish: ko")
-			awr, err := answer.Get_aknowledgement(Data.Lst_req, Lst_users)
-			if err != nil {
-				fmt.Println(err)
+			Data.Lst_req.PushBack(*Token)
+			if Data.Check_lstrequest() == true {
+				err = Data.Get_answer(Tab_wd)
+				if err != nil {
+					fmt.Println(err)
+					return
+				} else {
+					Front := Data.Lst_asw.Front()
+					fmt.Println("Answer sending:")
+					fmt.Println(Front.Value.([]byte))
+					conn.Write(Front.Value.([]byte))
+					Data.Lst_asw.Remove(Front)
+				}
 			} else {
+				fmt.Println("Multiple packets exchange is not finish")
+				awr := Data.Get_aknowledgement(Lst_users)
+				fmt.Println("Answer sending:")
 				fmt.Println(awr)
 				conn.Write(awr)
 			}

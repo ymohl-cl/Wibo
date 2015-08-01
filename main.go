@@ -113,15 +113,65 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
-	var check_test ballon.Checkpoints
-	check_test.Coord.Longitude = 48.833086
-	check_test.Coord.Latitude = 2.316055
-	check_test.Date = time.Now()
-	var my_ball = ballon.Ball{Id_ball: 42, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: list.New(), Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
-	my_ball.Coord = tmp_lst.PushBack(check_test)
-	fmt.Println("Debug to get checkpoint coord")
-	fmt.Println(my_ball.Coord.Value)
-	Lst_ball.Add_new_ballon(my_ball)
+	var check_test0 ballon.Checkpoints
+	check_test0.Coord.Longitude = 48.833086
+	check_test0.Coord.Latitude = 2.316055
+	check_test0.Date = time.Now()
+	var check_test1 ballon.Checkpoints
+	check_test1.Coord.Longitude = 48.833586
+	check_test1.Coord.Latitude = 2.316065
+	check_test1.Date = time.Now()
+	var check_test2 ballon.Checkpoints
+	check_test2.Coord.Longitude = 48.833368
+	check_test2.Coord.Latitude = 2.316059
+	check_test2.Date = time.Now()
+	var check_test3 ballon.Checkpoints
+	check_test3.Coord.Longitude = 48.833286
+	check_test3.Coord.Latitude = 2.316903
+	check_test3.Date = time.Now()
+	var check_test4 ballon.Checkpoints
+	check_test4.Coord.Longitude = 48.833986
+	check_test4.Coord.Latitude = 2.316045
+	check_test4.Date = time.Now()
+	mmp2 := list.New()
+	mmp := list.New()
+	var message0 ballon.Lst_msg
+	message0.Id_Message = 0
+	message0.Size = 68
+	message0.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
+	message0.Type_ = 1
+	var message1 ballon.Lst_msg
+	message1.Id_Message = 0
+	message1.Size = 68
+	message1.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
+	message1.Type_ = 1
+	var message2 ballon.Lst_msg
+	message2.Id_Message = 2
+	message2.Size = 68
+	message2.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
+	message2.Type_ = 1
+
+	mmp.PushBack(message0)
+	mmp2.PushBack(message0)
+	mmp2.PushBack(message1)
+	mmp2.PushBack(message2)
+
+	var my_ball0 = ballon.Ball{Id_ball: 0, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: mmp, Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	my_ball0.Coord = tmp_lst.PushBack(check_test0)
+	var my_ball1 = ballon.Ball{Id_ball: 1, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: mmp, Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	my_ball1.Coord = tmp_lst.PushBack(check_test1)
+	var my_ball2 = ballon.Ball{Id_ball: 2, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: mmp, Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	my_ball2.Coord = tmp_lst.PushBack(check_test2)
+	var my_ball3 = ballon.Ball{Id_ball: 3, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: mmp, Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	my_ball3.Coord = tmp_lst.PushBack(check_test3)
+	var my_ball4 = ballon.Ball{Id_ball: 4, Name: "toto", Coord: nil, Wind: ballon.Wind{}, Lst_msg: mmp2, Date: time.Now(), Checkpoints: list.New(), Possessed: nil, List_follow: list.New(), Creator: nil}
+	my_ball4.Coord = tmp_lst.PushBack(check_test4)
+
+	Lst_ball.Add_new_ballon(my_ball0)
+	Lst_ball.Add_new_ballon(my_ball1)
+	Lst_ball.Add_new_ballon(my_ball2)
+	Lst_ball.Add_new_ballon(my_ball3)
+	Lst_ball.Add_new_ballon(my_ball4)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 
 	err = Lst_ball.Create_checkpoint(Tab_wd)
