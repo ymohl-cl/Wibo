@@ -33,12 +33,12 @@ import (
 
 const (
 	_ = iota
-	// SAME FOR CLIENT AND SERVER
+	// SAME DEFINE FOR CLIENT AND SERVER
 	ACK   = 32767
 	TAKEN = 4
 	// DEFINE CLIENT
 	SYNC       = 1
-	MAJ        = 2
+	UPDATE     = 2
 	POS        = 3
 	FOLLOW_ON  = 5
 	FOLLOW_OFF = 6
@@ -50,63 +50,56 @@ const (
 	NEARBY   = 3
 )
 
-type InfoBall struct {
-	Id    int64
-	Title string
-	Lon   float64
-	Lat   float64
-	Wins  float64
-	Wind  float64
+type Posball struct {
+	id    int64
+	title string
+	lon   float64
+	lat   float64
+	wins  float64
+	wind  float64
 }
 
-type Pack6 struct {
-	NbrBall int32
-	Ifball  *list.List
+type Nearby struct {
+	nbrball int32
+	balls   *list.List
 }
 
 type Message struct {
-	Idmess    int32
-	Size      int32
-	Idcountry int32
-	Idcity    int32
-	Message   string // []byte
-	Type_     int32
+	id        int32
+	size      int32
+	idcountry int32
+	idcity    int32
+	mess      string // []byte
+	mtype     int32
 }
 
-type Pack7 struct {
-	Nbruser int32
-	NbrMess int32
-	Mess    *list.List
+type Contentball struct {
+	nbruser  int32
+	nbrmess  int32
+	messages *list.List
 }
 
-type Acknow struct {
-	Typeack  int32
-	Status   int32
-	Idball   int64
-	IdMobile int64
+type Infoball struct {
+	id      int64
+	nbrmess int32
+	taken   int32
 }
 
-type Mini_ball struct {
-	Id_ball  int64
-	Nbr_mess int32
-	Flag     int32
-}
-
-type Pack1 struct {
-	Nbr_ball   int16
-	mini_balls *list.List
+type Conn struct {
+	nbrball   int32
+	infoballs *list.List
 }
 
 type Header struct {
-	NbrOctet   int16
-	TypeReq    int16
-	NbrPackReq int32
-	NumPackReq int32
+	octets int16
+	rtype  int16
+	pnbr   int32
+	pnum   int32
 }
 
 type Packet struct {
-	Head  Header
-	TPack interface{}
+	head  Header
+	ptype interface{}
 }
 
 type Data struct {
@@ -114,151 +107,7 @@ type Data struct {
 	Lst_asw   *list.List
 	Lst_ball  *ballon.All_ball
 	Lst_users *users.All_users
-	User      users.User
-}
-
-/*
-** Check_user verifie l'existance de l'utilisateur dans la base a l'aide de
-** son ID_mobile. Si l'utilisateur existe pas, il le rajoute et demande une
-** insertion dans la base de donnee.
-** Cette fonction retourne l'utilisateur ou error si une anomalie c'est produite
-** Check_user ajoute egalement la requete a l'historique des requetes du Device
- */
-func Check_user(Req *list.Element, Lst_users *users.All_users) (usr users.User, err error) {
-	fmt.Println("Check_user")
-	user := Lst_users.Lst_users.Front()
-	fmt.Println(user)
-	var device *list.Element
-
-	for user != nil {
-		fmt.Println("user exist")
-		device = user.Value.(users.User).Device.Front()
-		fmt.Println("device.current")
-		for device != nil && device.Value.(users.Device).IdMobile != Req.Value.(protocol.Lst_req_sock).IdMobile {
-			fmt.Println("device.Next")
-			device = device.Next()
-		}
-		if device != nil {
-			fmt.Println("Break")
-			break
-		}
-		user = user.Next()
-		fmt.Println("user.Next")
-	}
-	fmt.Println("user no exist")
-	if user == nil {
-		var usr users.User
-		var hist_device users.Device
-		usr.Device = list.New()
-		usr.Log = time.Now()
-		hist_device.IdMobile = Req.Value.(protocol.Lst_req_sock).IdMobile
-		hist_device.History_req = list.New()
-		hist_device.History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
-		usr.Device.PushFront(hist_device)
-		Lst_users.Lst_users.PushBack(usr)
-		Lst_users.Add_new_user(&usr)
-	} else {
-		device.Value.(users.Device).History_req.PushFront(users.History{time.Now(), Req.Value.(protocol.Lst_req_sock).Type})
-		usr.Log = time.Now()
-	}
-	fmt.Println("End Check_user")
-	return usr, nil
-}
-
-/*
-** Check_packets_list Verifie la validite des packets suivants en partant du
-** principe que le header du premier packet est valide (traitement multi-packet).
- */
-func (Data *Data) Check_lstrequest() bool {
-	Req := Data.Lst_req.Front()
-	next := Req.Next()
-	tmp := Req
-	var nr protocol.Lst_req_sock
-	var tr protocol.Lst_req_sock
-
-	tr = tmp.Value.(protocol.Lst_req_sock)
-	fmt.Println("Value dans check de tr:")
-	fmt.Println(tr)
-	for next != nil {
-		nr = next.Value.(protocol.Lst_req_sock)
-		if tr.NbrPack == tr.NumPack+1 {
-			return true
-		} else if tr.Type != nr.Type {
-			return false
-		} else if tr.NumPack != nr.NumPack+1 {
-			return false
-		}
-		next = next.Next()
-		tmp = tmp.Next()
-		tr = tmp.Value.(protocol.Lst_req_sock)
-	}
-	if tr.NbrPack == tr.NumPack+1 {
-		return true
-	}
-	return false
-}
-
-/*
-** Supprime une requete traite. Gere les multi-paquets
- */
-func Del_request_done(Lst_req *list.List) {
-	elem := Lst_req.Front()
-	for elem != nil {
-		if elem.Value.(protocol.Lst_req_sock).NumPack == elem.Value.(protocol.Lst_req_sock).NbrPack-1 {
-			return
-		}
-		tmp := elem
-		Lst_req.Remove(tmp)
-		elem = elem.Next()
-	}
-}
-
-func Write_header(answer Packet) (Buffer *bytes.Buffer) {
-	Buffer = new(bytes.Buffer)
-
-	binary.Write(Buffer, binary.BigEndian, answer.Head.NbrOctet)
-	binary.Write(Buffer, binary.BigEndian, answer.Head.TypeReq)
-	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-	binary.Write(Buffer, binary.BigEndian, answer.Head.NbrPackReq)
-	binary.Write(Buffer, binary.BigEndian, answer.Head.NumPackReq)
-	return Buffer
-}
-
-func Write_type3(Req *list.Element, list_tmp *list.List) (buf []byte) {
-	var answer Packet
-	var typesp Pack6
-
-	answer.Head.NbrOctet = 24
-	answer.Head.TypeReq = POS
-	answer.Head.NbrPackReq = 1
-	answer.Head.NumPackReq = 0
-	typesp.NbrBall = (int32)(list_tmp.Len())
-	typesp.Ifball = list_tmp
-	answer.TPack = typesp
-	elem := list_tmp.Front()
-	for elem != nil {
-		answer.Head.NbrOctet += 56
-		elem = elem.Next()
-	}
-	Buffer := Write_header(answer)
-	binary.Write(Buffer, binary.BigEndian, answer.TPack.(Pack6).NbrBall)
-	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-	elem = answer.TPack.(Pack6).Ifball.Front()
-	for elem != nil {
-		ifb := elem.Value.(InfoBall)
-		binary.Write(Buffer, binary.BigEndian, ifb.Id)
-		Buffer.WriteString(ifb.Title)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(ifb.Title)))
-		binary.Write(Buffer, binary.BigEndian, ifb.Lon)
-		binary.Write(Buffer, binary.BigEndian, ifb.Lat)
-		binary.Write(Buffer, binary.BigEndian, ifb.Wins)
-		binary.Write(Buffer, binary.BigEndian, ifb.Wind)
-		elem = elem.Next()
-	}
-	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-answer.Head.NbrOctet))
-	buf = Buffer.Bytes()
-	fmt.Println(buf)
-	return buf
+	User      *list.Element
 }
 
 func Str_cut_n(str string, n int) (s1 string, s2 string) {
@@ -277,35 +126,35 @@ func Cut_messagemultipack(pack Packet, msg1 ballon.Lst_msg) (tmp_lst *list.List)
 
 	msg = msg1
 	for size != 0 {
-		if 16+pack.Head.NbrOctet >= 1024 {
+		if 16+pack.head.octets >= 1024 {
 			tmp_lst.PushBack(pack)
 			pack = Packet{}
-			typesp := Pack7{}
-			pack.Head.NbrOctet = 24
-			typesp.Mess = list.New()
-			pack.TPack = typesp
+			typesp := Contentball{}
+			pack.head.octets = 24
+			typesp.messages = list.New()
+			pack.ptype = typesp
 		} else {
 			newMess := Message{}
-			if int16(msg.Size)+16+pack.Head.NbrOctet < 1024 {
-				pack.Head.NbrOctet += 16 + (int16)(msg.Size)
-				newMess.Size = msg.Size
-				newMess.Idmess = msg.Id_Message
-				newMess.Idcountry = msg.Idcountry
-				newMess.Idcity = msg.Idcity
-				newMess.Message = msg.Content
-				newMess.Type_ = msg.Type_
-				pack.TPack.(Pack7).Mess.PushBack(newMess)
+			if int16(msg.Size)+16+pack.head.octets < 1024 {
+				pack.head.octets += 16 + (int16)(msg.Size)
+				newMess.size = msg.Size
+				newMess.id = msg.Id_Message
+				newMess.idcountry = msg.Idcountry
+				newMess.idcity = msg.Idcity
+				newMess.mess = msg.Content
+				newMess.mtype = msg.Type_
+				pack.ptype.(Contentball).messages.PushBack(newMess)
 				size -= msg.Size
 			} else {
-				newMess.Size = 1024 - int32(pack.Head.NbrOctet) - 16
-				size = size - newMess.Size
-				pack.Head.NbrOctet += 16 + int16(newMess.Size)
-				newMess.Idmess = msg.Id_Message
-				newMess.Idcountry = msg.Idcountry
-				newMess.Idcity = msg.Idcity
-				newMess.Message, msg.Content = Str_cut_n(msg.Content, int(newMess.Size))
-				newMess.Type_ = msg.Type_
-				pack.TPack.(Pack7).Mess.PushBack(newMess)
+				newMess.size = 1024 - int32(pack.head.octets) - 16
+				size = size - newMess.size
+				pack.head.octets += 16 + int16(newMess.size)
+				newMess.id = msg.Id_Message
+				newMess.idcountry = msg.Idcountry
+				newMess.idcity = msg.Idcity
+				newMess.mess, msg.Content = Str_cut_n(msg.Content, int(newMess.size))
+				newMess.mtype = msg.Type_
+				pack.ptype.(Contentball).messages.PushBack(newMess)
 			}
 		}
 	}
@@ -316,100 +165,101 @@ func Cut_messagemultipack(pack Packet, msg1 ballon.Lst_msg) (tmp_lst *list.List)
 	return tmp_lst
 }
 
-func Write_type_4(Ball ballon.Ball) (lst_tmsg *list.List) {
-	fmt.Println("Write_type_2")
-	var pack Packet
-	var typesp Pack7
+/*
+** Check_packets_list Verifie la validite des packets suivants en partant du
+** principe que le header du premier packet est valide (traitement multi-packet).
+ */
+func (Data *Data) Check_lstrequest() bool {
+	Req := Data.Lst_req.Front()
+	next := Req.Next()
+	tmp := Req
+	var nr protocol.Request
+	var tr protocol.Request
 
-	lst_pack := list.New()
-	pack.Head.NbrOctet = 24
-	pack.Head.NumPackReq = 0
-	typesp.Mess = list.New()
-	pack.TPack = typesp
-	elem := Ball.Lst_msg.Front()
-	for elem != nil {
-		fmt.Println("Mess of ball found")
-		msg := elem.Value.(ballon.Lst_msg)
-		if int16(msg.Size)+16+pack.Head.NbrOctet > 1024 {
-			fmt.Println("Depassement de buffer !cut! ")
-			tmp_lst := Cut_messagemultipack(pack, msg)
-			tmp := tmp_lst.Back()
-			pack = (tmp_lst.Remove(tmp)).(Packet)
-			lst_pack.PushBackList(tmp_lst)
-		} else {
-			fmt.Println("In the buffer OK")
-			newMess := Message{}
-			pack.Head.NbrOctet += 16 + int16(msg.Size)
-			newMess.Size = msg.Size
-			newMess.Idmess = msg.Id_Message
-			newMess.Idcountry = msg.Idcountry
-			newMess.Idcity = msg.Idcity
-			newMess.Message = msg.Content
-			newMess.Type_ = msg.Type_
-			pack.TPack.(Pack7).Mess.PushBack(newMess)
+	tr = tmp.Value.(protocol.Request)
+	fmt.Println("Value dans check de tr:")
+	fmt.Println(tr)
+	for next != nil {
+		nr = next.Value.(protocol.Request)
+		if tr.Nbrpck == tr.Numpck+1 {
+			return true
+		} else if tr.Rtype != nr.Rtype {
+			return false
+		} else if tr.Numpck != nr.Numpck+1 {
+			return false
 		}
-		elem = elem.Next()
+		next = next.Next()
+		tmp = tmp.Next()
+		tr = tmp.Value.(protocol.Request)
 	}
-	tmp := lst_pack.Back()
-	if tmp == nil || tmp.Value.(Packet) != pack {
-		lst_pack.PushBack(pack)
+	if tr.Nbrpck == tr.Numpck+1 {
+		return true
 	}
-	elem = lst_pack.Front()
-	numPack := 0
-	NbrPack := lst_pack.Len()
-	if NbrPack == 0 {
-		NbrPack = 1
-	}
-	follow := Ball.List_follow.Len()
+	return false
+}
+
+/*
+** Supprime une requete traite. Gere les multi-paquets
+ */
+func Del_request_done(Lst_req *list.List) {
+	elem := Lst_req.Front()
 	for elem != nil {
-		tp := elem.Value.(Packet)
-		tp.Head.TypeReq = TAKEN
-		tp.Head.NbrPackReq = (int32)(NbrPack)
-		tp.Head.NumPackReq = (int32)(numPack)
-		numPack += 1
-		tmp := Pack7{}
-		tmp.Mess = tp.TPack.(Pack7).Mess
-		tmp.Nbruser = (int32)(follow - 1) // - l'ajout qui viens d'etre fait.
-		tmp.NbrMess = (int32)(tmp.Mess.Len())
-		tp.TPack = tmp
-		elem.Value = tp
-		elem = elem.Next()
-	}
-	lst_tmsg = list.New()
-	elem = lst_pack.Front()
-	for elem != nil {
-		tpack := elem.Value.(Packet)
-		fmt.Println("Debeug")
-		fmt.Println(tpack)
-		fmt.Println(elem.Value.(Packet))
-		Buffer := Write_header(tpack)
-		binary.Write(Buffer, binary.BigEndian, Ball.Id_ball)
-		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).Nbruser)
-		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack7).NbrMess)
-		tmess := tpack.TPack.(Pack7).Mess.Front()
-		for tmess != nil {
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idmess)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Size)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idcountry)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).Idcity)
-			Buffer.WriteString(tmess.Value.(Message).Message)
-			tmess = tmess.Next()
+		if elem.Value.(protocol.Request).Numpck == elem.Value.(protocol.Request).Nbrpck-1 {
+			Lst_req.Remove(elem)
+			return
 		}
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.Head.NbrOctet))
+		tmp := elem
+		Lst_req.Remove(tmp)
 		elem = elem.Next()
-		lst_tmsg.PushBack(Buffer.Bytes())
 	}
-	return lst_tmsg
+}
+
+func Write_header(answer Packet) (Buffer *bytes.Buffer) {
+	Buffer = new(bytes.Buffer)
+
+	fmt.Println("Header")
+	fmt.Println(answer)
+	binary.Write(Buffer, binary.BigEndian, answer.head.octets)
+	binary.Write(Buffer, binary.BigEndian, answer.head.rtype)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+	binary.Write(Buffer, binary.BigEndian, answer.head.pnbr)
+	binary.Write(Buffer, binary.BigEndian, answer.head.pnum)
+	return Buffer
+}
+
+/* Write a type connexion, return answer list */
+func Write_conn(plist *list.List) (alist *list.List) {
+	alist = list.New()
+
+	packet := plist.Front()
+	for packet != nil {
+		pck := packet.Value.(*Packet)
+		Buffer := Write_header(*pck)
+		binary.Write(Buffer, binary.BigEndian, pck.ptype.(Conn).nbrball)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+		iball := pck.ptype.(Conn).infoballs.Front()
+		for iball != nil {
+			ball := iball.Value.(Infoball)
+			binary.Write(Buffer, binary.BigEndian, ball.id)
+			binary.Write(Buffer, binary.BigEndian, ball.nbrmess)
+			binary.Write(Buffer, binary.BigEndian, ball.taken)
+			iball = iball.Next()
+		}
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-pck.head.octets))
+		alist.PushBack(Buffer.Bytes())
+		packet = packet.Next()
+	}
+	return (alist)
 }
 
 /* Write_type_Ack */
-func Manage_typeack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer []byte) {
+func Manage_ack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer []byte) {
 	tpack := Packet{}
 
-	tpack.Head.NbrOctet = int16(72)
-	tpack.Head.TypeReq = ACK
-	tpack.Head.NbrPackReq = int32(1)
-	tpack.Head.NumPackReq = int32(0)
+	tpack.head.octets = int16(72)
+	tpack.head.rtype = ACK
+	tpack.head.pnbr = int32(1)
+	tpack.head.pnum = int32(0)
 	Buffer := Write_header(tpack)
 	binary.Write(Buffer, binary.BigEndian, Type)
 	binary.Write(Buffer, binary.BigEndian, value)
@@ -420,119 +270,226 @@ func Manage_typeack(Type int16, IdMobile int64, IdBallon int64, value int32) (an
 	}
 	//	binary.Write(Buffer, binary.BigEndian, IdMobile)
 	//	binary.Write(Buffer, binary.BigEndian, make([]byte, 32))
-	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.Head.NbrOctet))
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
 	answer = Buffer.Bytes()
 	return answer
 }
 
-func Write_type_1(lst_tmp *list.List) (asw *list.List) {
-	asw = list.New()
+func Write_nearby(Req *list.Element, list_tmp *list.List) (buf []byte) {
+	var answer Packet
+	var typesp Nearby
 
-	elem := lst_tmp.Front()
+	answer.head.octets = 24
+	answer.head.rtype = POS
+	answer.head.pnbr = 1
+	answer.head.pnum = 0
+	typesp.nbrball = (int32)(list_tmp.Len())
+	typesp.balls = list_tmp
+	answer.ptype = typesp
+	elem := list_tmp.Front()
 	for elem != nil {
-		tpack := elem.Value.(Packet)
-		Buffer := Write_header(tpack)
-		binary.Write(Buffer, binary.BigEndian, tpack.TPack.(Pack1).Nbr_ball)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-		telem := tpack.TPack.(Pack1).mini_balls.Front()
-		for telem != nil {
-			mball := telem.Value.(Mini_ball)
-			binary.Write(Buffer, binary.BigEndian, mball.Id_ball)
-			binary.Write(Buffer, binary.BigEndian, mball.Nbr_mess)
-			binary.Write(Buffer, binary.BigEndian, mball.Flag)
-			telem = telem.Next()
-		}
-		asw.PushBack(Buffer.Bytes())
+		answer.head.octets += 56
 		elem = elem.Next()
 	}
-	return (asw)
+	Buffer := Write_header(answer)
+	binary.Write(Buffer, binary.BigEndian, answer.ptype.(Nearby).nbrball)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+	elem = answer.ptype.(Nearby).balls.Front()
+	for elem != nil {
+		ifb := elem.Value.(Posball)
+		binary.Write(Buffer, binary.BigEndian, ifb.id)
+		Buffer.WriteString(ifb.title)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(ifb.title)))
+		binary.Write(Buffer, binary.BigEndian, ifb.lon)
+		binary.Write(Buffer, binary.BigEndian, ifb.lat)
+		binary.Write(Buffer, binary.BigEndian, ifb.wins)
+		binary.Write(Buffer, binary.BigEndian, ifb.wind)
+		elem = elem.Next()
+	}
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-answer.head.octets))
+	buf = Buffer.Bytes()
+	fmt.Println(buf)
+	return buf
 }
 
-/* Manage_type_1 Remplie le buffer avec une reponse au type 1 de la requete avec tous les ballons possedes et suivis par l'utilisateur.*/
-func (Data *Data) Manage_sync(Req *list.Element) {
-	elem := Data.User.List_follow.Front()
-	lst_tmp := list.New()
+func Write_contentball(Ball ballon.Ball, packettype int16) (alist *list.List) {
 	var pack Packet
-	var pack1 Pack1
+	var contball Contentball
 
-	pack.Head.NbrOctet = 24
-	pack.Head.TypeReq = CONN
-	pack1.Nbr_ball = 0
-	pack1.mini_balls = list.New()
-	for elem != nil {
-		var mball Mini_ball
-		ball := elem.Value.(ballon.Ball)
-		mball.Id_ball = ball.Id_ball
-		mball.Nbr_mess = int32(ball.Lst_msg.Len())
-		if ball.Possessed == &Data.User {
-			mball.Flag = 1
+	alist = list.New()
+	plist := list.New()
+	pack.head.octets = 32
+	pack.head.pnum = 0
+	contball.messages = list.New()
+	pack.ptype = contball
+	emess := Ball.Lst_msg.Front()
+	for emess != nil {
+		msg := emess.Value.(ballon.Lst_msg)
+		if int16(msg.Size)+16+pack.head.octets > 1024 {
+			tmp_lst := Cut_messagemultipack(pack, msg)
+			tmp := tmp_lst.Back()
+			pack = (tmp_lst.Remove(tmp)).(Packet)
+			plist.PushBackList(tmp_lst)
 		} else {
-			mball.Flag = 0
+			newMess := Message{}
+			pack.head.octets += 16 + int16(msg.Size)
+			newMess.size = msg.Size
+			newMess.id = msg.Id_Message
+			newMess.idcountry = msg.Idcountry
+			newMess.idcity = msg.Idcity
+			newMess.mess = msg.Content
+			newMess.mtype = msg.Type_
+			pack.ptype.(Contentball).messages.PushBack(newMess)
 		}
-		if pack.Head.NbrOctet+16 > 1024 {
-			pack.TPack = pack1
-			lst_tmp.PushBack(pack)
-			pack = Packet{}
-			pack1 = Pack1{}
-			pack.Head.NbrOctet = 24
-			pack.Head.TypeReq = CONN
-			pack1.Nbr_ball = 0
-			pack1.mini_balls = list.New()
-		}
-		pack.Head.NbrOctet += 16
-		pack1.mini_balls.PushBack(mball)
-		pack1.Nbr_ball += 1
-		elem = elem.Next()
+		emess = emess.Next()
 	}
-	if lst_tmp.Back().Value.(Packet) != pack {
-		lst_tmp.PushBack(pack)
+	tmp := plist.Back()
+	if tmp == nil || tmp.Value.(Packet) != pack {
+		plist.PushBack(pack)
 	}
-	elem = lst_tmp.Front()
-	nbrPack := int32(lst_tmp.Len())
-	numPack := int32(0)
-	for elem != nil {
-		packet := elem.Value.(Packet)
-		packet.Head.NbrPackReq = nbrPack
-		packet.Head.NumPackReq = numPack
+	epck := plist.Front()
+	numPack := 0
+	NbrPack := plist.Len()
+	if NbrPack == 0 {
+		NbrPack = 1
+	}
+	follow := Ball.List_follow.Len()
+	for epck != nil {
+		tp := epck.Value.(Packet)
+		tp.head.rtype = packettype
+		tp.head.pnbr = (int32)(NbrPack)
+		tp.head.pnum = (int32)(numPack)
 		numPack += 1
-		elem = elem.Next()
+		tmp := Contentball{}
+		tmp.messages = tp.ptype.(Contentball).messages
+		tmp.nbruser = (int32)(follow - 1) // - l'ajout qui viens d'etre fait.
+		tmp.nbrmess = (int32)(tmp.messages.Len())
+		tp.ptype = tmp
+		epck.Value = tp
+		epck = epck.Next()
 	}
-	Data.Lst_asw.PushBackList(Write_type_1(lst_tmp))
+	epck = plist.Front()
+	for epck != nil {
+		tpack := epck.Value.(Packet)
+		Buffer := Write_header(tpack)
+		binary.Write(Buffer, binary.BigEndian, Ball.Id_ball)
+		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
+		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
+		tmess := tpack.ptype.(Contentball).messages.Front()
+		for tmess != nil {
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).id)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).size)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).idcountry)
+			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).idcity)
+			Buffer.WriteString(tmess.Value.(Message).mess)
+			tmess = tmess.Next()
+		}
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
+		epck = epck.Next()
+		alist.PushBack(Buffer.Bytes())
+	}
+	return alist
 }
 
-/* Fournis le contenu d'un ballon au client, reponse au type 2 par un type 2 */
-func (Data *Data) Manage_maj(Req *list.Element) {
+/* Get all follower ball and create packets list for send the infoballs */
+func (Data *Data) Manage_sync(Req *list.Element) {
+	fmt.Println("Manage_sync")
+	flwupball := Data.User.Value.(*users.User).List_follow.Front()
+	plist := list.New()
+	pck := new(Packet)
+	conn := new(Conn)
+
+	pck.head.octets = 24
+	pck.head.rtype = CONN
+	conn.nbrball = 0
+	conn.infoballs = list.New()
+
+	for flwupball != nil {
+		myball := new(Infoball)
+		ball := flwupball.Value.(*list.Element).Value.(ballon.Ball)
+		myball.id = ball.Id_ball
+		myball.nbrmess = int32(ball.Lst_msg.Len())
+		if ball.Possessed == Data.User {
+			myball.taken = 1
+		} else {
+			myball.taken = 0
+		}
+		if pck.head.octets+16 > 1024 {
+			pck.ptype = conn
+			plist.PushBack(pck)
+			pck = new(Packet)
+			conn = new(Conn)
+			pck.head.octets = 24
+			pck.head.rtype = CONN
+			conn.nbrball = 0
+			conn.infoballs = list.New()
+		}
+		pck.head.octets += 16
+		conn.infoballs.PushBack(*myball)
+		conn.nbrball += 1
+		flwupball = flwupball.Next()
+	}
+	pck.ptype = *conn
+	plist.PushBack(pck)
+	pelem := plist.Front()
+	nbrpacket := int32(plist.Len())
+	numpacket := int32(0)
+	fmt.Println("info des ballons followed nbrpacker numpacket")
+	fmt.Println(nbrpacket)
+	fmt.Println(numpacket)
+	for pelem != nil {
+		fmt.Println("Coucou")
+		packet := pelem.Value.(*Packet)
+		packet.head.pnbr = nbrpacket
+		packet.head.pnum = numpacket
+		numpacket += 1
+		pelem = pelem.Next()
+	}
+	Data.Lst_asw.PushBackList(Write_conn(plist))
 }
 
-func (Data *Data) Manage_sendball(Req *list.Element) {
+/* If user has idbaloon in follower list, give him data message */
+func (Data *Data) Manage_update(request *list.Element) {
+	var ball ballon.Ball
+
+	rqt := request.Value.(protocol.Request)
+	idsearch := rqt.Spec.(protocol.Ballid).Id
+	eball := Data.User.Value.(*users.User).List_follow.Front()
+	for eball != nil {
+		ball = eball.Value.(*list.Element).Value.(ballon.Ball)
+		if ball.Id_ball == idsearch {
+			break
+		}
+		eball = eball.Next()
+	}
+	if eball != nil {
+		Lst_answer := Write_contentball(ball, UPDATE)
+		Data.Lst_asw.PushBackList(Lst_answer)
+	} else {
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		Data.Lst_asw.PushBack(answer)
+	}
 }
 
 /* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete avec un maximum de 10 ballons et de 1 packet par requete*/
 func (Data *Data) Manage_pos(Req *list.Element) {
 	list_tmp := list.New()
-	var ifball InfoBall
+	var ifball Posball
 
 	elem := Data.Lst_ball.Lst.Front()
 	for elem != nil {
 		Coord := elem.Value.(ballon.Ball).Coord.Value.(ballon.Checkpoints).Coord
-		fmt.Println("Balon testing and coordinates:")
-		fmt.Println(Coord.Longitude)
-		fmt.Println(Coord.Latitude)
-		fmt.Println("Position testing and coordinates:")
-		fmt.Println(Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude + 0.01)
-		fmt.Println(Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude + 0.01)
-
-		if Coord.Longitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude+0.01 && Coord.Longitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude-0.01 && Coord.Latitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude+0.01 && Coord.Latitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude-0.01 {
+		if Coord.Longitude < Req.Value.(protocol.Request).Spec.(protocol.Position).Lon+0.01 && Coord.Longitude > Req.Value.(protocol.Request).Spec.(protocol.Position).Lon-0.01 && Coord.Latitude < Req.Value.(protocol.Request).Spec.(protocol.Position).Lat+0.01 && Coord.Latitude > Req.Value.(protocol.Request).Spec.(protocol.Position).Lat-0.01 {
 			ball := elem.Value.(ballon.Ball)
-			ifball.Id = ball.Id_ball
-			ifball.Title = ball.Name
-			ifball.Lon = ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude
-			ifball.Lat = ball.Coord.Value.(ballon.Checkpoints).Coord.Latitude
+			ifball.id = ball.Id_ball
+			ifball.title = ball.Name
+			ifball.lon = ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude
+			ifball.lat = ball.Coord.Value.(ballon.Checkpoints).Coord.Latitude
 			fmt.Println("Balon testing:")
 			fmt.Println(Coord)
 
-			ifball.Wins = ball.Wind.Speed
-			ifball.Wind = ball.Wind.Degress
+			ifball.wins = ball.Wind.Speed
+			ifball.wind = ball.Wind.Degress
 			list_tmp.PushBack(ifball)
 		}
 		elem = elem.Next()
@@ -548,64 +505,74 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 		list_tmp.Remove(elem)
 		Len -= 1
 	}
-	answer := Write_type3(Req, list_tmp)
+	answer := Write_nearby(Req, list_tmp)
 	Data.Lst_asw.PushBack(answer)
 }
 
-/* Manage_type_4 Remplie le buffer avec une reponse au type 2 ou 4 de la requete. */
-func (Data *Data) Manage_taken(Req *list.Element) {
-	elem := Data.Lst_ball.Lst.Front()
-	treq := Req.Value.(protocol.Lst_req_sock)
-
-	fmt.Println("Debug Manage_taken")
-	fmt.Println("Nombre de ballon: ")
-	fmt.Println(Data.Lst_ball.Lst.Front)
-
-	for elem != nil && elem.Value.(ballon.Ball).Id_ball != Req.Value.(protocol.Lst_req_sock).Union.(protocol.Id_ballon).IdBallon {
-		elem = elem.Next()
+func Check_followuser(listball *list.List, ball ballon.Ball) bool {
+	eball := listball.Front()
+	for eball != nil {
+		tball := eball.Value.(*list.Element).Value.(ballon.Ball)
+		if tball.Id_ball == ball.Id_ball {
+			return true
+		}
+		eball = eball.Next()
 	}
-	if elem != nil {
-		fmt.Println("Ball found")
-		fmt.Println(elem.Value.(ballon.Ball).Id_ball)
-		fmt.Println(Req.Value.(protocol.Lst_req_sock).Union.(protocol.Id_ballon).IdBallon)
-		ball := elem.Value.(ballon.Ball)
-		ball.Possessed = &Data.User
-		// Rajouter checkpoint actuel au ballon qui est celui de l'utilisateur.
-		// Dans l'application move checkpoint, voir pour que si le ballon est possessed il ne faut pas qu'il se deplace.
-		// Verifier si le ballon n'est pas deja possessed
-		ball.List_follow.PushFront(Data.User)
-		Lst_answer := Write_type_4(ball)
-		Data.Lst_asw.PushBackList(Lst_answer)
+	return false
+}
+
+/* Manage_type_4 Remplie le buffer avec une reponse au type 2 ou 4 de la requete. */
+func (Data *Data) Manage_taken(request *list.Element) {
+	eball := Data.Lst_ball.Lst.Front()
+	rqt := request.Value.(protocol.Request)
+
+	for eball != nil && eball.Value.(ballon.Ball).Id_ball != request.Value.(protocol.Request).Spec.(protocol.Ballid).Id {
+		eball = eball.Next()
+	}
+	if eball != nil {
+		ball := eball.Value.(ballon.Ball)
+		if ball.Possessed == nil && Check_followuser(Data.User.Value.(*users.User).List_follow, ball) == false {
+			ball.Possessed = Data.User
+			ball.List_follow.PushFront(Data.User)
+			Data.User.Value.(*users.User).List_follow.PushBack(eball)
+			Lst_answer := Write_contentball(ball, TAKEN)
+			Data.Lst_asw.PushBackList(Lst_answer)
+			ball.Clearcheckpoint()
+		} else {
+			answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+			Data.Lst_asw.PushBack(answer)
+		}
 	} else {
-		answer := Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
-		fmt.Println("Ballon not found")
 	}
 }
 
 /* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete. */
 func (Data *Data) Manage_followon(Req *list.Element) {
-	treq := Req.Value.(protocol.Lst_req_sock)
+	treq := Req.Value.(protocol.Request)
 
 	elem := Data.Lst_ball.Lst.Front()
-	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Union.(protocol.Id_ballon).IdBallon {
+	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Spec.(protocol.Ballid).Id {
 		elem = elem.Next()
 	}
 	var answer []byte
 	if elem != nil {
-		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(0))
 	} else {
 		elem.Value.(ballon.Ball).List_follow.PushBack(Data.User)
-		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(1))
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
 
+/* Voir les pointeurs de User et ball follow enlever de l'user et du ballon  */
+// Pareil dans la fonction follow
 /* Manage_type_4 Remplie le buffer avec une reponse au type 4 de la requete. */
 func (Data *Data) Manage_followoff(Req *list.Element) {
-	treq := Req.Value.(protocol.Lst_req_sock)
+	treq := Req.Value.(protocol.Request)
 	elem := Data.Lst_ball.Lst.Front()
-	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Union.(protocol.Id_ballon).IdBallon {
+	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Spec.(protocol.Ballid).Id {
 		elem = elem.Next()
 	}
 	var answer []byte
@@ -614,9 +581,9 @@ func (Data *Data) Manage_followoff(Req *list.Element) {
 	if elem != nil {
 		users_l = elem.Value.(ballon.Ball).List_follow.Front()
 		for users_l != nil {
-			user := users_l.Value.(users.User)
+			user := users_l.Value.(*users.User)
 			dvc = user.Device.Front()
-			for dvc != nil && dvc.Value.(users.Device).IdMobile != treq.IdMobile {
+			for dvc != nil && dvc.Value.(users.Device).IdMobile != treq.Deviceid {
 				dvc = dvc.Next()
 			}
 			users_l = users_l.Next()
@@ -624,9 +591,9 @@ func (Data *Data) Manage_followoff(Req *list.Element) {
 	}
 	if dvc != nil {
 		elem.Value.(ballon.Ball).List_follow.Remove(users_l)
-		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(1))
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
 	} else {
-		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(0))
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -634,10 +601,10 @@ func (Data *Data) Manage_followoff(Req *list.Element) {
 /* Manage_type_5 Remplie le buffer avec une reponse au type 5 de la requete. */
 func (Data *Data) Manage_newball(Req *list.Element, Tab_wd *owm.All_data) {
 	var ball ballon.Ball
-	var newBall protocol.Ballon
+	var newBall protocol.New_ball
 	var mess ballon.Lst_msg
 
-	newBall = Req.Value.(protocol.Lst_req_sock).Union.(protocol.Ballon)
+	newBall = Req.Value.(protocol.Request).Spec.(protocol.New_ball)
 	Data.Lst_ball.Id_max++
 	ball.Id_ball = Data.Lst_ball.Id_max
 	ball.Name = newBall.Title
@@ -648,14 +615,17 @@ func (Data *Data) Manage_newball(Req *list.Element, Tab_wd *owm.All_data) {
 	mess.Type_ = 1
 	ball.Lst_msg.PushFront(mess)
 	ball.Date = time.Now()
-	ball.Possessed = &(Data.User)
+	ball.Possessed = Data.User
 	ball.List_follow.PushFront(Data.User)
-	ball.Creator = &(Data.User)
+	ball.Creator = Data.User
 	ball.Get_checkpointList(Tab_wd.Get_Paris())
 	Data.Lst_ball.Lst.PushFront(ball)
-	treq := Req.Value.(protocol.Lst_req_sock)
-	answer := Manage_typeack(treq.Type, treq.IdMobile, ball.Id_ball, int32(1))
+	treq := Req.Value.(protocol.Request)
+	answer := Manage_ack(treq.Rtype, treq.Deviceid, ball.Id_ball, int32(1))
 	Data.Lst_asw.PushBack(answer)
+}
+
+func (Data *Data) Manage_sendball(Req *list.Element) {
 }
 
 /*
@@ -663,44 +633,37 @@ func (Data *Data) Manage_newball(Req *list.Element, Tab_wd *owm.All_data) {
 ** avec un buffer de 1024 Octets. Elle initialisera l'authentification de
 ** de l'utilisateur et nettoiera le flux de requetes traites.
  */
-func (Data *Data) Get_answer(Tab_wd *owm.All_data) (err error) {
-	fmt.Println("Get_answer")
-	Req := Data.Lst_req.Front()
-	fmt.Println(Req.Value.(protocol.Lst_req_sock))
-	if Req == nil {
-		fmt.Println("Error get answer")
-	}
-	fmt.Println(Data)
-	Data.User, err = Check_user(Req, Data.Lst_users)
-	if err != nil {
-		fmt.Println(err)
+func (Data *Data) Get_answer(Tab_wd *owm.All_data) (er error) {
+	request := Data.Lst_req.Front()
+	er = nil
+	if request == nil {
+		er = errors.New("Get answer, but no request.")
 	} else {
-		switch Req.Value.(protocol.Lst_req_sock).Type {
-		case 1:
-			Data.Manage_sync(Req)
-		case 2:
-			Data.Manage_maj(Req)
-		case 3:
-			Data.Manage_pos(Req)
-		case 4:
-			Data.Manage_taken(Req)
-		case 5:
-			Data.Manage_followon(Req)
-		case 6:
-			Data.Manage_followoff(Req)
-		case 7:
-			Data.Manage_newball(Req, Tab_wd)
-		case 8:
-			Data.Manage_sendball(Req)
-		case ACK:
-			fmt.Println("Acknowldgement received")
+		Data.User, er = Data.Lst_users.Check_user(request)
+		if er == nil {
+			switch request.Value.(protocol.Request).Rtype {
+			case SYNC:
+				Data.Manage_sync(request)
+			case UPDATE:
+				Data.Manage_update(request)
+			case POS:
+				Data.Manage_pos(request)
+			case TAKEN:
+				Data.Manage_taken(request)
+			case FOLLOW_ON:
+				Data.Manage_followon(request)
+			case FOLLOW_OFF:
+				Data.Manage_followoff(request)
+			case NEW_BALL:
+				Data.Manage_newball(request, Tab_wd)
+			case SEND_BALL:
+				Data.Manage_sendball(request)
+			case ACK:
+			}
 		}
-		Del_request_done(Data.Lst_req)
-		return nil
 	}
 	Del_request_done(Data.Lst_req)
-	err = errors.New("Failed check user")
-	return err
+	return er
 }
 
 /*
@@ -708,12 +671,12 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data) (err error) {
  */
 func (Data *Data) Get_aknowledgement(Lst_usr *users.All_users) (answer []byte) {
 	elem := Data.Lst_req.Back()
-	treq := elem.Value.(protocol.Lst_req_sock)
+	treq := elem.Value.(protocol.Request)
 
-	if treq.Type == 7 {
-		answer = Manage_typeack(treq.Type, treq.IdMobile, 0, int32(1))
+	if treq.Rtype == NEW_BALL {
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, 0, int32(1))
 	} else {
-		answer = Manage_typeack(treq.Type, treq.IdMobile, treq.Union.(protocol.Id_ballon).IdBallon, int32(1))
+		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
 	}
 	return answer
 }

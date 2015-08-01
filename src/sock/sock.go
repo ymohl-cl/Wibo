@@ -49,11 +49,8 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 		} else {
 			fmt.Println("Received")
 			fmt.Println(buff)
-			fmt.Println("decode ...")
-			Token := new(protocol.Lst_req_sock)
+			Token := new(protocol.Request)
 			err := Token.Get_request(buff)
-			fmt.Println("Second test")
-			fmt.Println(Token)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -73,7 +70,12 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 					Front := Data.Lst_asw.Front()
 					fmt.Println("Answer sending:")
 					fmt.Println(Front.Value.([]byte))
-					conn.Write(Front.Value.([]byte))
+					size, err = conn.Write(Front.Value.([]byte))
+					fmt.Println("Retour de Write:")
+					fmt.Println(err)
+					fmt.Println("Size:")
+					fmt.Println(size)
+
 					Data.Lst_asw.Remove(Front)
 				}
 			} else {

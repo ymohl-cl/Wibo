@@ -14,6 +14,7 @@ package users
 
 import (
 	"container/list"
+	"protocol"
 	"time"
 )
 
@@ -60,6 +61,43 @@ func (User *User) User_is_online() bool {
 	} else {
 		return false
 	}
+}
+
+/*
+** Manage users's connexion
+ */
+func (ulist *All_users) Check_user(request *list.Element) (user *list.Element, err error) {
+	user = ulist.Lst_users.Front()
+	var device *list.Element
+
+	rqt := request.Value.(protocol.Request)
+	for user != nil {
+		device = user.Value.(*User).Device.Front()
+		for device != nil && device.Value.(Device).IdMobile != rqt.Deviceid {
+			device = device.Next()
+		}
+		if device != nil {
+			break
+		}
+		user = user.Next()
+	}
+	if user == nil {
+		usr := new(User)
+		var hist_device Device
+		usr.Device = list.New()
+		usr.Log = time.Now()
+		usr.List_follow = list.New()
+		hist_device.IdMobile = request.Value.(protocol.Request).Deviceid
+		hist_device.History_req = list.New()
+		hist_device.History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		usr.Device.PushFront(hist_device)
+		user = ulist.Lst_users.PushBack(usr)
+		ulist.Add_new_user(usr)
+	} else {
+		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		user.Value.(*User).Log = time.Now()
+	}
+	return user, nil
 }
 
 /*

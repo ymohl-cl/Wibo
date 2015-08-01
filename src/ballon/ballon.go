@@ -81,9 +81,9 @@ type Ball struct {
 	Lst_msg     *list.List
 	Date        time.Time
 	Checkpoints *list.List
-	Possessed   *users.User
+	Possessed   *list.Element
 	List_follow *list.List
-	Creator     *users.User
+	Creator     *list.Element
 }
 
 /*
@@ -104,6 +104,17 @@ func (ball Ball) Print_list_checkpoints() {
 		fmt.Println(elem.Value.(Checkpoints))
 		elem = elem.Next()
 	}
+}
+
+func (ball Ball) Check_nearbycoord(coord Coordinates) bool {
+
+	//	if Coord.Longitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude+0.01 && Coord.Longitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude-0.01 && Coord.Latitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude+0.01 && Coord.Latitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude-0.01 {
+	return true
+}
+
+func (ball Ball) Clearcheckpoint() {
+	ball.Coord = nil
+	ball.Checkpoints.Init()
 }
 
 /*
