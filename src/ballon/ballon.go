@@ -97,7 +97,7 @@ type All_ball struct {
 }
 
 /* Print_list_checkpoints print la liste de checkpoints d'un ballon */
-func (ball Ball) Print_list_checkpoints() {
+func (ball *Ball) Print_list_checkpoints() {
 	elem := ball.Checkpoints.Front()
 
 	for elem != nil {
@@ -106,13 +106,25 @@ func (ball Ball) Print_list_checkpoints() {
 	}
 }
 
-func (ball Ball) Check_nearbycoord(coord Coordinates) bool {
+func (ball *Ball) Check_userfollower(user *list.Element) bool {
+	euser := ball.List_follow.Front()
+
+	for euser != nil && euser.Value.(*list.Element).Value.(*users.User).Id != user.Value.(*users.User).Id {
+		euser = euser.Next()
+	}
+	if euser != nil {
+		return true
+	}
+	return false
+}
+
+func (ball *Ball) Check_nearbycoord(coord Coordinates) bool {
 
 	//	if Coord.Longitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude+0.01 && Coord.Longitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Longitude-0.01 && Coord.Latitude < Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude+0.01 && Coord.Latitude > Req.Value.(protocol.Lst_req_sock).Union.(protocol.Position).Latitude-0.01 {
 	return true
 }
 
-func (ball Ball) Clearcheckpoint() {
+func (ball *Ball) Clearcheckpoint() {
 	ball.Coord = nil
 	ball.Checkpoints.Init()
 }
@@ -122,7 +134,7 @@ func (ball Ball) Clearcheckpoint() {
 ** Dans le cadre de la beta, il verifie les coordonnees du ballon pour le
 ** forcer a rester dans Paris.
  */
-func (elem Ball) Get_checkpointList(station owm.Weather_data) (test Ball) {
+func (elem *Ball) Get_checkpointList(station owm.Weather_data) (test *Ball) {
 	r_world := 6371000.0
 	var tmp_coord Coordinates
 	var calc_coord Coordinates
@@ -134,6 +146,13 @@ func (elem Ball) Get_checkpointList(station owm.Weather_data) (test Ball) {
 		dir -= 360
 	}
 	dir = dir * (math.Pi / 180.0)
+	if elem.Coord != nil {
+		fmt.Println("Value.(Checkpionts exist)")
+		fmt.Println("Value.Coord existi ? :")
+		fmt.Println(elem.Coord.Value.(Checkpoints).Coord)
+	} else {
+		fmt.Println("Gros probleme dans les epinard")
+	}
 	checkpoint.Longitude = elem.Coord.Value.(Checkpoints).Coord.Longitude
 	checkpoint.Latitude = elem.Coord.Value.(Checkpoints).Coord.Latitude
 	elem.Checkpoints = elem.Checkpoints.Init()
@@ -169,6 +188,15 @@ func (elem Ball) Get_checkpointList(station owm.Weather_data) (test Ball) {
 	return elem
 }
 
+func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {
+	eball = balls.Lst.Front()
+
+	for eball != nil && eball.Value.(*Ball).Id_ball != id {
+		eball = eball.Next()
+	}
+	return eball
+}
+
 /*
 ** Create checkpoint applique a tous les ballon, la nouvelle liste de
 ** checkpoints qui leur correspondent. Cette fonction est appele toutes
@@ -186,7 +214,7 @@ func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 	fmt.Println(station)
 	elem := Lst_ball.Lst.Front()
 	for elem != nil {
-		elem.Value = elem.Value.(Ball).Get_checkpointList(station)
+		elem.Value = elem.Value.(*Ball).Get_checkpointList(station)
 		elem = elem.Next()
 	}
 	return nil
@@ -202,7 +230,7 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 	elem := Lst_ball.Lst.Front()
 
 	for elem != nil {
-		ball := elem.Value.(Ball)
+		ball := elem.Value.(*Ball)
 		ball.Coord = ball.Coord.Next()
 		if ball.Coord != nil {
 			ball.Checkpoints.Remove(ball.Checkpoints.Front())
@@ -230,8 +258,67 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
 	return
 }
 
+func Print_all_message(lst *list.List) {
+	emess := lst.Front()
+
+	for emess != nil {
+		mess := emess.Value.(Lst_msg)
+		fmt.Println("Message ...")
+		fmt.Println(mess.Id_Message)
+		fmt.Println(mess.Size)
+		fmt.Println(mess.Content)
+		emess = emess.Next()
+	}
+}
+
+func Print_all_checkpoints(check *list.List) {
+	echeck := check.Front()
+
+	for echeck != nil {
+		tcheck := echeck.Value.(Checkpoints)
+		fmt.Println("Checkpoint ...")
+		fmt.Println(tcheck.Coord.Longitude)
+		fmt.Println(tcheck.Coord.Latitude)
+		fmt.Println(tcheck.Date)
+		echeck = echeck.Next()
+	}
+}
+
+func Print_users_follower(ulist *list.List) {
+	euser := ulist.Front()
+
+	for euser != nil {
+		user := euser.Value.(*list.Element).Value.(*users.User)
+		fmt.Println("User ...")
+		fmt.Println(user.Device)
+		euser = euser.Next()
+	}
+}
+
 /* Print_all_ball print la liste de tous les ballons, utile pour debeuguer. */
 func (Lst_ball *All_ball) Print_all_balls() {
+	eball := Lst_ball.Lst.Front()
+
+	for eball != nil {
+		ball := eball.Value.(*Ball)
+		fmt.Println("!!!! Print BALL !!!!")
+		fmt.Println(ball.Id_ball)
+		fmt.Println(ball.Name)
+		fmt.Println(ball.Coord)
+		fmt.Println(ball.Wind)
+		fmt.Println("!!!! MESSAGE !!!!")
+		Print_all_message(ball.Lst_msg)
+		fmt.Println(ball.Date)
+		fmt.Println("!!!! Checkpoints !!!!")
+		Print_all_checkpoints(ball.Checkpoints)
+		fmt.Println("!!!! User possessed !!!!")
+		fmt.Println(ball.Possessed)
+		fmt.Println("!!!! Users follower !!!!")
+		Print_users_follower(ball.List_follow)
+		fmt.Println("!!!! User creator !!!!")
+		fmt.Println(ball.Creator)
+		eball = eball.Next()
+	}
 	return
 }
 

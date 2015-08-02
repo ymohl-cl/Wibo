@@ -50,6 +50,15 @@ type New_ball struct {
 	Title   string
 	Lonuser float64
 	Latuser float64
+	Octets  int32
+	Message string
+}
+
+type Send_ball struct {
+	Id      int64
+	Lonuser float64
+	Latuser float64
+	Octets  int32
 	Message string
 }
 
@@ -111,8 +120,8 @@ func Request_newball(TypBuff *bytes.Buffer) (ball New_ball, er error) {
 	var err error
 
 	ball.Title, err = TypBuff.ReadString(0)
-	if len(ball.Title) == 1 || err != nil {
-		er = errors.New("Get_newball in protocol: Error ReadString")
+	if len(ball.Title) == 1 {
+		er = errors.New("Get_newball in protocol 1: Error ReadString")
 		return ball, er
 	}
 	TypBuff.Next((16 - len(ball.Title)))
@@ -126,17 +135,50 @@ func Request_newball(TypBuff *bytes.Buffer) (ball New_ball, er error) {
 		er = errors.New("Get_newball in protocol: Error binary.Read")
 		return ball, er
 	}
-	TypBuff.Next(8)
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Octets)
+	if err != nil {
+		er = errors.New("Get_newball in protocol: Error binary.Read")
+		return ball, er
+	}
+	TypBuff.Next(4)
 	ball.Message, err = TypBuff.ReadString(0)
 	if 1 == len(ball.Message) {
-		er = errors.New("Get_newball in protocol: Error ReadString")
+		er = errors.New("Get_newball in protocoli 2: Error ReadString")
 		return ball, er
 	}
 	return ball, er
 }
 
 /* Decode type sendball  */
-func Request_sendball(TypBuff *bytes.Buffer) (ball New_ball, er error) {
+func Request_sendball(TypBuff *bytes.Buffer) (ball Send_ball, er error) {
+	var err error
+
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Id)
+	if err != nil {
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Lonuser)
+	if err != nil {
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Latuser)
+	if err != nil {
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Octets)
+	if err != nil {
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
+	}
+	TypBuff.Next(4)
+	ball.Message, err = TypBuff.ReadString(0)
+	if 1 == len(ball.Message) {
+		er = errors.New("Get_sendball in protocol: Error ReadString")
+		return ball, er
+	}
 	return ball, er
 }
 
@@ -213,9 +255,14 @@ func (token *Request) Print_token_debug() {
 		fmt.Println(token.Spec.(New_ball).Title)
 		fmt.Println(token.Spec.(New_ball).Lonuser)
 		fmt.Println(token.Spec.(New_ball).Latuser)
+		fmt.Println(token.Spec.(New_ball).Octets)
 		fmt.Println(token.Spec.(New_ball).Message)
 	case SEND_BALL:
-		fmt.Println("Renvoi un ballon non gere pour le moment")
+		fmt.Println(token.Spec.(Send_ball).Id)
+		fmt.Println(token.Spec.(Send_ball).Lonuser)
+		fmt.Println(token.Spec.(Send_ball).Latuser)
+		fmt.Println(token.Spec.(Send_ball).Octets)
+		fmt.Println(token.Spec.(Send_ball).Message)
 	case ACK:
 		fmt.Println(token.Spec.(Ack).Atype)
 		fmt.Println(token.Spec.(Ack).Status)

@@ -86,6 +86,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				conn.Write(awr)
 			}
 		}
+		//		Data.Lst_ball.Print_all_balls()
 		buff = nil
 	}
 }

@@ -43,6 +43,7 @@ type Device struct {
 ** Log est la date de dernier signe de vie utilisateur
  */
 type User struct {
+	Id          int64
 	Device      *list.List
 	Log         time.Time
 	List_follow *list.List // ballon suivis

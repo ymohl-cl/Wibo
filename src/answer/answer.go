@@ -256,20 +256,14 @@ func Write_conn(plist *list.List) (alist *list.List) {
 func Manage_ack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer []byte) {
 	tpack := Packet{}
 
-	tpack.head.octets = int16(72)
+	tpack.head.octets = int16(32)
 	tpack.head.rtype = ACK
 	tpack.head.pnbr = int32(1)
 	tpack.head.pnum = int32(0)
 	Buffer := Write_header(tpack)
-	binary.Write(Buffer, binary.BigEndian, Type)
+	binary.Write(Buffer, binary.BigEndian, int32(Type))
 	binary.Write(Buffer, binary.BigEndian, value)
-	if Type == NEW_BALL {
-		binary.Write(Buffer, binary.BigEndian, int64(0))
-	} else {
-		binary.Write(Buffer, binary.BigEndian, IdBallon)
-	}
-	//	binary.Write(Buffer, binary.BigEndian, IdMobile)
-	//	binary.Write(Buffer, binary.BigEndian, make([]byte, 32))
+	binary.Write(Buffer, binary.BigEndian, IdBallon)
 	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
 	answer = Buffer.Bytes()
 	return answer
@@ -312,7 +306,7 @@ func Write_nearby(Req *list.Element, list_tmp *list.List) (buf []byte) {
 	return buf
 }
 
-func Write_contentball(Ball ballon.Ball, packettype int16) (alist *list.List) {
+func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 	var pack Packet
 	var contball Contentball
 
@@ -406,7 +400,7 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 
 	for flwupball != nil {
 		myball := new(Infoball)
-		ball := flwupball.Value.(*list.Element).Value.(ballon.Ball)
+		ball := flwupball.Value.(*list.Element).Value.(*ballon.Ball)
 		myball.id = ball.Id_ball
 		myball.nbrmess = int32(ball.Lst_msg.Len())
 		if ball.Possessed == Data.User {
@@ -450,13 +444,13 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 
 /* If user has idbaloon in follower list, give him data message */
 func (Data *Data) Manage_update(request *list.Element) {
-	var ball ballon.Ball
+	var ball *ballon.Ball
 
 	rqt := request.Value.(protocol.Request)
 	idsearch := rqt.Spec.(protocol.Ballid).Id
 	eball := Data.User.Value.(*users.User).List_follow.Front()
 	for eball != nil {
-		ball = eball.Value.(*list.Element).Value.(ballon.Ball)
+		ball = eball.Value.(*list.Element).Value.(*ballon.Ball)
 		if ball.Id_ball == idsearch {
 			break
 		}
@@ -478,9 +472,9 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 
 	elem := Data.Lst_ball.Lst.Front()
 	for elem != nil {
-		Coord := elem.Value.(ballon.Ball).Coord.Value.(ballon.Checkpoints).Coord
+		Coord := elem.Value.(*ballon.Ball).Coord.Value.(ballon.Checkpoints).Coord
 		if Coord.Longitude < Req.Value.(protocol.Request).Spec.(protocol.Position).Lon+0.01 && Coord.Longitude > Req.Value.(protocol.Request).Spec.(protocol.Position).Lon-0.01 && Coord.Latitude < Req.Value.(protocol.Request).Spec.(protocol.Position).Lat+0.01 && Coord.Latitude > Req.Value.(protocol.Request).Spec.(protocol.Position).Lat-0.01 {
-			ball := elem.Value.(ballon.Ball)
+			ball := elem.Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
 			ifball.title = ball.Name
 			ifball.lon = ball.Coord.Value.(ballon.Checkpoints).Coord.Longitude
@@ -509,29 +503,21 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 	Data.Lst_asw.PushBack(answer)
 }
 
-func Check_followuser(listball *list.List, ball ballon.Ball) bool {
-	eball := listball.Front()
-	for eball != nil {
-		tball := eball.Value.(*list.Element).Value.(ballon.Ball)
-		if tball.Id_ball == ball.Id_ball {
-			return true
-		}
-		eball = eball.Next()
-	}
-	return false
-}
-
 /* Manage_type_4 Remplie le buffer avec une reponse au type 2 ou 4 de la requete. */
 func (Data *Data) Manage_taken(request *list.Element) {
 	eball := Data.Lst_ball.Lst.Front()
 	rqt := request.Value.(protocol.Request)
 
-	for eball != nil && eball.Value.(ballon.Ball).Id_ball != request.Value.(protocol.Request).Spec.(protocol.Ballid).Id {
+	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(protocol.Request).Spec.(protocol.Ballid).Id {
 		eball = eball.Next()
 	}
 	if eball != nil {
-		ball := eball.Value.(ballon.Ball)
-		if ball.Possessed == nil && Check_followuser(Data.User.Value.(*users.User).List_follow, ball) == false {
+		ball := eball.Value.(*ballon.Ball)
+		fmt.Println("Print status du ballon")
+		fmt.Println(ball.Id_ball)
+		fmt.Println(ball.Possessed)
+		fmt.Println(ball.Check_userfollower(Data.User))
+		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false {
 			ball.Possessed = Data.User
 			ball.List_follow.PushFront(Data.User)
 			Data.User.Value.(*users.User).List_follow.PushBack(eball)
@@ -548,84 +534,99 @@ func (Data *Data) Manage_taken(request *list.Element) {
 	}
 }
 
-/* Manage_type_3 Remplie le buffer avec une reponse au type 3 de la requete. */
-func (Data *Data) Manage_followon(Req *list.Element) {
-	treq := Req.Value.(protocol.Request)
+/* Check user follower and if is missing, add follower status  */
+func (Data *Data) Manage_followon(request *list.Element) {
+	rqt := request.Value.(protocol.Request)
 
-	elem := Data.Lst_ball.Lst.Front()
-	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Spec.(protocol.Ballid).Id {
-		elem = elem.Next()
+	eball := Data.Lst_ball.Lst.Front()
+	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != rqt.Spec.(protocol.Ballid).Id {
+		eball = eball.Next()
 	}
 	var answer []byte
-	if elem != nil {
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(0))
+	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == false {
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		eball.Value.(*ballon.Ball).List_follow.PushBack(Data.User)
+		Data.User.Value.(*users.User).List_follow.PushBack(eball)
 	} else {
-		elem.Value.(ballon.Ball).List_follow.PushBack(Data.User)
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
 
-/* Voir les pointeurs de User et ball follow enlever de l'user et du ballon  */
-// Pareil dans la fonction follow
-/* Manage_type_4 Remplie le buffer avec une reponse au type 4 de la requete. */
-func (Data *Data) Manage_followoff(Req *list.Element) {
-	treq := Req.Value.(protocol.Request)
-	elem := Data.Lst_ball.Lst.Front()
-	for elem != nil && elem.Value.(ballon.Ball).Id_ball != treq.Spec.(protocol.Ballid).Id {
-		elem = elem.Next()
-	}
+/* Check user follower and if is found, remove follower status  */
+func (Data *Data) Manage_followoff(request *list.Element) {
 	var answer []byte
-	var dvc *list.Element = nil
-	var users_l *list.Element = nil
-	if elem != nil {
-		users_l = elem.Value.(ballon.Ball).List_follow.Front()
-		for users_l != nil {
-			user := users_l.Value.(*users.User)
-			dvc = user.Device.Front()
-			for dvc != nil && dvc.Value.(users.Device).IdMobile != treq.Deviceid {
-				dvc = dvc.Next()
-			}
-			users_l = users_l.Next()
-		}
+	rqt := request.Value.(protocol.Request)
+	eball := Data.Lst_ball.Lst.Front()
+
+	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != rqt.Spec.(protocol.Ballid).Id {
+		eball = eball.Next()
 	}
-	if dvc != nil {
-		elem.Value.(ballon.Ball).List_follow.Remove(users_l)
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
+	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
+		eball.Value.(*ballon.Ball).List_follow.Remove(Data.User)
+		Data.User.Value.(*users.User).List_follow.Remove(eball)
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+
 	} else {
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(0))
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
 
 /* Manage_type_5 Remplie le buffer avec une reponse au type 5 de la requete. */
-func (Data *Data) Manage_newball(Req *list.Element, Tab_wd *owm.All_data) {
-	var ball ballon.Ball
-	var newBall protocol.New_ball
+func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
+	ball := new(ballon.Ball)
+	rqt := requete.Value.(protocol.Request)
+	var checkpoint ballon.Checkpoints
+	var newball protocol.New_ball
 	var mess ballon.Lst_msg
 
-	newBall = Req.Value.(protocol.Request).Spec.(protocol.New_ball)
+	newball = requete.Value.(protocol.Request).Spec.(protocol.New_ball)
 	Data.Lst_ball.Id_max++
 	ball.Id_ball = Data.Lst_ball.Id_max
-	ball.Name = newBall.Title
+	ball.Name = newball.Title
 	ball.Lst_msg = list.New()
+	ball.List_follow = list.New()
+	ball.Checkpoints = list.New()
 	mess.Id_Message = 0
-	mess.Size = (int32)(len(newBall.Message))
-	mess.Content = newBall.Message
+	mess.Size = (int32)(len(newball.Message))
+	mess.Content = newball.Message
 	mess.Type_ = 1
 	ball.Lst_msg.PushFront(mess)
 	ball.Date = time.Now()
-	ball.Possessed = Data.User
+	ball.Possessed = nil
 	ball.List_follow.PushFront(Data.User)
 	ball.Creator = Data.User
-	ball.Get_checkpointList(Tab_wd.Get_Paris())
-	Data.Lst_ball.Lst.PushFront(ball)
-	treq := Req.Value.(protocol.Request)
-	answer := Manage_ack(treq.Rtype, treq.Deviceid, ball.Id_ball, int32(1))
+	eball := Data.Lst_ball.Lst.PushBack(ball)
+	checkpoint.Coord.Longitude = rqt.Spec.(protocol.New_ball).Lonuser
+	checkpoint.Coord.Latitude = rqt.Spec.(protocol.New_ball).Latuser
+	eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
+	eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+	Data.User.Value.(*users.User).List_follow.PushBack(eball)
+
+	answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
 	Data.Lst_asw.PushBack(answer)
 }
 
-func (Data *Data) Manage_sendball(Req *list.Element) {
+func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
+	rqt := requete.Value.(protocol.Request)
+	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Send_ball).Id)
+	var checkpoint ballon.Checkpoints
+	var answer []byte
+
+	if eball != nil {
+		eball.Value.(*ballon.Ball).Possessed = nil
+		checkpoint.Coord.Longitude = rqt.Spec.(protocol.Send_ball).Lonuser
+		checkpoint.Coord.Latitude = rqt.Spec.(protocol.Send_ball).Latuser
+		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
+		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, eball.Value.(*ballon.Ball).Id_ball, int32(1))
+		fmt.Println("Coucou :D parfait d'aller la LALALALALALAL")
+	} else {
+		fmt.Println("Coucou :D c'est pas bien d'aller la LALALALALALAL")
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Send_ball).Id, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
 }
 
 /*
@@ -657,7 +658,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data) (er error) {
 			case NEW_BALL:
 				Data.Manage_newball(request, Tab_wd)
 			case SEND_BALL:
-				Data.Manage_sendball(request)
+				Data.Manage_sendball(request, Tab_wd)
 			case ACK:
 			}
 		}
