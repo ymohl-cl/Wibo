@@ -19,10 +19,10 @@ import (
 	"github.com/Wibo/src/ballon"
 	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/request"
-	"github.com/Wibo/src/sock"
+	//	"github.com/Wibo/src/request"
+	//"github.com/Wibo/src/sock"
 	"github.com/Wibo/src/users"
-	"net/http"
+	//"net/http"
 	"time"
 )
 
@@ -161,23 +161,25 @@ func main() {
 	my_users.Get_users(Db)
 	ball := new(ballon.All_ball)
 	ball.Lst = list.New()
+
 	newUsr := my_users.SelectUser(2, Db)
 	ball.GetListBallsByUser(*newUsr, Db)
 	ball.Get_balls(my_users, Db)
 	ball.Print_all_balls()
-	Tab_wd := new(owm.All_data)
-	Lst_users := new(users.All_users)
-	Lst_ball := new(ballon.All_ball)
+	ball.InsertBallon(ball.Ball{Name: "tst"}, Db)
+	/*	Tab_wd := new(owm.All_data)
+		Lst_users := new(users.All_users)
+		Lst_ball := new(ballon.All_ball)
 
-	err = Init_all(Tab_wd, Lst_users, Lst_ball, Db)
-	checkErr(err)
-	go Manage_goroutines(Tab_wd, Lst_ball)
+		err = Init_all(Tab_wd, Lst_users, Lst_ball, Db)
+		checkErr(err)
+		go Manage_goroutines(Tab_wd, Lst_ball)
 
-	request.Init_handle_request()
-	go http.ListenAndServe(":8080", nil)
-	go sock.Listen(Lst_users, Db)
+		request.Init_handle_request()
+		go http.ListenAndServe(":8080", nil)
+		go sock.Listen(Lst_users, Db)
 
-	for {
-		time.Sleep(time.Second * 60)
-	}
+		for {
+			time.Sleep(time.Second * 60)
+		}*/
 }
