@@ -17,7 +17,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/owm"
 	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
@@ -239,9 +238,7 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
  titlename    | character varying(255) |
  ianix        | integer                | NOTE: Yannick control index
 */
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB, myDataBase *db.Env) (executed bool, err error) {
-	myDataBase.PingMyBase(Db)
-	checkErr(err)
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (executed bool, err error) {
 	stm, err := Db.Prepare(
 		"INSERT INTO  container (id_type_c, typename, direction, speed, creationdate, device_id, location_ct, idcreator, titlename, ianix) VALUES($1, $2, $3, $4, $5, $6, ST_GeographyFromText('SRID=4326; POINT($7, $8)'), $9, $10, $11)")
 	_, err = stm.Exec(1, "text", newBall.Wind.Degress, newBall.Wind.Speed, time.Now(), 42,
@@ -256,8 +253,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB, myDataBase *db
 * Debug: send an instance of Ball Strut
 * Modify the parametres as your needs
 **/
-func (Lst_ball *All_ball) GetBall(titlename string) (b *Ball) {
-	b = new(Ball)
+func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
+	b := new(Ball)
 	b.Name = titlename
 	b.Position.Latitude = -110
 	b.Position.Longitude = 30

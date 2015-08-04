@@ -20,6 +20,6 @@ import:
   #
         - package: github.com/Wibo/
             vcs: git
-            ref: issu_ballons_0_0_1_jb
+            ref: transactions_0_0_1
             repo: https://github.com/42MrPiou42/Wibo/
         - package : github.com/lib/pq
