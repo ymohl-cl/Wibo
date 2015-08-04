@@ -31,9 +31,9 @@ type Device struct {
 }
 
 type User struct {
+	Id_user   int64
 	Device    *list.List
 	Login     string
-	Id_user   int64
 	Mail      string
 	Password  string
 	Log       time.Time

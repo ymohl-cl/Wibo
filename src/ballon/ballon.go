@@ -237,15 +237,20 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
  idcreator    | integer                |
  titlename    | character varying(255) |
  ianix        | integer                | NOTE: Yannick control index
+
+ FUNCTION insertContainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc float, speedc float, title text, idx integer)
+
 */
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (executed bool, err error) {
-	stm, err := Db.Prepare(
-		"INSERT INTO  container (id_type_c, typename, direction, speed, creationdate, device_id, location_ct, idcreator, titlename, ianix) VALUES($1, $2, $3, $4, $5, $6, ST_GeographyFromText('SRID=4326; POINT($7, $8)'), $9, $10, $11)")
-	_, err = stm.Exec(1, "text", newBall.Wind.Degress, newBall.Wind.Speed, time.Now(), 42,
-		newBall.Position.Longitude, newBall.Position.Latitude, newBall.Creator.Id_user, newBall.Name, newBall.IdBall)
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) {
+	fmt.Printf("%v | %v | %v |%v |%v | %v | %v preparing query\n", newBall.Wind.Degress, newBall.Wind.Speed,
+		newBall.Creator.Id_user, newBall.Name, newBall.IdBall, newBall.Position.Longitude, newBall.Position.Latitude)
+	stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, %4, $5, $6, $7 , $8)")
 	checkErr(err)
-	executed = true
-	return executed, err
+	rows, err := stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
+		newBall.Position.Longitude, 3, newBall.Wind.Degress,
+		newBall.Wind.Speed, newBall.Name, newBall.IdBall)
+	checkErr(err)
+	return true, nil
 }
 
 /**
@@ -256,6 +261,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (executed bool
 func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
 	b := new(Ball)
 	b.Name = titlename
+	b.Creator = &users.User{Id_user: 2}
+	b.IdBall = 5
 	b.Position.Latitude = -110
 	b.Position.Longitude = 30
 	b.Wind.Degress = 23.90
