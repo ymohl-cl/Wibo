@@ -242,15 +242,12 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
 
 */
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) {
-	fmt.Printf("%v | %v | %v |%v |%v | %v | %v preparing query\n", newBall.Wind.Degress, newBall.Wind.Speed,
-		newBall.Creator.Id_user, newBall.Name, newBall.IdBall, newBall.Position.Longitude, newBall.Position.Latitude)
-	//stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, %4, $5, $6, $7 , $8)")
-	//checkErr(err)
-	/*_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
-	newBall.Position.Longitude, 3, newBall.Wind.Degress,
-	newBall.Wind.Speed, newBall.Name, newBall.IdBall)*/
-	//	fmt.Printf("%v TEST\n", stm)
-	//	checkErr(err)
+	stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
+	checkErr(err)
+	_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
+		newBall.Position.Longitude, 3, newBall.Wind.Degress,
+		newBall.Wind.Speed, newBall.Name, newBall.IdBall)
+	checkErr(err)
 	return true, nil
 }
 
@@ -317,12 +314,12 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List 
 		err = rows.Scan(&infoCont)
 		checkErr(err)
 		result := strings.Split(infoCont, ",")
-		for key := range result {
+		/*	for key := range result {
 			fmt.Printf("%v \n", result[key])
-		}
+		}*/
 		GetDateFormat(result[5])
-		//	lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
-		//		Wind: GetWin(result[3], result[4]), Lst_msg: GetMessagesBall(GetIdBall(result[0]), Db), Creator: &userl})
+		lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
+			Wind: GetWin(result[3], result[4]), Lst_msg: GetMessagesBall(GetIdBall(result[0]), Db), Creator: &userl})
 	}
 	return lBallon
 }
@@ -340,7 +337,6 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fmt.Printf("%v , len %v\n", qdate, len(fields))
 	fdate, err := time.Parse("2006-01-02 15:04:05.000000+00", qdate)
 	checkErr(err)
 	return fdate
