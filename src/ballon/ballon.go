@@ -225,29 +225,58 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
 /**
 * InsertBallon
 	Insert new container with the follow values
- id_type_c    | integer                | not null
- typename     | character varying(255) | not null
+ id_type_c    | integer                | not null defualt 1
+ typename     | character varying(255) | not null default 'red'::character varying
  id           | integer                | not null
  direction    | numeric(5,2)           | not null
  speed        | integer                | not null
- TODO: Set automatic timestamp psql now() NOTE: format YY-MM-DD
- creationdate | date                   | not null
+ creationdate | timestamp with time zone | default now()
  device_id    | integer                | not null
  location_ct  | geography(Point,4326)  |
  idcreator    | integer                |
  titlename    | character varying(255) |
- ianix        | integer                | NOTE: Yannick control index
+ ianix        | integer		       | NOTE: Yannick control index
+
+  FUNCTION insertContainer(idcreatorc integer, latitudec integer,
+  		longitudec integer, device integer, directionc float,
+		speedc float, title text, idx integer)
 */
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (executed bool, err error) {
-	stm, err := Db.Prepare(
-		"INSERT INTO  container (id_type_c, typename, direction, speed, creationdate, device_id, location_ct, idcreator, titlename, ianix) VALUES($1, $2, $3, $4, $5, $6, ST_GeographyFromText('SRID=4326; POINT($7, $8)'), $9, $10, $11)")
-	_, err = stm.Exec(1, "text", newBall.Wind.Degress, newBall.Wind.Speed, time.Now(), 3,
-		newBall.Position.Longitude, newBall.Position.Latitude, newBall.Creator.Id_user, newBall.Name, newBall.IdBall)
+
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) {
+	stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
 	checkErr(err)
-	executed = true
-	return executed, err
+	_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
+		newBall.Position.Longitude, 3, newBall.Wind.Degress,
+		newBall.Wind.Speed, newBall.Name, newBall.IdBall)
+	checkErr(err)
+	return true, nil
 }
 
+/**
+* InsertBallonByChamp
+* Debug: send an instance of Ball Strut
+* Modify the parametres as your needs
+**/
+func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
+	fmt.Printf("%v GETBALL test main\n", titlename)
+	b := new(Ball)
+	b.Name = titlename
+	b.Creator = &users.User{Id_user: 2}
+	b.IdBall = 5
+	b.Position.Latitude = -110
+	b.Position.Longitude = 30
+	b.Wind.Degress = 23.90
+	b.Wind.Speed = 222
+	b.IdBall = 1
+	b.Creator.Id_user = 3
+	return (b)
+}
+
+/**
+** Print_all_balls()
+** Print every champ in the Balls structure.
+** Please serve you to debug issus
+**/
 func (Lst_ball *All_ball) Print_all_balls() {
 	i := 0
 	for e := Lst_ball.Lst.Front(); e != nil; e = e.Next() {
@@ -295,12 +324,21 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List 
 	return lBallon
 }
 
-/*
-NOTE: maybe this function will disapear beacause psql could make it automatically
-*/
+/**
+* GetDateFormat
+* Set the string "Date psql format"  "YY-MM-DD HH:MM:SS.mls+00" format time.time
+* return time.Time
+ */
+
 func GetDateFormat(qdate string) (fdate time.Time) {
-	// TODO Choose a date format layout
-	fdate, err := time.Parse("2006-01-02", qdate)
+	f := func(c rune) bool {
+		return c == '"'
+	}
+	fields := strings.FieldsFunc(qdate, f)
+	for _, value := range fields {
+		qdate = string(value)
+	}
+	fdate, err := time.Parse("2006-01-02 15:04:05.000000+00", qdate)
 	checkErr(err)
 	return fdate
 }
