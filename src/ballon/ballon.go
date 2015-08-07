@@ -17,6 +17,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/owm"
 	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
@@ -241,12 +242,16 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
  FUNCTION insertContainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc float, speedc float, title text, idx integer)
 
 */
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) {
-	stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
-	checkErr(err)
-	_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
-		newBall.Position.Longitude, 3, newBall.Wind.Degress,
-		newBall.Wind.Speed, newBall.Name, newBall.IdBall)
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
+	var err error
+	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
+		checkErr(err)
+		_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
+			newBall.Position.Longitude, 3, newBall.Wind.Degress, newBall.Wind.Speed,
+			newBall.Name, newBall.IdBall)
+		return err
+	})
 	checkErr(err)
 	return true, nil
 }
