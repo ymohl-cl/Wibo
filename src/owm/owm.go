@@ -10,11 +10,9 @@
 //#                                                                            #
 //# ************************************************************************** #
 
-package owm
+/* Package to get wind data from api.openweathermap.org */
 
-/*
-** Package to get wind data from api.openweathermap.org
- */
+package owm
 
 import (
 	"encoding/json"
@@ -32,7 +30,7 @@ type Coordinates struct {
 	Latitude  float64 `json:"lat"`
 }
 
-/* Information d'une station meteo */
+/* Station data */
 type Weather_data struct {
 	Station_id   int         `json:"id"`
 	Station_name string      `json:"name"`
@@ -40,7 +38,7 @@ type Weather_data struct {
 	Wind         Wind        `json:"wind"`
 }
 
-/* Toutes datas des vents de la terre sous forme de slice */
+/* All data weather map */
 type All_data struct {
 	Tab_wd []Weather_data `json:"list"`
 }
@@ -55,10 +53,7 @@ func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
 	return station
 }
 
-/*
-** Update_weather_data fait une requete a l'api Open weather map
-** Decode le format JSON et remplis le Tab_wd
- */
+/* Update_weather_data with api openWeatherMap */
 func (Tab_wd *All_data) Update_weather_data() error {
 	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-90,-180,90,180,10&cluster=yes`)
 	if err != nil {
@@ -74,7 +69,7 @@ func (Tab_wd *All_data) Update_weather_data() error {
 	return nil
 }
 
-/* Print_weatherdata() Print la liste de toutes les stations et leurs vents */
+/* Print wins data for debug */
 func (Tab_wd *All_data) Print_weatherdata() {
 	var index int = 0
 	for _, elem := range Tab_wd.Tab_wd {

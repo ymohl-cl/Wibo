@@ -71,11 +71,6 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 					fmt.Println("Answer sending:")
 					fmt.Println(Front.Value.([]byte))
 					size, err = conn.Write(Front.Value.([]byte))
-					fmt.Println("Retour de Write:")
-					fmt.Println(err)
-					fmt.Println("Size:")
-					fmt.Println(size)
-
 					Data.Lst_asw.Remove(Front)
 				}
 			} else {
@@ -86,17 +81,10 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				conn.Write(awr)
 			}
 		}
-		//		Data.Lst_ball.Print_all_balls()
 		buff = nil
 	}
 }
 
-/*
-** Listen va ecouter les connections entrante sur le port 8081
-** Elle va accepter une demande de connection et lancer le handleConnection
-** handleConnection va recuperer et repondre au requete du client jusqu'a
-** arriver a un etat close.
- */
 func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {

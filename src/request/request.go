@@ -37,14 +37,14 @@ func Manage_request(w http.ResponseWriter, req *http.Request) {
 
 	// to test with one ball
 	tmp_lst := list.New()
-	var check_test ballon.Checkpoints
-	check_test.Coord.Longitude = 2.316055
-	check_test.Coord.Latitude = 48.833086
+	var check_test ballon.Checkpoint
+	check_test.Coord.Lon = 2.316055
+	check_test.Coord.Lat = 48.833086
 	check_test.Date = time.Now()
 
 	Lst_test := [2]ballon.Ball{}
-	bal1 := ballon.Ball{Name: "toto"}
-	bal2 := ballon.Ball{Name: "tata"}
+	bal1 := ballon.Ball{Title: "toto"}
+	bal2 := ballon.Ball{Title: "tata"}
 
 	bal1.Coord = tmp_lst.PushBack(check_test)
 	bal2.Coord = bal1.Coord

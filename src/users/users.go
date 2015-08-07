@@ -18,42 +18,29 @@ import (
 	"time"
 )
 
-/*
-** Date est la date a laquelle la requete a ete effectue.
-** Type_req_client et le type de requete effectue.
- */
+/* History request */
 type History struct {
 	Date            time.Time
 	Type_req_client int16
 }
 
-/*
-** IdMobile est l'identifiant unique du mobile.
-** Pour le moment le format exact de l'IdMobile est inconnu.
-** History_req est une liste qui sera l'historique des requetes du client
-** depuis ce device.
- */
 type Device struct {
-	IdMobile    int64
-	History_req *list.List
+	IdMobile    int64      /* type int64 is temporary */
+	History_req *list.List /* Value: History */
 }
 
-/*
-** Device est la liste des devices de l'utilisateur
-** Log est la date de dernier signe de vie utilisateur
- */
 type User struct {
-	Id          int64
-	Device      *list.List
-	Log         time.Time
-	List_follow *list.List // ballon suivis
+	Id       int64
+	Device   *list.List /* Value: Device */
+	Log      time.Time  /*Date of the last query */
+	Followed *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 }
 
 type All_users struct {
-	Lst_users *list.List
+	Ulist  *list.List
+	Id_max int64
 }
 
-/* Definis si l'utilisateur est considere en ligne ou pas avec un timeout de 2 min */
 func (User *User) User_is_online() bool {
 	t_now := time.Now()
 	t_user := User.Log
@@ -68,7 +55,7 @@ func (User *User) User_is_online() bool {
 ** Manage users's connexion
  */
 func (ulist *All_users) Check_user(request *list.Element) (user *list.Element, err error) {
-	user = ulist.Lst_users.Front()
+	user = ulist.Ulist.Front()
 	var device *list.Element
 
 	rqt := request.Value.(protocol.Request)
@@ -87,12 +74,12 @@ func (ulist *All_users) Check_user(request *list.Element) (user *list.Element, e
 		var hist_device Device
 		usr.Device = list.New()
 		usr.Log = time.Now()
-		usr.List_follow = list.New()
+		usr.Followed = list.New()
 		hist_device.IdMobile = request.Value.(protocol.Request).Deviceid
 		hist_device.History_req = list.New()
 		hist_device.History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
 		usr.Device.PushFront(hist_device)
-		user = ulist.Lst_users.PushBack(usr)
+		user = ulist.Ulist.PushBack(usr)
 		ulist.Add_new_user(usr)
 	} else {
 		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
@@ -101,23 +88,17 @@ func (ulist *All_users) Check_user(request *list.Element) (user *list.Element, e
 	return user, nil
 }
 
-/*
-** Del_user va supprimer un user directement dans la base de donnee et dans sa propre liste,
-** un utilisateur passe en parametre.
- */
+/* Delete user from database */ /* Why ? xd */
 func (Lst_users *All_users) Del_user(del_user *User) {
 	return
 }
 
-/*
-** Add_new_user va rajouter directement dans la base de donnee, un utilisateur
-** passer en parametre.
- */
+/* Add user in database */
 func (Lst_users *All_users) Add_new_user(new_user *User) {
 	return
 }
 
-/* Print_users print tous les utilisateurs */
+/* Print_users for debug */
 func (Lst_users *All_users) Print_users() {
 	return
 }
