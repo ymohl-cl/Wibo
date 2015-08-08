@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/lib/pq"
 	"log"
 )
@@ -62,6 +63,29 @@ func (dbp *Env) PingMyBase(Db *sql.DB) (connected bool, err error) {
 		return false, err
 	}
 	return true, err
+}
+
+func (dbp *Env) Transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			switch p := p.(type) {
+			case error:
+				err = p
+			default:
+				err = fmt.Errorf("%s", p)
+			}
+		}
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+	return txFunc(tx)
 }
 
 func (dbp *Env) BeginTr() (tx *sql.Tx) {

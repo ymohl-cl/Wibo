@@ -17,6 +17,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/owm"
 	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
@@ -79,6 +80,7 @@ type Ball struct {
 	Name        string
 	Coord       *list.Element
 	IdBall      int64
+	edited      bool
 	Position    Coordinates
 	Wind        Wind
 	Lst_msg     *list.List
@@ -95,7 +97,8 @@ type Ball struct {
  */
 type All_ball struct {
 	sync.RWMutex
-	Lst *list.List
+	Idmax int64
+	Lst   *list.List
 }
 
 /* Print_list_checkpoints print la liste de checkpoints d'un ballon */
@@ -241,14 +244,42 @@ func (Lst_ball *All_ball) Update_new_ballon(upd_ball *Ball) {
  FUNCTION insertContainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc float, speedc float, title text, idx integer)
 
 */
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) {
-	stm, err := Db.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
-	checkErr(err)
-	_, err = stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
-		newBall.Position.Longitude, 3, newBall.Wind.Degress,
-		newBall.Wind.Speed, newBall.Name, newBall.IdBall)
-	checkErr(err)
-	return true, nil
+func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
+	var err error
+	var executed bool
+	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
+		checkErr(err)
+		rs, err := stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
+			newBall.Position.Longitude, 3, newBall.Wind.Degress, newBall.Wind.Speed,
+			newBall.Name, newBall.IdBall)
+		for rs.Next() {
+			var idC int
+			err = rs.Scan(&idC)
+			checkErr(err)
+			err = Lst_ball.InsertMessages(newBall.Lst_msg, idC, base)
+			checkErr(err)
+		}
+		checkErr(err)
+		return err
+	})
+	executed = true
+	return executed, err
+}
+
+func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *db.Env) (err error) {
+	i := 0
+	for e := messages.Front(); e != nil; e = e.Next() {
+		err = base.Transact(base.Db, func(tx *sql.Tx) error {
+			stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+			checkErr(err)
+			_, err = stm.Query(e.Value.(Lst_msg).Content, idBall, 2)
+			i++
+			checkErr(err)
+			return err
+		})
+	}
+	return err
 }
 
 /**
@@ -256,7 +287,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, Db *sql.DB) (bool, error) 
 * Debug: send an instance of Ball Strut
 * Modify the parametres as your needs
 **/
-func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
+func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 	b := new(Ball)
 	b.Name = titlename
 	b.Creator = &users.User{Id_user: 2}
@@ -265,6 +296,7 @@ func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
 	b.Position.Longitude = 30
 	b.Wind.Degress = 23.90
 	b.Wind.Speed = 222
+	b.Lst_msg = Lst_ball.GetMessagesBall(10, Db)
 	return (b)
 }
 
@@ -299,28 +331,32 @@ func checkErr(err error) {
 * getContainersByUserId is a native psql function with
 * RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
-func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List {
-
-	var err error
+func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.List {
 	lBallon := list.New()
-	stm, err := Db.Prepare("SELECT getContainersByUserId($1)")
-	checkErr(err)
-	rows, err := stm.Query(userl.Id_user)
-	checkErr(err)
-	// regex to find words
-	//r, err := regexp.Compile(`[:print:]\w+`)// getName
-	for rows.Next() {
-		var infoCont string
-		err = rows.Scan(&infoCont)
+	var err error
+	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		var errT error
+		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
+		checkErr(errT)
+		rows, err := stm.Query(userl.Id_user)
+		checkErr(errT)
+		// regex to find words
+		//r, err := regexp.Compile(`[:print:]\w+`)// getName
+		for rows.Next() {
+			var infoCont string
+			err = rows.Scan(&infoCont)
+			checkErr(err)
+			result := strings.Split(infoCont, ",")
+			/*	for key := range result {
+				fmt.Printf("%v \n", result[key])
+				}*/
+			lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
+				Wind: GetWin(result[3], result[4]), Lst_msg: Lb.GetMessagesBall(GetIdBall(result[0]), base.Db), Creator: &userl})
+		}
 		checkErr(err)
-		result := strings.Split(infoCont, ",")
-		/*	for key := range result {
-			fmt.Printf("%v \n", result[key])
-		}*/
-		GetDateFormat(result[5])
-		lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
-			Wind: GetWin(result[3], result[4]), Lst_msg: GetMessagesBall(GetIdBall(result[0]), Db), Creator: &userl})
-	}
+		return err
+	})
+	checkErr(err)
 	return lBallon
 }
 
@@ -337,7 +373,7 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, err := time.Parse("2006-01-02 15:04:05.000000+00", qdate)
+	fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
 	checkErr(err)
 	return fdate
 }
@@ -406,7 +442,7 @@ func GetWin(speed string, direction string) Wind {
 * return the list
 **/
 
-func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
+func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	Mlist := list.New()
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
 	checkErr(err)
@@ -427,12 +463,12 @@ func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 * get all ball from database and associeted
 * the creator, possessord and followers.
 **/
-func (Lb *All_ball) Get_balls(LstU *users.All_users, Db *sql.DB) error {
+func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
 	lMasterBall := list.New()
 	i := 0
 	for e := LstU.Lst_users.Front(); e != nil; e = e.Next() {
 		fmt.Printf("%v | %v \n", e.Value.(users.User).Id_user, e.Value.(users.User).Login)
-		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), Db))
+		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), base))
 		i++
 	}
 	Lb.Lst = Lb.Lst.Init()
