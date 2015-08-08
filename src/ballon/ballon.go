@@ -257,7 +257,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 			var idC int
 			err = rs.Scan(&idC)
 			checkErr(err)
-			fmt.Printf("%v IDCONTAINER NEW\n", idC)
+			err = Lst_ball.InsertMessages(newBall.Lst_msg, idC, base)
+			checkErr(err)
 		}
 		checkErr(err)
 		return err
@@ -266,12 +267,27 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	return executed, err
 }
 
+func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *db.Env) (err error) {
+	i := 0
+	for e := messages.Front(); e != nil; e = e.Next() {
+		err = base.Transact(base.Db, func(tx *sql.Tx) error {
+			stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+			checkErr(err)
+			_, err = stm.Query(e.Value.(Lst_msg).Content, idBall, 2)
+			i++
+			checkErr(err)
+			return err
+		})
+	}
+	return err
+}
+
 /**
 * InsertBallonByChamp
 * Debug: send an instance of Ball Strut
 * Modify the parametres as your needs
 **/
-func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
+func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 	b := new(Ball)
 	b.Name = titlename
 	b.Creator = &users.User{Id_user: 2}
@@ -280,6 +296,7 @@ func (Lst_ball *All_ball) GetBall(titlename string) *Ball {
 	b.Position.Longitude = 30
 	b.Wind.Degress = 23.90
 	b.Wind.Speed = 222
+	b.Lst_msg = Lst_ball.GetMessagesBall(10, Db)
 	return (b)
 }
 
@@ -334,7 +351,7 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 				fmt.Printf("%v \n", result[key])
 				}*/
 			lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
-				Wind: GetWin(result[3], result[4]), Lst_msg: GetMessagesBall(GetIdBall(result[0]), base.Db), Creator: &userl})
+				Wind: GetWin(result[3], result[4]), Lst_msg: Lb.GetMessagesBall(GetIdBall(result[0]), base.Db), Creator: &userl})
 		}
 		checkErr(err)
 		return err
@@ -356,7 +373,7 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, err := time.Parse("2006-01-02 15:04:05.000000+00", qdate)
+	fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
 	checkErr(err)
 	return fdate
 }
@@ -425,7 +442,7 @@ func GetWin(speed string, direction string) Wind {
 * return the list
 **/
 
-func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
+func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	Mlist := list.New()
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
 	checkErr(err)
