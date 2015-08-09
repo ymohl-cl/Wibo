@@ -16,6 +16,7 @@ import (
 	"answer"
 	"ballon"
 	"container/list"
+	"database/sql"
 	"fmt"
 	"io"
 	"net"
@@ -28,7 +29,7 @@ import (
 ** handleConnection received client's requests and manages the exchange with
 ** client
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.Db) {
 	Data := new(answer.Data)
 	Data.Lst_req = list.New()
 	Data.Lst_asw = list.New()
@@ -60,7 +61,13 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				Token.Print_token_debug()
 				/* FIN DES TESTS */
 			}
-			Data.Lst_req.PushBack(*Token)
+			Etoken := Data.Lst_req.PushBack(*Token)
+			Data.User, err = Lst_users.Check_user(Etoken, Db)
+			if err != nil {
+				fmt.Println("Error on check users")
+				return
+			}
+
 			if Data.Check_lstrequest() == true {
 				err = Data.Get_answer(Tab_wd)
 				if err != nil {
@@ -85,7 +92,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	}
 }
 
-func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.Db) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		fmt.Println("Error listen:", err)

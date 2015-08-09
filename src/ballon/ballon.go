@@ -14,11 +14,15 @@ package ballon
 
 import (
 	"container/list"
+	"database/sql"
 	"errors"
 	"fmt"
+	_ "github.com/lib/pq"
 	"math"
 	"owm"
 	"protocol"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"users"
@@ -270,15 +274,164 @@ func (Lst_ball *All_ball) Print_all_balls() {
 	return
 }
 
-/*
-** Get_balls recupere tous les ballons de la base de donnee.
-** Elle rattache egalement a chaque ballon tous les utilisateurs associes.
+/******************************************************************************/
+/******************************** MERGE JAIME *********************************/
+/******************************************************************************/
+
+/**
+* CheckErr
+* Verify err value to stop execution by panic
+**/
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+/**
+* GetListBallsByUser
+* getContainersByUserId is a native psql function with
+* RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
-func (Lst_ball *All_ball) Get_balls(Lst_users *users.All_users) error {
-	Lst_ball.Lock()
-	//  ...
-	//  traitement
-	//  ...
-	Lst_ball.Unlock()
+func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List {
+
+	var err error
+	lBallon := list.New()
+	stm, err := Db.Prepare("SELECT getContainersByUserId($1)")
+	checkErr(err)
+	rows, err := stm.Query(userl.Id)
+	checkErr(err)
+	// regex to find words
+	//r, err := regexp.Compile(`[:print:]\w+`)// getName
+	for rows.Next() {
+		var infoCont string
+		err = rows.Scan(&infoCont)
+		checkErr(err)
+		result := strings.Split(infoCont, ",")
+		lBallon.PushBack(
+			Ball{Title: result[1],
+				Date:  GetDateFormat(result[5]),
+				Coord: nil, //Coord cannot use GetCord(result[7]), he muste
+				// take *list.Element type
+				Wind:     GetWin(result[3], result[4]),
+				Messages: GetMessagesBall(GetIdBall(result[0]), Db), Creator: nil})
+	}
+	// Creator cannot == &userl. you must take Ulist and found User fo get *list.Element.
+	return lBallon
+}
+
+/**
+* GetDateFormat
+* Set the string "Date psql format"  "YY-MM-DD HH:MM:SS.mls+00" format time.time
+* return time.Time
+ */
+
+func GetDateFormat(qdate string) (fdate time.Time) {
+	f := func(c rune) bool {
+		return c == '"'
+	}
+	fields := strings.FieldsFunc(qdate, f)
+	for _, value := range fields {
+		qdate = string(value)
+	}
+	fdate, err := time.Parse("2006-01-02 15:04:05.000000+00", qdate)
+	checkErr(err)
+	return fdate
+}
+
+/**
+* GetIdBall
+* Parse and []string with the id Value
+* Get and array parsed and convert this value
+* return the id
+ */
+func GetIdBall(idB string) int {
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(idB, f)
+	// Separate into cordinates  with Fields.
+	ids := strings.Fields(fields[0])
+	id, _ := strconv.Atoi(ids[0])
+	return (id)
+}
+
+/**
+* GetCord
+* Parse query function POINT(longitude latitude)
+* Get the Values between the parenthesis
+* convert them to float
+* create and new Cooridantes element and return it
+**/
+func GetCord(position string) Coordinate {
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"' ||
+			c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
+			c == 'T'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(position, f)
+	// Separate into cordinates  with Fields.
+	point := strings.Fields(fields[0])
+	long, _ := strconv.ParseFloat(point[0], 6)
+	lat, _ := strconv.ParseFloat(point[1], 6)
+	return (Coordinate{Lon: long, Lat: lat})
+}
+
+/**
+* GetWin
+* Take to strings to Parse their value to Float
+* return a new Instace of Wind with float values
+**/
+
+func GetWin(speed string, direction string) Wind {
+	sf, _ := strconv.ParseFloat(speed, 6)
+	df, _ := strconv.ParseFloat(direction, 6)
+	return (Wind{Speed: sf, Degress: df})
+}
+
+/**
+* GetMessageBall
+* Query the message who concern an idContainer by timestamp
+* Create a new list of message by id Container
+* Create an element of list
+* Push back this element in a new  list of message
+* return the list
+**/
+
+func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
+	Mlist := list.New()
+	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
+	checkErr(err)
+	rows, err := stm.Query(idBall)
+	checkErr(err)
+	for rows.Next() {
+		var idm int
+		var message string
+		var idType int
+		err = rows.Scan(&idm, &message, &idType)
+		checkErr(err)
+		Mlist.PushBack(Message{Content: message, Type: (int32)(idType), Id: int32(idm)})
+	}
+	return Mlist
+}
+
+/**
+* get all ball from database and associeted
+* the creator, possessord and followers.
+**/
+func (Lb *All_ball) Get_balls(LstU *users.All_users, Db *sql.DB) error {
+	lMasterBall := list.New()
+	i := 0
+	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
+		fmt.Printf("%v | %v \n", e.Value.(users.User).Id, e.Value.(users.User).Login)
+		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), Db))
+		i++
+	}
+	Lb.Blist.Init()
+	Lb.Blist.PushBackList(lMasterBall)
 	return nil
 }
