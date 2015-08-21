@@ -308,9 +308,14 @@ func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 func (Lst_ball *All_ball) Print_all_balls() {
 	i := 0
 	for e := Lst_ball.Lst.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v | %v | %v | iduser %v\n", e.Value.(Ball).Name, e.Value.(Ball).Position.Longitude,
+		fmt.Printf("%v | %v | %v | %v | %v | iduser %v  \n", e.Value.(Ball).Name, e.Value.(Ball).Position.Longitude,
 			e.Value.(Ball).Position.Latitude, e.Value.(Ball).Wind.Speed, e.Value.(Ball).Wind.Degress,
 			e.Value.(Ball).Creator.Id_user)
+		j := 0
+		for follwr := e.Value.(Ball).List_follow.Front(); follwr != nil; follwr = follwr.Next() {
+			fmt.Printf("\n\nfollower: %v \n", follwr.Value.(*users.User).Login)
+			j++
+		}
 		i++
 	}
 	return
@@ -326,11 +331,29 @@ func checkErr(err error) {
 	}
 }
 
+func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB) *list.List {
+	lstFollow := list.New()
+	var err error
+	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" AS userWibo LEFT OUTER JOIN followed ON (followed.iduser = userWibo.id_user)  WHERE followed.container_id = $1;", idBall)
+	checkErr(err)
+	for rows.Next() {
+		var idFollower int64
+		var login, mail string
+		rows.Scan(&idFollower, &login, &mail)
+		lstFollow.PushBack(&users.User{
+			Id_user: idFollower,
+			Login:   login,
+			Mail:    mail})
+	}
+	return lstFollow
+}
+
 /**
 * GetListBallsByUser
 * getContainersByUserId is a native psql function with
 * RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
+
 func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.List {
 	lBallon := list.New()
 	var err error
@@ -340,18 +363,19 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 		checkErr(errT)
 		rows, err := stm.Query(userl.Id_user)
 		checkErr(errT)
-		// regex to find words
-		//r, err := regexp.Compile(`[:print:]\w+`)// getName
 		for rows.Next() {
 			var infoCont string
 			err = rows.Scan(&infoCont)
 			checkErr(err)
 			result := strings.Split(infoCont, ",")
-			/*	for key := range result {
-				fmt.Printf("%v \n", result[key])
-				}*/
-			lBallon.PushBack(Ball{Name: result[1], Date: GetDateFormat(result[5]), Position: GetCord(result[7]),
-				Wind: GetWin(result[3], result[4]), Lst_msg: Lb.GetMessagesBall(GetIdBall(result[0]), base.Db), Creator: &userl})
+			idBall := GetIdBall(result[0])
+			lBallon.PushBack(Ball{Name: result[1],
+				Date:        GetDateFormat(result[5]),
+				Position:    GetCord(result[7]),
+				Wind:        GetWin(result[3], result[4]),
+				Lst_msg:     Lb.GetMessagesBall(idBall, base.Db),
+				List_follow: Lb.GetFollowers(idBall, base.Db),
+				Creator:     &userl})
 		}
 		checkErr(err)
 		return err
@@ -360,9 +384,6 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 	return lBallon
 }
 
-/*
-NOTE: maybe this function will disapear beacause psql could make it automatically
-*/
 func GetDateFormat(qdate string) (fdate time.Time) {
 	// TODO Choose a date format layout
 	// Return true if 'value' char.
