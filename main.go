@@ -16,7 +16,9 @@ import (
 	"ballon"
 	"container/list"
 	"database/sql"
+	"db"
 	"fmt"
+	_ "github.com/lib/pq"
 	"net/http"
 	"owm"
 	"request"
@@ -232,6 +234,12 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	return nil
 }
 
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 /*
 ** Les 3 datats essentielle sont instancie dans le main
 ** Tab_wd contient toutes les WEATHER DATA
@@ -244,6 +252,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 ** Et on a une boucle for qui empeche la fermeture du programme.
  */
 func main() {
+	var err error
 	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
 	Lst_ball := new(ballon.All_ball)
@@ -252,7 +261,7 @@ func main() {
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 
-	err := Init_all(Tab_wd, Lst_users, Lst_ball, Db)
+	err = Init_all(Tab_wd, Lst_users, Lst_ball, Db)
 	if err != nil {
 		return
 	}

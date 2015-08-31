@@ -38,7 +38,7 @@ func (se StatusError) Error() string {
 func (dbp *Env) OpenCo(error) (*sql.DB, error) {
 
 	var err error
-	db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=49155")
+	db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=5432")
 	if err != nil {
 		return nil, errors.New("No db.driver found")
 	}

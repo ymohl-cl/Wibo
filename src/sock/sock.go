@@ -18,6 +18,7 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
+	//	_ "github.com/lib/pq"
 	"io"
 	"net"
 	"owm"
@@ -29,7 +30,7 @@ import (
 ** handleConnection received client's requests and manages the exchange with
 ** client
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.Db) {
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
 	Data := new(answer.Data)
 	Data.Lst_req = list.New()
 	Data.Lst_asw = list.New()
@@ -69,7 +70,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 			}
 
 			if Data.Check_lstrequest() == true {
-				err = Data.Get_answer(Tab_wd)
+				err = Data.Get_answer(Tab_wd, Db)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -92,7 +93,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	}
 }
 
-func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.Db) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		fmt.Println("Error listen:", err)
@@ -104,6 +105,6 @@ func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.A
 		if err != nil {
 			fmt.Println("Error Accept:", err)
 		}
-		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd)
+		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd, Db)
 	}
 }

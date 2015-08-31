@@ -294,7 +294,6 @@ func checkErr(err error) {
 * RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
 func (Lb *All_ball) GetListBallsByUser(userl users.User, Db *sql.DB) *list.List {
-
 	var err error
 	lBallon := list.New()
 	stm, err := Db.Prepare("SELECT getContainersByUserId($1)")
@@ -386,7 +385,6 @@ func GetCord(position string) Coordinate {
 * Take to strings to Parse their value to Float
 * return a new Instace of Wind with float values
 **/
-
 func GetWin(speed string, direction string) Wind {
 	sf, _ := strconv.ParseFloat(speed, 6)
 	df, _ := strconv.ParseFloat(direction, 6)
@@ -401,7 +399,6 @@ func GetWin(speed string, direction string) Wind {
 * Push back this element in a new  list of message
 * return the list
 **/
-
 func GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	Mlist := list.New()
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")

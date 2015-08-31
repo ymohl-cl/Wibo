@@ -16,6 +16,7 @@ import (
 	"ballon"
 	"bytes"
 	"container/list"
+	"database/sql"
 	"encoding/binary"
 	"errors"
 	//	"fmt"
@@ -597,13 +598,13 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
-func (Data *Data) Get_answer(Tab_wd *owm.All_data) (er error) {
+func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	request := Data.Lst_req.Front()
 	er = nil
 	if request == nil {
 		er = errors.New("Get answer, but no request.")
 	} else {
-		Data.User, er = Data.Lst_users.Check_user(request)
+		Data.User, er = Data.Lst_users.Check_user(request, Db)
 		if er == nil {
 			switch request.Value.(protocol.Request).Rtype {
 			case SYNC:
