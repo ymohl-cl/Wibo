@@ -14,6 +14,7 @@ package main
 
 import (
 	"container/list"
+	//"database/sql"
 	"fmt"
 	"github.com/Wibo/src/ballon"
 	"github.com/Wibo/src/db"
@@ -21,7 +22,6 @@ import (
 	"github.com/Wibo/src/request"
 	"github.com/Wibo/src/sock"
 	"github.com/Wibo/src/users"
-	_ "github.com/lib/pq"
 	"net/http"
 	"time"
 )
@@ -97,7 +97,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Tab_wd.Print_weatherdata()
 	}
 	Lst_users.Ulist = list.New()
-	err = Lst_users.Get_users(Db)
+	err = Lst_users.Get_users(base.Db)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -260,7 +260,7 @@ func main() {
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 
-	err = Init_all(Tab_wd, Lst_users, Lst_ball, Db)
+	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb)
 	if err != nil {
 		return
 	}
