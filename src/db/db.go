@@ -7,6 +7,10 @@ import (
 	"log"
 )
 
+type Env struct {
+	Db *sql.DB
+}
+
 /**
 * OpenCo
 * Open a connection postgres with docker database without ssl.
