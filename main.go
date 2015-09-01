@@ -14,7 +14,6 @@ package main
 
 import (
 	"container/list"
-	"database/sql"
 	"fmt"
 	"github.com/Wibo/src/ballon"
 	"github.com/Wibo/src/db"
@@ -89,7 +88,7 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 ** 3: On recupere la liste des ballons dans la base de donnee et on y attache les users concernes par le ballon
 ** 4: On cree la liste des checkpoints pour chaque ballon.
  */
-func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Db *sql.DB) error {
+func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, base *db.Env) error {
 	err := Tab_wd.Update_weather_data()
 	if err != nil {
 		fmt.Println(err)
@@ -106,7 +105,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Lst_users.Print_users()
 	}
 	Lst_ball.Blist = list.New()
-	err = Lst_ball.Get_balls(Lst_users, Db)
+	err = Lst_ball.Get_balls(Lst_users, base)
 	if err != nil {
 		fmt.Println(err)
 		return err

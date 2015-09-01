@@ -1,15 +1,3 @@
-//# ************************************************************************** #
-//#                                                                            #
-//#                                                       :::      ::::::::    #
-//#  request.go                                            :+:      :+:    :+:    #
-//#                                                   +:+ +:+         +:+      #
-//#  by: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
-//#                                               +#+#+#+#+#+   +#+            #
-//#  created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
-//#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
-//#                                                                            #
-//# ************************************************************************** #
-
 package request
 
 /*
@@ -26,9 +14,6 @@ import (
 	"time"
 )
 
-/*
-** Ceci est un test de connection reponse avec le client fonctionnel.
- */
 func Manage_request(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(req.URL.RequestURI())
 	m := req.URL.Query()

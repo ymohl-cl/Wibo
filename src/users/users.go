@@ -1,15 +1,3 @@
-//# ************************************************************************** #
-//#                                                                            #
-//#                                                       :::      ::::::::    #
-//#  users.go                                           :+:      :+:    :+:    #
-//#                                                   +:+ +:+         +:+      #
-//#  by: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
-//#                                               +#+#+#+#+#+   +#+            #
-//#  created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
-//#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
-//#                                                                            #
-//# ************************************************************************** #
-
 package users
 
 import (
@@ -21,11 +9,22 @@ import (
 	"time"
 )
 
-/* History request */
+/**
+** Date est la date a laquelle la requete a ete effectue.
+** Type_req_client et le type de requete effectue.
+**/
 type History struct {
 	Date            time.Time
 	Type_req_client int16
 }
+
+/**
+** -type Device
+** IdMobile est l'identifiant unique du mobile.
+** Pour le moment le format exact de l'IdMobile est inconnu.
+** History_req est une liste qui sera l'historique des requetes du client
+** depuis ce device.
+**/
 
 type Device struct {
 	IdMobile    int64      /* type int64 is temporary */
