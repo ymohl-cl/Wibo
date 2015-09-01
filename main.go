@@ -13,18 +13,18 @@
 package main
 
 import (
-	"ballon"
 	"container/list"
 	"database/sql"
-	"db"
 	"fmt"
+	"github.com/Wibo/src/ballon"
+	"github.com/Wibo/src/db"
+	"github.com/Wibo/src/owm"
+	"github.com/Wibo/src/request"
+	"github.com/Wibo/src/sock"
+	"github.com/Wibo/src/users"
 	_ "github.com/lib/pq"
 	"net/http"
-	"owm"
-	"request"
-	"sock"
 	"time"
-	"users"
 )
 
 /*
