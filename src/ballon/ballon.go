@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"github.com/Wibo/src/db"
 	"github.com/Wibo/src/owm"
+	"github.com/Wibo/src/protocol"
 	"github.com/Wibo/src/users"
-	_ "github.com/lib/pq"
 	"math"
 	"strconv"
 	"strings"
@@ -65,7 +65,6 @@ type Ball struct {
 	Coord       *list.Element
 	IdBall      int64
 	edited      bool
-	Position    Coordinates
 	Wind        Wind
 	Messages    *list.List    /* Value: Message */
 	Date        time.Time     /* creation date */
@@ -294,14 +293,18 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
 		checkErr(err)
-		rs, err := stm.Query(newBall.Creator.Id_user, newBall.Position.Latitude,
-			newBall.Position.Longitude, 3, newBall.Wind.Degress, newBall.Wind.Speed,
-			newBall.Name, newBall.IdBall)
+		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
+			newBall.Coord.Value.(Coordinate).Lat,
+			newBall.Coord.Value.(Coordinate).Lon, 3,
+			newBall.Wind.Degress,
+			newBall.Wind.Speed,
+			newBall.Title,
+			newBall.Id_ball)
 		for rs.Next() {
 			var idC int
 			err = rs.Scan(&idC)
 			checkErr(err)
-			err = Lst_ball.InsertMessages(newBall.Lst_msg, idC, base)
+			err = Lst_ball.InsertMessages(newBall.Messages, idC, base)
 			checkErr(err)
 		}
 		checkErr(err)
@@ -317,7 +320,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
 			stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
 			checkErr(err)
-			_, err = stm.Query(e.Value.(Lst_msg).Content, idBall, 2)
+			_, err = stm.Query(e.Value.(Message).Content, idBall, 2)
 			i++
 			checkErr(err)
 			return err
@@ -333,14 +336,18 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 **/
 func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 	b := new(Ball)
-	b.Name = titlename
-	b.Creator = &users.User{Id: 2}
+	b.Title = titlename
+
+	u := new(users.User)
+	u.Id = 2
+
+	luser := list.New()
+	luser.PushBack(u)
+	b.Creator = luser.Back()
 	b.IdBall = 5
-	b.Position.Lat = -110
-	b.Position.Lon = 30
 	b.Wind.Degress = 23.90
 	b.Wind.Speed = 222
-	b.Lst_msg = Lst_ball.GetMessagesBall(10, Db)
+	b.Messages = Lst_ball.GetMessagesBall(10, Db)
 	return (b)
 }
 
@@ -392,15 +399,18 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 			checkErr(err)
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
-			lBallon.PushBack(Ball{Name: result[1],
-				Date:      GetDateFormat(result[5]),
-				Position:  GetCord(result[7]),
-				Wind:      GetWin(result[3], result[4]),
-				Messages:  Lb.GetMessagesBall(idBall, base.Db),
-				Followers: Ldb.GetFollowers(idBall, base.Db),
-				Creator:   &userl})
+			lBallon.PushBack(
+				Ball{
+					Title: result[1],
+					Date:  GetDateFormat(result[5]),
+					Coord: nil,
+					//	Position:  GetCord(result[7]),
+					Wind:      GetWin(result[3], result[4]),
+					Messages:  Lb.GetMessagesBall(idBall, base.Db),
+					Followers: Lb.GetFollowers(idBall, base.Db),
+					Creator:   nil})
+			checkErr(err)
 		}
-		checkErr(err)
 		return err
 	})
 	checkErr(err)
@@ -446,7 +456,7 @@ func GetIdBall(idB string) int {
 * convert them to float
 * create and new Cooridantes element and return it
 **/
-func GetCord(position string) Coordinates {
+func GetCord(position string) Coordinate {
 
 	// Return true if 'value' char.
 	f := func(c rune) bool {
@@ -460,7 +470,7 @@ func GetCord(position string) Coordinates {
 	point := strings.Fields(fields[0])
 	long, _ := strconv.ParseFloat(point[0], 6)
 	lat, _ := strconv.ParseFloat(point[1], 6)
-	return (Coordinates{Longitude: long, Latitude: lat})
+	return (Coordinate{Lon: long, Lat: lat})
 }
 
 /**
@@ -491,9 +501,9 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	rows, err := stm.Query(idBall)
 	checkErr(err)
 	for rows.Next() {
-		var idm int
+		var idm int32
 		var message string
-		var idType int
+		var idType int32
 		err = rows.Scan(&idm, &message, &idType)
 		checkErr(err)
 		Mlist.PushBack(Message{Content: message, Type: idType, Id: idm})
@@ -508,12 +518,12 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
 	lMasterBall := list.New()
 	i := 0
-	for e := LstU.Lst_users.Front(); e != nil; e = e.Next() {
+	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		fmt.Printf("%v | %v \n", e.Value.(users.User).Id, e.Value.(users.User).Login)
 		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), base))
 		i++
 	}
-	Lb.Lst = Lb.Lst.Init()
-	Lb.Lst.PushBackList(lMasterBall)
+	Lb.Blist.Init()
+	Lb.Blist.PushBackList(lMasterBall)
 	return nil
 }
