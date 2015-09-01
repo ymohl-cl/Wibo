@@ -523,6 +523,27 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	Data.Lst_asw.PushBack(answer)
 }
 
+func (Data *Data) Manage_followoff(request *list.Element) {
+	var answer []byte
+	rqt := request.Value.(protocol.Request)
+	eball := Data.Lst_ball.Blist.Front()
+
+	for eball != nil &&
+		eball.Value.(*ballon.Ball).Id_ball != rqt.Spec.(protocol.Ballid).Id {
+		eball = eball.Next()
+	}
+	if eball != nil &&
+		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
+		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
+		Data.User.Value.(*users.User).Followed.Remove(eball)
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+
+	} else {
+		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+}
+
 func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	ball := new(ballon.Ball)
 	rqt := requete.Value.(protocol.Request)
