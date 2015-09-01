@@ -13,18 +13,17 @@
 package answer
 
 import (
-	"ballon"
 	"bytes"
 	"container/list"
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	//	"fmt"
+	"github.com/Wibo/src/ballon"
+	"github.com/Wibo/src/owm"
+	"github.com/Wibo/src/protocol"
+	"github.com/Wibo/src/users"
 	"math/rand"
-	"owm"
-	"protocol"
 	"time"
-	"users"
 )
 
 const (

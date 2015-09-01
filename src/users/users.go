@@ -16,8 +16,8 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
-	"protocol"
+	"github.com/Wibo/src/protocol"
+	//	_ "github.com/lib/pq"
 	"time"
 )
 

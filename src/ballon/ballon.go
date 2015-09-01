@@ -17,15 +17,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/lib/pq"
+	"github.com/Wibo/src/owm"
+	"github.com/Wibo/src/protocol"
+	"github.com/Wibo/src/users"
+	//_ "github.com/lib/pq"
 	"math"
-	"owm"
-	"protocol"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"users"
 )
 
 /* Type is message type. Only type 1 is use now and described a text */

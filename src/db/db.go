@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
-	_ "github.com/lib/pq"
+	//_ "github.com/lib/pq"
 )
 
 type Env struct {
