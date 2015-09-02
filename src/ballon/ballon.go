@@ -400,15 +400,16 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
 			lBallon.PushBack(
-				Ball{
-					Title: result[1],
-					Date:  GetDateFormat(result[5]),
-					Coord: nil,
-					//	Position:  GetCord(result[7]),
-					Wind:      GetWin(result[3], result[4]),
-					Messages:  Lb.GetMessagesBall(idBall, base.Db),
-					Followers: Lb.GetFollowers(idBall, base.Db),
-					Creator:   nil})
+				&Ball{
+					Title:       result[1],
+					Date:        GetDateFormat(result[5]),
+					Checkpoints: nil,
+					Coord:       GetCord(result[7]),
+					Wind:        GetWin(result[3], result[4]),
+					Messages:    Lb.GetMessagesBall(idBall, base.Db),
+					Followers:   Lb.GetFollowers(idBall, base.Db),
+					Possessed:   nil,
+					Creator:     nil})
 			checkErr(err)
 		}
 		return err
@@ -456,7 +457,7 @@ func GetIdBall(idB string) int {
 * convert them to float
 * create and new Cooridantes element and return it
 **/
-func GetCord(position string) Coordinate {
+func GetCord(position string) *list.Element {
 
 	// Return true if 'value' char.
 	f := func(c rune) bool {
@@ -470,7 +471,9 @@ func GetCord(position string) Coordinate {
 	point := strings.Fields(fields[0])
 	long, _ := strconv.ParseFloat(point[0], 6)
 	lat, _ := strconv.ParseFloat(point[1], 6)
-	return (Coordinate{Lon: long, Lat: lat})
+	lc := list.New()
+	lc.PushBack(&Coordinate{Lon: long, Lat: lat})
+	return lc.Back()
 }
 
 /**
@@ -506,7 +509,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 		var idType int32
 		err = rows.Scan(&idm, &message, &idType)
 		checkErr(err)
-		Mlist.PushBack(Message{Content: message, Type: idType, Id: idm})
+		Mlist.PushBack(&Message{Content: message, Type: idType, Id: idm})
 	}
 	return Mlist
 }
@@ -516,14 +519,14 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 * the creator, possessord and followers.
 **/
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
-	lMasterBall := list.New()
+	lMasterBall := new(All_ball)
+	lMasterBall.Blist = list.New()
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		fmt.Printf("%v | %v \n", e.Value.(users.User).Id, e.Value.(users.User).Login)
-		lMasterBall.PushBackList(Lb.GetListBallsByUser(e.Value.(users.User), base))
+		lMasterBall.Blist = Lb.GetListBallsByUser(e.Value.(users.User), base)
 		i++
 	}
-	Lb.Blist.Init()
-	Lb.Blist.PushBackList(lMasterBall)
+	Lb.Blist = lMasterBall.Blist
 	return nil
 }
