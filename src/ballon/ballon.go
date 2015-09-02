@@ -333,7 +333,7 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
+	fdate, err := time.Parse("2006-01-02 15:04:02", qdate)
 	checkErr(err)
 	return fdate
 }
