@@ -17,52 +17,74 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Wibo/src/answer"
+	"github.com/Wibo/src/ballon"
+	"github.com/Wibo/src/owm"
 	"github.com/Wibo/src/protocol"
 	"github.com/Wibo/src/users"
+	"io"
 	"net"
 )
 
 /*
-** handleConnection recoit une requete, lance le traitement de cette requete
-** Ensuite il ecrit la reponse en retour du traitement pour l'envoyer
-** et ecoute a nouveau le client.
-** conn.Read(buff) retourne la taille du buff et error
+** handleConnection received client's requests and manages the exchange with
+** client
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users, Db *sql.DB) {
-	Lst_req := list.New()
-	user := new(users.User)
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
+	Data := new(answer.Data)
+	Data.Lst_req = list.New()
+	Data.Lst_asw = list.New()
+	Data.Lst_ball = Lst_ball
+	Data.Lst_users = Lst_users
 
+	fmt.Println("Start handle Connection")
 	defer conn.Close()
-	defer Lst_req.Init()
+	defer Data.Lst_req.Init()
+	defer Data.Lst_asw.Init()
 	for {
 		buff := make([]byte, 1024)
-		_, err := conn.Read(buff)
-		if err != nil {
-			return
-		}
-		fmt.Println("New request:")
-		Token, err := protocol.Add_content(buff, user)
-		if err != nil {
-			fmt.Println(err)
+		size, err := conn.Read(buff)
+		if err != nil && err == io.EOF {
+		} else if err != nil {
+			fmt.Printf("Read Error, size: %d", size)
 			return
 		} else {
-			/* ! CECI EST POUR FAIRE DES TESTS ! */
-			protocol.Print_token_debug(Token)
-			/* FIN DES TESTS */
-		}
-		Lst_req.PushBack(Token)
-		if protocol.Check_finish(Lst_req) == true {
-			awr, err := answer.Get_answer(Lst_req, Lst_users, Db)
+			fmt.Println("Received")
+			fmt.Println(buff)
+			Token := new(protocol.Request)
+			err := Token.Get_request(buff)
 			if err != nil {
 				fmt.Println(err)
+				return
 			} else {
-				conn.Write(awr)
+				/* ! CECI EST POUR FAIRE DES TESTS ! */
+				fmt.Println("Receive:")
+				Token.Print_token_debug()
+				/* FIN DES TESTS */
 			}
-		} else {
-			awr, err := answer.Get_aknowledgement(Lst_req, Lst_users)
+			Etoken := Data.Lst_req.PushBack(*Token)
+			Data.User, err = Lst_users.Check_user(Etoken, Db)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error on check users")
+				return
+			}
+
+			if Data.Check_lstrequest() == true {
+				err = Data.Get_answer(Tab_wd, Db)
+				if err != nil {
+					fmt.Println(err)
+					return
+				} else {
+					Front := Data.Lst_asw.Front()
+					fmt.Println("Answer sending:")
+					fmt.Println(Front.Value.([]byte))
+					size, err = conn.Write(Front.Value.([]byte))
+					Data.Lst_asw.Remove(Front)
+				}
 			} else {
+				fmt.Println("Multiple packets exchange is not finish")
+				awr := Data.Get_aknowledgement(Lst_users)
+				fmt.Println("Answer sending:")
+				fmt.Println(awr)
 				conn.Write(awr)
 			}
 		}
@@ -76,7 +98,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Db *sql.DB) {
 ** handleConnection va recuperer et repondre au requete du client jusqu'a
 ** arriver a un etat close.
  */
-func Listen(Lst_users *users.All_users, Db *sql.DB) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
 	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		fmt.Println("Error listen:", err)
@@ -88,6 +110,6 @@ func Listen(Lst_users *users.All_users, Db *sql.DB) {
 		if err != nil {
 			fmt.Println("Error Accept:", err)
 		}
-		go handleConnection(conn, Lst_users, Db)
+		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd, Db)
 	}
 }

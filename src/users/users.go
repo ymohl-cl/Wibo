@@ -4,7 +4,8 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
+	"github.com/Wibo/src/protocol"
+	//	_ "github.com/lib/pq"
 	"time"
 )
 
@@ -26,25 +27,25 @@ type History struct {
 **/
 
 type Device struct {
-	IdMobile    int64
-	History_req *list.List
+	IdMobile    int64      /* type int64 is temporary */
+	History_req *list.List /* Value: History */
 }
 
 type User struct {
-	Device    *list.List
-	Login     string
-	Id_user   int64
-	Mail      string
-	Password  string
-	Log       time.Time
-	LastLogin string
+	Id       int64
+	Login    string
+	Mail     string
+	Password string
+	Device   *list.List /* Value: Device */
+	Log      time.Time  /*Date of the last query */
+	Followed *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 }
 
 type All_users struct {
-	Lst_users *list.List
+	Ulist  *list.List
+	Id_max int64
 }
 
-/* Definis si l'utilisateur est considere en ligne ou pas avec un timeout de 2 min */
 func (User *User) User_is_online() bool {
 	t_now := time.Now()
 	t_user := User.Log
@@ -55,13 +56,54 @@ func (User *User) User_is_online() bool {
 	}
 }
 
+/*
+** Manage users's connexion
+ */
+func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
+	user = ulist.Ulist.Front()
+	var device *list.Element
+
+	rqt := request.Value.(protocol.Request)
+	for user != nil {
+		device = user.Value.(*User).Device.Front()
+		for device != nil && device.Value.(Device).IdMobile != rqt.Deviceid {
+			device = device.Next()
+		}
+		if device != nil {
+			break
+		}
+		user = user.Next()
+	}
+	if user == nil {
+		usr := new(User)
+		var hist_device Device
+		usr.Device = list.New()
+		usr.Log = time.Now()
+		usr.Followed = list.New()
+		hist_device.IdMobile = request.Value.(protocol.Request).Deviceid
+		hist_device.History_req = list.New()
+		hist_device.History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		usr.Device.PushFront(hist_device)
+		user = ulist.Ulist.PushBack(usr)
+		ulist.Add_new_user(usr, Db)
+	} else {
+		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		user.Value.(*User).Log = time.Now()
+	}
+	return user, nil
+}
+
+/******************************************************************************/
+/********************************* MERGE JAIME ********************************/
+/******************************************************************************/
+
 /**
 * Delete user from id and mail
 *	TODO: del device
 **/
 func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
 	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
-	_, err = stm.Exec(del_user.Id_user)
+	_, err = stm.Exec(del_user.Id)
 	checkErr(err)
 	executed = true
 	return executed, err
@@ -110,8 +152,8 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 
 func (LstU *All_users) Print_users() {
 	i := 0
-	for e := LstU.Lst_users.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v \n", e.Value.(User).Id_user, e.Value.(User).Login, e.Value.(User).Mail)
+	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
+		fmt.Printf("%v | %v | %v \n", e.Value.(User).Id, e.Value.(User).Login, e.Value.(User).Mail)
 		i++
 	}
 	return
@@ -133,7 +175,7 @@ func checkErr(err error) {
  */
 func initUser(uid int64, login string, mail string) *User {
 	t := new(User)
-	t.Id_user = uid
+	t.Id = uid
 	t.Login = login
 	t.Mail = mail
 	return (t)
@@ -188,9 +230,9 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		err = rows.Scan(&idUser, &login, &mailq, &pass)
 		checkErr(err)
 		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		lUser.PushBack(User{Login: login, Id_user: idUser, Mail: mailq, Device: lDevice})
+		lUser.PushBack(User{Login: login, Id: idUser, Mail: mailq, Device: lDevice})
 	}
-	Lusr.Lst_users = Lusr.Lst_users.Init()
-	Lusr.Lst_users.PushFrontList(lUser)
+	Lusr.Ulist.Init()
+	Lusr.Ulist.PushFrontList(lUser)
 	return nil
 }

@@ -14,176 +14,257 @@ package protocol
 
 import (
 	"bytes"
-	"container/list"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/Wibo/src/users"
 )
 
+const (
+	_          = iota
+	ACK        = 32767
+	SYNC       = 1
+	MAJ        = 2
+	POS        = 3
+	TAKEN      = 4
+	FOLLOW_ON  = 5
+	FOLLOW_OFF = 6
+	NEW_BALL   = 7
+	SEND_BALL  = 8
+)
+
+type Ack struct {
+	Atype  int16
+	Status int16
+}
+
 type Position struct {
-	Longitude float32
-	Latitude  float32
+	Lon float64
+	Lat float64
 }
 
-type Id_ballon struct {
-	IdBallon int64
+type Ballid struct {
+	Id int64
 }
 
-type Ballon struct {
-	Title          string
-	Longitude_user float32
-	Latitude_user  float32
-	Message        string
+type New_ball struct {
+	Title   string
+	Lonuser float64
+	Latuser float64
+	Octets  int32
+	Message string
 }
 
-type Lst_req_sock struct {
-	NbrOctet int16
-	Type     int16
-	NbrPack  int32
-	NumPack  int32
-	IdMobile int64
-	Union    interface{}
+type Send_ball struct {
+	Id      int64
+	Lonuser float64
+	Latuser float64
+	Octets  int32
+	Message string
 }
 
-/* Take_position est le decodeur de type 1 */
-func Take_position(TypBuff *bytes.Buffer) (Pos Position, er error) {
-	err := binary.Read(TypBuff, binary.BigEndian, &Pos.Longitude)
+//iddevice int64 // Deviendra une string ou un buffer ..
+type Request struct {
+	Octets   int16
+	Rtype    int16
+	Nbrpck   int32
+	Numpck   int32
+	Deviceid int64
+	Spec     interface{}
+}
+
+/* Decode type Ack */
+func Request_ack(TypBuff *bytes.Buffer) (ack Ack, er error) {
+	err := binary.Read(TypBuff, binary.BigEndian, &ack.Atype)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on Pos longitute")
-		return Pos, er
+		er = errors.New("Get_ack in protocol: Error binary.Read")
+		return ack, er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &Pos.Latitude)
+	err = binary.Read(TypBuff, binary.BigEndian, &ack.Status)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on Pos latitude")
-		return Pos, er
+		er = errors.New("Get_ack in protocol: Error binary.Read")
+		return ack, er
 	}
-	return Pos, er
+	return ack, er
 }
 
-/* Take_ball est le decodeur de type 2, 3, et 4 */
-func Take_ball(TypBuff *bytes.Buffer) (Id Id_ballon, er error) {
-	err := binary.Read(TypBuff, binary.BigEndian, &Id.IdBallon)
+/* Decode type position */
+func Request_position(TypBuff *bytes.Buffer) (pos Position, er error) {
+	err := binary.Read(TypBuff, binary.BigEndian, &pos.Lon)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on ID_ballon")
-		return Id, er
+		er = errors.New("Get_position in protocol: Error binary.Read")
+		return pos, er
 	}
-	return Id, er
+	err = binary.Read(TypBuff, binary.BigEndian, &pos.Lat)
+	if err != nil {
+		er = errors.New("Get_position in protocol: Error binary.Read")
+		return pos, er
+	}
+	fmt.Println("Value dans take Position")
+	fmt.Println(pos)
+	return pos, er
 }
 
-/* TaKe_newBall est le decodeur de type 5 */
-func Take_newBall(TypBuff *bytes.Buffer) (Ball Ballon, er error) {
+/* Decode types MAJ, TAKEN, FOLLOW_ON, and FOLLOW_OFF */
+func Request_idball(TypBuff *bytes.Buffer) (id Ballid, er error) {
+	err := binary.Read(TypBuff, binary.BigEndian, &id.Id)
+
+	if err != nil {
+		er = errors.New("Get_idball in protocol: Error binary.Read")
+		return id, er
+	}
+	return id, er
+}
+
+/* Decode type newball */
+func Request_newball(TypBuff *bytes.Buffer) (ball New_ball, er error) {
 	var err error
-	Ball.Title, err = TypBuff.ReadString(0)
-	fmt.Println(len(Ball.Title))
-	if len(Ball.Title) == 1 {
-		er = errors.New("Add content from socket error, ReadString return error on Ball.Title")
-		return Ball, er
-	}
-	TypBuff.Next((16 - len(Ball.Title)))
-	err = binary.Read(TypBuff, binary.BigEndian, &Ball.Longitude_user)
-	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on Ball longitute")
-		return Ball, er
-	}
-	err = binary.Read(TypBuff, binary.BigEndian, &Ball.Latitude_user)
-	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on Ball latitude")
-		return Ball, er
-	}
-	TypBuff.Next(8)
-	Ball.Message, err = TypBuff.ReadString(0)
-	if 1 == len(Ball.Message) {
-		er = errors.New("Add content from socket error, ReadString return error on Ball.Message")
-		return Ball, er
-	}
-	return Ball, er
-}
 
-/*
-** Add_content recupere le contenu du header de la requete recu dans buff et
-** l'analyse pour creer une requete exploitable par le serveur, en appelant
-** le decodeur du type specifier dans le header (Voir protocole Wibo sur trello)
- */
-func Add_content(buff []byte, user *users.User) (Token Lst_req_sock, er error) {
-	TypBuff := bytes.NewBuffer(buff)
-
-	err := binary.Read(TypBuff, binary.BigEndian, &Token.NbrOctet)
-	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on NbrOctet")
-		return Token, er
+	ball.Title, err = TypBuff.ReadString(0)
+	if len(ball.Title) == 1 {
+		er = errors.New("Get_newball in protocol 1: Error ReadString")
+		return ball, er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &Token.Type)
+	TypBuff.Next((16 - len(ball.Title)))
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Lonuser)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on Type request")
-		return Token, er
+		er = errors.New("Get_newball in protocol: Error binary.Read")
+		return ball, er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Latuser)
+	if err != nil {
+		er = errors.New("Get_newball in protocol: Error binary.Read")
+		return ball, er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Octets)
+	if err != nil {
+		er = errors.New("Get_newball in protocol: Error binary.Read")
+		return ball, er
 	}
 	TypBuff.Next(4)
-	err = binary.Read(TypBuff, binary.BigEndian, &Token.NbrPack)
+	ball.Message, err = TypBuff.ReadString(0)
+	if 1 == len(ball.Message) {
+		er = errors.New("Get_newball in protocoli 2: Error ReadString")
+		return ball, er
+	}
+	return ball, er
+}
+
+/* Decode type sendball  */
+func Request_sendball(TypBuff *bytes.Buffer) (ball Send_ball, er error) {
+	var err error
+
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Id)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on NbrPack")
-		return Token, er
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &Token.NumPack)
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Lonuser)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on NumPack")
-		return Token, er
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &Token.IdMobile)
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Latuser)
 	if err != nil {
-		er = errors.New("Add content from socket error, Binary.Read return error on IdMobile")
-		return Token, er
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
 	}
-	switch Token.Type {
-	case 1:
-		Token.Union, er = Take_position(TypBuff)
-		if er != nil {
-			return Token, er
-		}
-	case 2, 3, 4:
-		Token.Union, er = Take_ball(TypBuff)
-		if er != nil {
-			return Token, er
-		}
-	case 5:
-		Token.Union, er = Take_newBall(TypBuff)
-		if er != nil {
-			return Token, er
-		}
+	err = binary.Read(TypBuff, binary.BigEndian, &ball.Octets)
+	if err != nil {
+		er = errors.New("Get_sendball in protocol: Error binary.Read")
+		return ball, er
 	}
-	return Token, nil
+	TypBuff.Next(4)
+	ball.Message, err = TypBuff.ReadString(0)
+	if 1 == len(ball.Message) {
+		er = errors.New("Get_sendball in protocol: Error ReadString")
+		return ball, er
+	}
+	return ball, er
 }
 
 /*
-** Check_finish verifie si une requete est entierement recu.
+** Master function that tokenizes client's request.
+** See the protocol
  */
-func Check_finish(Lst_req *list.List) bool {
-	Last := Lst_req.Back()
+func (token *Request) Get_request(buff []byte) (er error) {
+	TypBuff := bytes.NewBuffer(buff)
 
-	if Last.Value.(Lst_req_sock).NbrPack == (Last.Value.(Lst_req_sock).NumPack - 1) {
-		return true
-	} else {
-		return false
+	er = nil
+	err := binary.Read(TypBuff, binary.BigEndian, &token.Octets)
+	if err != nil {
+		er = errors.New("Get_request in protocol: Error binary.Read")
+		return er
 	}
+	err = binary.Read(TypBuff, binary.BigEndian, &token.Rtype)
+	if err != nil {
+		er = errors.New("Get_request in protocol: Error binary.Read")
+		return er
+	}
+	TypBuff.Next(4)
+	err = binary.Read(TypBuff, binary.BigEndian, &token.Nbrpck)
+	if err != nil {
+		er = errors.New("Get_request in protocol: Error binary.Read")
+		return er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &token.Numpck)
+	if err != nil {
+		er = errors.New("Get_request in protocol: Error binary.Read")
+		return er
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &token.Deviceid)
+	if err != nil {
+		er = errors.New("Get_request in protocol: Error binary.Read")
+		return er
+	}
+	TypBuff.Next(32)
+	switch token.Rtype {
+	case SYNC:
+		return er
+	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF:
+		token.Spec, er = Request_idball(TypBuff)
+	case POS:
+		token.Spec, er = Request_position(TypBuff)
+	case NEW_BALL:
+		token.Spec, er = Request_newball(TypBuff)
+	case SEND_BALL:
+		token.Spec, er = Request_sendball(TypBuff)
+	case ACK:
+		token.Spec, er = Request_ack(TypBuff)
+	}
+	return er
 }
 
-/* Fonction pour faire des prints de debug sur une requete recu */
-func Print_token_debug(Token Lst_req_sock) {
-	fmt.Println(Token.NbrOctet)
-	fmt.Println(Token.Type)
-	fmt.Println(Token.NbrPack)
-	fmt.Println(Token.NumPack)
-	fmt.Println(Token.IdMobile)
-	switch Token.Type {
-	case 1:
-		fmt.Println(Token.Union.(Position).Longitude)
-		fmt.Println(Token.Union.(Position).Latitude)
-	case 2, 3, 4:
-		fmt.Println(Token.Union.(Id_ballon).IdBallon)
-	case 5:
-		fmt.Println(Token.Union.(Ballon).Title)
-		fmt.Println(Token.Union.(Ballon).Longitude_user)
-		fmt.Println(Token.Union.(Ballon).Latitude_user)
-		fmt.Println(Token.Union.(Ballon).Message)
+/* Print request to debug */
+func (token *Request) Print_token_debug() {
+	fmt.Println("Request header:")
+	fmt.Println(token.Octets)
+	fmt.Println(token.Rtype)
+	fmt.Println(token.Nbrpck)
+	fmt.Println(token.Numpck)
+	fmt.Println(token.Deviceid)
+	fmt.Println("Type request:")
+	switch token.Rtype {
+	case SYNC:
+		fmt.Println("Data base synchronisation, type 1")
+	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF:
+		fmt.Println(token.Spec.(Ballid).Id)
+	case POS:
+		fmt.Println(token.Spec.(Position).Lon)
+		fmt.Println(token.Spec.(Position).Lat)
+	case NEW_BALL:
+		fmt.Println(token.Spec.(New_ball).Title)
+		fmt.Println(token.Spec.(New_ball).Lonuser)
+		fmt.Println(token.Spec.(New_ball).Latuser)
+		fmt.Println(token.Spec.(New_ball).Octets)
+		fmt.Println(token.Spec.(New_ball).Message)
+	case SEND_BALL:
+		fmt.Println(token.Spec.(Send_ball).Id)
+		fmt.Println(token.Spec.(Send_ball).Lonuser)
+		fmt.Println(token.Spec.(Send_ball).Latuser)
+		fmt.Println(token.Spec.(Send_ball).Octets)
+		fmt.Println(token.Spec.(Send_ball).Message)
+	case ACK:
+		fmt.Println(token.Spec.(Ack).Atype)
+		fmt.Println(token.Spec.(Ack).Status)
 	}
 }
