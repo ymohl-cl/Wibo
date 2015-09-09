@@ -15,17 +15,17 @@ package ballon
 import (
 	"container/list"
 	"database/sql"
+	"db"
 	"errors"
 	"fmt"
-	"github.com/Wibo/src/db"
-	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/protocol"
-	"github.com/Wibo/src/users"
 	"math"
+	"owm"
+	"protocol"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"users"
 )
 
 /* Type is message type. Only type 1 is use now and described a text */
@@ -378,20 +378,46 @@ func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB) *list.List {
 	return lstFollow
 }
 
+func GetCurrentUserBall(LUser *list.List, idBall int, Db *sql.DB) *list.Element {
+	stm, err := Db.Prepare("SELECT idcurrentuser  FROM container WHERE id=($1)")
+	checkErr(err)
+	rows, err := stm.Query(idBall)
+	checkErr(err)
+	for rows.Next() {
+		var idPossesed int64
+		err = rows.Scan(&idPossesed)
+		checkErr(err)
+		i := 0
+		for e := LUser.Front(); e != nil; e = e.Next() {
+			if e.Value.(users.User).Id == idPossesed {
+				return e
+			}
+			i++
+		}
+	}
+	return nil
+}
+
+func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Element {
+	p := make(chan *list.Element)
+	go func() { p <- GetCurrentUserBall(LstU, idBall, Db) }()
+	return p
+}
+
 /**
 * GetListBallsByUser
 * getContainersByUserId is a native psql function with
 * RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
  */
 
-func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.List {
+func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist *list.List) *list.List {
 	lBallon := list.New()
 	var err error
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
 		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
 		checkErr(errT)
-		rows, err := stm.Query(userl.Id)
+		rows, err := stm.Query(userE.Value.(users.User).Id)
 		checkErr(errT)
 		for rows.Next() {
 			var infoCont string
@@ -399,17 +425,19 @@ func (Lb *All_ball) GetListBallsByUser(userl users.User, base *db.Env) *list.Lis
 			checkErr(err)
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
+			tempCord := GetCord(result[7])
+			possessed := GetWhomGotBall(idBall, Ulist, base.Db)
 			lBallon.PushBack(
 				&Ball{
 					Title:       result[1],
 					Date:        GetDateFormat(result[5]),
-					Checkpoints: nil,
-					Coord:       GetCord(result[7]),
+					Checkpoints: tempCord,
+					Coord:       tempCord.Front(),
 					Wind:        GetWin(result[3], result[4]),
 					Messages:    Lb.GetMessagesBall(idBall, base.Db),
 					Followers:   Lb.GetFollowers(idBall, base.Db),
-					Possessed:   nil,
-					Creator:     nil})
+					Possessed:   <-possessed,
+					Creator:     userE})
 			checkErr(err)
 		}
 		return err
@@ -457,7 +485,7 @@ func GetIdBall(idB string) int {
 * convert them to float
 * create and new Cooridantes element and return it
 **/
-func GetCord(position string) *list.Element {
+func GetCord(position string) *list.List {
 
 	// Return true if 'value' char.
 	f := func(c rune) bool {
@@ -472,8 +500,8 @@ func GetCord(position string) *list.Element {
 	long, _ := strconv.ParseFloat(point[0], 6)
 	lat, _ := strconv.ParseFloat(point[1], 6)
 	lc := list.New()
-	lc.PushBack(&Coordinate{Lon: long, Lat: lat})
-	return lc.Back()
+	lc.PushBack(Coordinate{Lon: long, Lat: lat})
+	return lc
 }
 
 /**
@@ -523,8 +551,7 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
 	lMasterBall.Blist = list.New()
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v \n", e.Value.(users.User).Id, e.Value.(users.User).Login)
-		lMasterBall.Blist = Lb.GetListBallsByUser(e.Value.(users.User), base)
+		lMasterBall.Blist = Lb.GetListBallsByUser(e, base, LstU.Ulist)
 		i++
 	}
 	Lb.Blist = lMasterBall.Blist

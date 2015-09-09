@@ -15,15 +15,15 @@ package main
 import (
 	"container/list"
 	//"database/sql"
+	"ballon"
+	"db"
 	"fmt"
-	"github.com/Wibo/src/ballon"
-	"github.com/Wibo/src/db"
-	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/request"
-	"github.com/Wibo/src/sock"
-	"github.com/Wibo/src/users"
 	"net/http"
+	"owm"
+	"request"
+	"sock"
 	"time"
+	"users"
 )
 
 /*
