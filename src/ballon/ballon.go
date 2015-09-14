@@ -285,6 +285,47 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************************************************************/
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
+
+func getIdMessageMax(idBall int32, base *db.Env) int32 {
+	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		stm, err := tx.Prepare("select id from message where id = (select max(id) from message) and containerid = $1;")
+		checkErr(err)
+		rs, err = stm.Query(idBall)
+		checkErr(err)
+		for rs.Next() {
+			var idMax int32
+			err = rs.Scan(&idMax)
+			return idMax
+		}
+		return err
+	})
+}
+
+func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
+	i := 0
+	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+		if e.Value.(*Ball).edited == true && e.Value.(*Ball).Id < ABalls.idMax {
+			idMessageMax := getIdMessageMax(e.Value.(*Ball).Id, base)
+			j := 0
+			for f := e.Value.(*Ball).Messages; f != nil; f = f.Next() {
+				if f.Value.(Message).Id > idMessageMax {
+					err = base.Transact(base.Db, func(tx *sql.Tx) error {
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+						checkErr(err)
+						_, err = stm.Query(f.Value.(Message).Content, idBall, 2)
+						j++
+						checkErr(err)
+						return err
+					})
+				}
+			}
+		} else {
+			InsertBallon(e.Value, base)
+		}
+		i++
+	}
+}
+
 /*
  FUNCTION insertContainer(
 	$1 idcreatorc integer,
