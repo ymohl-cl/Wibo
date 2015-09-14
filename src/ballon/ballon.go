@@ -94,6 +94,7 @@ func (ball *Ball) Check_userfollower(user *list.Element) bool {
 
 	for euser != nil && euser.Value.(*list.Element).Value.(*users.User).Id != user.Value.(*users.User).Id {
 		euser = euser.Next()
+
 	}
 	if euser != nil {
 		return true
@@ -285,7 +286,15 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
 /*
- FUNCTION insertContainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc float, speedc float, title text, idx integer)
+ FUNCTION insertContainer(
+	$1 idcreatorc integer,
+ 	$2 latitudec integer,
+	$3 longitudec integer,
+	$4 device integer,
+	$5 directionc float,
+	$6 speedc float,
+	$7 title text,
+	$8 idx integer)
 */
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
 	var err error
@@ -295,7 +304,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 		checkErr(err)
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
-			newBall.Coord.Value.(Coordinate).Lon, 3,
+			newBall.Coord.Value.(Coordinate).Lon,
+			3,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
