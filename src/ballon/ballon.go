@@ -15,17 +15,17 @@ package ballon
 import (
 	"container/list"
 	"database/sql"
+	"db"
 	"errors"
 	"fmt"
-	"github.com/Wibo/src/db"
-	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/protocol"
-	"github.com/Wibo/src/users"
 	"math"
+	"owm"
+	"protocol"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"users"
 )
 
 /* Type is message type. Only type 1 is use now and described a text */
@@ -102,14 +102,16 @@ func (ball *Ball) Check_userfollower(user *list.Element) bool {
 }
 
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
-	rlon := request.Value.(protocol.Request).Spec.(protocol.Position).Lon
-	rlat := request.Value.(protocol.Request).Spec.(protocol.Position).Lat
-	coord := ball.Coord.Value.(Checkpoint).Coord
-	if coord.Lon < rlon+0.01 &&
-		coord.Lon > rlon-0.01 &&
-		coord.Lat < rlat+0.01 &&
-		coord.Lat > rlat-0.01 {
-		return true
+	rlon := request.Value.(*protocol.Request).Spec.(protocol.Position).Lon
+	rlat := request.Value.(*protocol.Request).Spec.(protocol.Position).Lat
+	if ball.Coord != nil {
+		coord := ball.Coord.Value.(Checkpoint).Coord
+		if coord.Lon < rlon+0.01 &&
+			coord.Lon > rlon-0.01 &&
+			coord.Lat < rlat+0.01 &&
+			coord.Lat > rlat-0.01 {
+			return true
+		}
 	}
 	return false
 }
@@ -195,14 +197,16 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 
 	for elem != nil {
 		ball := elem.Value.(*Ball)
-		ball.Coord = ball.Coord.Next()
 		if ball.Coord != nil {
-			ball.Checkpoints.Remove(ball.Checkpoints.Front())
-		} else {
-			ball.Coord = ball.Checkpoints.Front()
-			if ball.Coord == nil {
-				err = errors.New("next coord not found")
-				return err
+			ball.Coord = ball.Coord.Next()
+			if ball.Coord != nil {
+				ball.Checkpoints.Remove(ball.Checkpoints.Front())
+			} else {
+				ball.Coord = ball.Checkpoints.Front()
+				if ball.Coord == nil {
+					err = errors.New("next coord not found")
+					return err
+				}
 			}
 		}
 		elem.Value = ball

@@ -6,10 +6,10 @@ package request
  */
 
 import (
+	"ballon"
 	"container/list"
 	"encoding/json"
 	"fmt"
-	"github.com/Wibo/src/ballon"
 	"net/http"
 	"time"
 )

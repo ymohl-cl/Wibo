@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	"github.com/Wibo/src/protocol"
+	"protocol"
 	//	_ "github.com/lib/pq"
 	"time"
 )
@@ -63,7 +63,7 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *lis
 	user = ulist.Ulist.Front()
 	var device *list.Element
 
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 	for user != nil {
 		device = user.Value.(*User).Device.Front()
 		for device != nil && device.Value.(Device).IdMobile != rqt.Deviceid {
@@ -80,14 +80,14 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *lis
 		usr.Device = list.New()
 		usr.Log = time.Now()
 		usr.Followed = list.New()
-		hist_device.IdMobile = request.Value.(protocol.Request).Deviceid
+		hist_device.IdMobile = request.Value.(*protocol.Request).Deviceid
 		hist_device.History_req = list.New()
-		hist_device.History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		hist_device.History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
 		usr.Device.PushFront(hist_device)
 		user = ulist.Ulist.PushBack(usr)
 		ulist.Add_new_user(usr, Db)
 	} else {
-		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(protocol.Request).Rtype})
+		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
 		user.Value.(*User).Log = time.Now()
 	}
 	return user, nil

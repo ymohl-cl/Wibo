@@ -13,17 +13,17 @@
 package answer
 
 import (
+	"ballon"
 	"bytes"
 	"container/list"
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	"github.com/Wibo/src/ballon"
-	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/protocol"
-	"github.com/Wibo/src/users"
 	"math/rand"
+	"owm"
+	"protocol"
 	"time"
+	"users"
 )
 
 const (
@@ -98,7 +98,7 @@ type Packet struct {
 }
 
 type Data struct {
-	Lst_req   *list.List /* Value: (protocol.Request) which defines list request */
+	Lst_req   *list.List /* Value: (*protocol.Request) which defines list request */
 	Lst_asw   *list.List /* Value: ([]byte) which defines list answer */
 	Lst_ball  *ballon.All_ball
 	Lst_users *users.All_users
@@ -167,12 +167,12 @@ func (Data *Data) Check_lstrequest() bool {
 	Req := Data.Lst_req.Front()
 	next := Req.Next()
 	tmp := Req
-	var nr protocol.Request
-	var tr protocol.Request
+	nr := new(protocol.Request)
+	tr := new(protocol.Request)
 
-	tr = tmp.Value.(protocol.Request)
+	tr = tmp.Value.(*protocol.Request)
 	for next != nil {
-		nr = next.Value.(protocol.Request)
+		nr = next.Value.(*protocol.Request)
 		if tr.Nbrpck == tr.Numpck+1 {
 			return true
 		} else if tr.Rtype != nr.Rtype {
@@ -182,7 +182,7 @@ func (Data *Data) Check_lstrequest() bool {
 		}
 		next = next.Next()
 		tmp = tmp.Next()
-		tr = tmp.Value.(protocol.Request)
+		tr = tmp.Value.(*protocol.Request)
 	}
 	if tr.Nbrpck == tr.Numpck+1 {
 		return true
@@ -193,7 +193,7 @@ func (Data *Data) Check_lstrequest() bool {
 func Del_request_done(Lst_req *list.List) {
 	elem := Lst_req.Front()
 	for elem != nil {
-		if elem.Value.(protocol.Request).Numpck == elem.Value.(protocol.Request).Nbrpck-1 {
+		if elem.Value.(*protocol.Request).Numpck == elem.Value.(*protocol.Request).Nbrpck-1 {
 			Lst_req.Remove(elem)
 			return
 		}
@@ -427,7 +427,7 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 func (Data *Data) Manage_update(request *list.Element) {
 	var ball *ballon.Ball
 
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 	idsearch := rqt.Spec.(protocol.Ballid).Id
 	eball := Data.User.Value.(*users.User).Followed.Front()
 	for eball != nil {
@@ -481,9 +481,9 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 
 func (Data *Data) Manage_taken(request *list.Element) {
 	eball := Data.Lst_ball.Blist.Front()
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 
-	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(protocol.Request).Spec.(protocol.Ballid).Id {
+	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(*protocol.Request).Spec.(protocol.Ballid).Id {
 		eball = eball.Next()
 	}
 	if eball != nil {
@@ -506,7 +506,7 @@ func (Data *Data) Manage_taken(request *list.Element) {
 }
 
 func (Data *Data) Manage_followon(request *list.Element) {
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 
 	eball := Data.Lst_ball.Blist.Front()
 	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != rqt.Spec.(protocol.Ballid).Id {
@@ -525,7 +525,7 @@ func (Data *Data) Manage_followon(request *list.Element) {
 
 func (Data *Data) Manage_followoff(request *list.Element) {
 	var answer []byte
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Blist.Front()
 
 	for eball != nil &&
@@ -546,12 +546,12 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 
 func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	ball := new(ballon.Ball)
-	rqt := requete.Value.(protocol.Request)
+	rqt := requete.Value.(*protocol.Request)
 	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
 	var mess ballon.Message
 
-	newball = requete.Value.(protocol.Request).Spec.(protocol.New_ball)
+	newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
 	Data.Lst_ball.Id_max++
 	ball.Id_ball = Data.Lst_ball.Id_max
 	ball.Title = newball.Title
@@ -579,7 +579,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 }
 
 func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
-	rqt := requete.Value.(protocol.Request)
+	rqt := requete.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Send_ball).Id)
 	var checkpoint ballon.Checkpoint
 	var answer []byte
@@ -605,7 +605,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	} else {
 		Data.User, er = Data.Lst_users.Check_user(request, Db)
 		if er == nil {
-			switch request.Value.(protocol.Request).Rtype {
+			switch request.Value.(*protocol.Request).Rtype {
 			case SYNC:
 				Data.Manage_sync(request)
 			case UPDATE:
@@ -632,7 +632,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 
 func (Data *Data) Get_aknowledgement(Lst_usr *users.All_users) (answer []byte) {
 	elem := Data.Lst_req.Back()
-	treq := elem.Value.(protocol.Request)
+	treq := elem.Value.(*protocol.Request)
 
 	if treq.Rtype == NEW_BALL {
 		answer = Manage_ack(treq.Rtype, treq.Deviceid, 0, int32(1))

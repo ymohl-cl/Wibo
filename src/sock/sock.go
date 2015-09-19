@@ -13,16 +13,16 @@
 package sock
 
 import (
+	"answer"
+	"ballon"
 	"container/list"
 	"database/sql"
 	"fmt"
-	"github.com/Wibo/src/answer"
-	"github.com/Wibo/src/ballon"
-	"github.com/Wibo/src/owm"
-	"github.com/Wibo/src/protocol"
-	"github.com/Wibo/src/users"
 	"io"
 	"net"
+	"owm"
+	"protocol"
+	"users"
 )
 
 /*
@@ -61,7 +61,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				Token.Print_token_debug()
 				/* FIN DES TESTS */
 			}
-			Etoken := Data.Lst_req.PushBack(*Token)
+			Etoken := Data.Lst_req.PushBack(Token)
 			Data.User, err = Lst_users.Check_user(Etoken, Db)
 			if err != nil {
 				fmt.Println("Error on check users")
