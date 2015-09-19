@@ -153,7 +153,7 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 func (LstU *All_users) Print_users() {
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v \n", e.Value.(User).Id, e.Value.(User).Login, e.Value.(User).Mail)
+		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
 		i++
 	}
 	return
@@ -230,7 +230,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		err = rows.Scan(&idUser, &login, &mailq, &pass)
 		checkErr(err)
 		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		lUser.PushBack(User{Login: login, Id: idUser, Mail: mailq, Device: lDevice})
+		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)

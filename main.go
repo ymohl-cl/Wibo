@@ -13,9 +13,8 @@
 package main
 
 import (
-	"container/list"
-	//"database/sql"
 	"ballon"
+	"container/list"
 	"db"
 	"fmt"
 	"net/http"
@@ -97,7 +96,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Tab_wd.Print_weatherdata()
 	}
 	Lst_users.Ulist = list.New()
-	//	err = Lst_users.Get_users(base.Db)
+	err = Lst_users.Get_users(base.Db)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -105,7 +104,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Lst_users.Print_users()
 	}
 	Lst_ball.Blist = list.New()
-	//	err = Lst_ball.Get_balls(Lst_users, base)
+	err = Lst_ball.Get_balls(Lst_users, base)
 	if err != nil {
 		fmt.Println(err)
 		return err
