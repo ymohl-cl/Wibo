@@ -60,10 +60,10 @@ type Wind struct {
 }
 
 type Ball struct {
-	Id_ball     int64
-	Title       string
-	Coord       *list.Element
-	IdBall      int64
+	Id_ball int64
+	Title   string
+	Coord   *list.Element
+	//IdBall      int64
 	edited      bool
 	Wind        Wind
 	Messages    *list.List    /* Value: Message */
@@ -286,44 +286,21 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
 
-func getIdMessageMax(idBall int32, base *db.Env) int32 {
-	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+func getIdMessageMax(idBall int64, base *db.Env) int32 {
+	var IdMax int32
+	err := base.Transact(base.Db, func(tx *sql.Tx) error {
+		var err error
 		stm, err := tx.Prepare("select id from message where id = (select max(id) from message) and containerid = $1;")
 		checkErr(err)
-		rs, err = stm.Query(idBall)
+		rs, err := stm.Query(idBall)
 		checkErr(err)
 		for rs.Next() {
-			var idMax int32
-			err = rs.Scan(&idMax)
-			return idMax
+			rs.Scan(&IdMax)
 		}
 		return err
 	})
-}
-
-func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
-	i := 0
-	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-		if e.Value.(*Ball).edited == true && e.Value.(*Ball).Id < ABalls.idMax {
-			idMessageMax := getIdMessageMax(e.Value.(*Ball).Id, base)
-			j := 0
-			for f := e.Value.(*Ball).Messages; f != nil; f = f.Next() {
-				if f.Value.(Message).Id > idMessageMax {
-					err = base.Transact(base.Db, func(tx *sql.Tx) error {
-						stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
-						checkErr(err)
-						_, err = stm.Query(f.Value.(Message).Content, idBall, 2)
-						j++
-						checkErr(err)
-						return err
-					})
-				}
-			}
-		} else {
-			InsertBallon(e.Value, base)
-		}
-		i++
-	}
+	checkErr(err)
+	return IdMax
 }
 
 /*
@@ -365,6 +342,33 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	return executed, err
 }
 
+func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
+	i := 0
+	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+		if e.Value.(*Ball).edited == true && e.Value.(*Ball).Id_ball < ABalls.Id_max {
+			idBall := e.Value.(*Ball).Id_ball
+			idMessageMax := getIdMessageMax(idBall, base)
+			j := 0
+			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
+				if f.Value.(Message).Id > idMessageMax {
+					err := base.Transact(base.Db, func(tx *sql.Tx) error {
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+						checkErr(err)
+						_, err = stm.Query(f.Value.(Message).Content, idBall, 2)
+						j++
+						checkErr(err)
+						return err
+					})
+					checkErr(err)
+				}
+			}
+		} else {
+			Lb.InsertBallon(e.Value.(*Ball), base)
+		}
+		i++
+	}
+}
+
 func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *db.Env) (err error) {
 	i := 0
 	for e := messages.Front(); e != nil; e = e.Next() {
@@ -395,7 +399,7 @@ func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 	luser := list.New()
 	luser.PushBack(u)
 	b.Creator = luser.Back()
-	b.IdBall = 5
+	b.Id_ball = 5
 	b.Wind.Degress = 23.90
 	b.Wind.Speed = 222
 	b.Messages = Lst_ball.GetMessagesBall(10, Db)
@@ -412,19 +416,19 @@ func checkErr(err error) {
 	}
 }
 
-func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB) *list.List {
+func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) *list.List {
 	lstFollow := list.New()
 	var err error
-	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" AS userWibo LEFT OUTER JOIN followed ON (followed.iduser = userWibo.id_user)  WHERE followed.container_id = $1;", idBall)
+	rows, err := Db.Query("SELECT id_user FROM \"user\" AS userWibo LEFT OUTER JOIN followed ON (followed.iduser = userWibo.id_user)  WHERE followed.container_id = $1;", idBall)
 	checkErr(err)
 	for rows.Next() {
 		var idFollower int64
-		var login, mail string
-		rows.Scan(&idFollower, &login, &mail)
-		lstFollow.PushBack(&users.User{
-			Id:    idFollower,
-			Login: login,
-			Mail:  mail})
+		rows.Scan(&idFollower)
+		for u := Ulist.Front(); u != nil; u = u.Next() {
+			if idFollower == u.Value.(*users.User).Id {
+				lstFollow.PushBack(u)
+			}
+		}
 	}
 	return lstFollow
 }
@@ -440,7 +444,7 @@ func GetCurrentUserBall(LUser *list.List, idBall int, Db *sql.DB) *list.Element 
 		checkErr(err)
 		i := 0
 		for e := LUser.Front(); e != nil; e = e.Next() {
-			if e.Value.(users.User).Id == idPossesed {
+			if e.Value.(*users.User).Id == idPossesed {
 				return e
 			}
 			i++
@@ -468,7 +472,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		var errT error
 		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
 		checkErr(errT)
-		rows, err := stm.Query(userE.Value.(users.User).Id)
+		rows, err := stm.Query(userE.Value.(*users.User).Id)
 		checkErr(errT)
 		for rows.Next() {
 			var infoCont string
@@ -486,7 +490,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					Coord:       tempCord.Front(),
 					Wind:        GetWin(result[3], result[4]),
 					Messages:    Lb.GetMessagesBall(idBall, base.Db),
-					Followers:   Lb.GetFollowers(idBall, base.Db),
+					Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
 					Possessed:   <-possessed,
 					Creator:     userE})
 			checkErr(err)
@@ -593,6 +597,19 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	return Mlist
 }
 
+func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List, base *db.Env) {
+
+	for u := Ulist.Front(); u != nil; u = u.Next() {
+		for b := Blist.Front(); b != nil; b = b.Next() {
+			for f := b.Value.(*Ball).Followers.Front(); f != nil; f = f.Next() {
+				if f.Value.(*users.User).Id == u.Value.(*users.User).Id {
+					u.Value.(*users.User).Followed.PushBack(b)
+				}
+			}
+		}
+	}
+}
+
 /**
 * get all ball from database and associeted
 * the creator, possessord and followers.
@@ -605,6 +622,7 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
 		lMasterBall.Blist = Lb.GetListBallsByUser(e, base, LstU.Ulist)
 		i++
 	}
+	Lb.InsertListBallsFollow(lMasterBall.Blist, LstU.Ulist, base)
 	Lb.Blist = lMasterBall.Blist
 	return nil
 }
