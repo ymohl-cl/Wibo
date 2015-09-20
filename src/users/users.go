@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"protocol"
-	//	_ "github.com/lib/pq"
+	"strconv"
 	"time"
 )
 
@@ -206,7 +206,9 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 		var idDevice string
 		err = rows.Scan(&idDevice)
 		checkErr(err)
-		lDevice.PushBack(idDevice)
+		v, err := strconv.Atoi(idDevice)
+		checkErr(err)
+		lDevice.PushBack(Device{IdMobile: int64(v), History_req: list.New()})
 	}
 	return lDevice
 }

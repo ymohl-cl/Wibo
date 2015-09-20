@@ -60,10 +60,10 @@ type Wind struct {
 }
 
 type Ball struct {
-	Id_ball     int64
-	Title       string
-	Coord       *list.Element
-	IdBall      int64
+	Id_ball int64
+	Title   string
+	Coord   *list.Element
+	//IdBall      int64
 	edited      bool
 	Wind        Wind
 	Messages    *list.List    /* Value: Message */
@@ -94,6 +94,7 @@ func (ball *Ball) Check_userfollower(user *list.Element) bool {
 
 	for euser != nil && euser.Value.(*list.Element).Value.(*users.User).Id != user.Value.(*users.User).Id {
 		euser = euser.Next()
+
 	}
 	if euser != nil {
 		return true
@@ -309,7 +310,7 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 /*
  FUNCTION insertContainer(
 	$1 idcreatorc integer,
-	$2 latitudec integer,
+ 	$2 latitudec integer,
 	$3 longitudec integer,
 	$4 device integer,
 	$5 directionc float,
@@ -512,7 +513,7 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
+	fdate, err := time.Parse("2006-01-02 15:04:02", qdate)
 	checkErr(err)
 	return fdate
 }
