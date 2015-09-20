@@ -19,7 +19,6 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	//	"fmt"
 	"math/rand"
 	"owm"
 	"protocol"

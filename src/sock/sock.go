@@ -18,7 +18,6 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	//	_ "github.com/lib/pq"
 	"io"
 	"net"
 	"owm"
@@ -93,8 +92,14 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	}
 }
 
+/*
+** Listen va ecouter les connections entrante sur le port 8081
+** Elle va accepter une demande de connection et lancer le handleConnection
+** handleConnection va recuperer et repondre au requete du client jusqu'a
+** arriver a un etat close.
+ */
 func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
-	ln, err := net.Listen("tcp", ":8081")
+	ln, err := net.Listen("tcp", ":45899")
 	if err != nil {
 		fmt.Println("Error listen:", err)
 	}

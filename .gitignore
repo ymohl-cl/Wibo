@@ -1,8 +1,10 @@
 # Ignorer les objets et les archives
 *.[oa]i
 _vendor/**/*
+pkg/**/*
 # Vim extensions
 *.swp
+*.swo
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
 *.un~
@@ -46,3 +48,7 @@ tramp
 
 # cask packages
 .cask/
+<<<<<<< HEAD
+
+#exc
+master_wibo

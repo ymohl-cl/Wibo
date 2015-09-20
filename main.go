@@ -13,12 +13,11 @@
 package main
 
 import (
-	"ballon"
 	"container/list"
-	"database/sql"
+	//"database/sql"
+	"ballon"
 	"db"
 	"fmt"
-	_ "github.com/lib/pq"
 	"net/http"
 	"owm"
 	"request"
@@ -89,7 +88,7 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 ** 3: On recupere la liste des ballons dans la base de donnee et on y attache les users concernes par le ballon
 ** 4: On cree la liste des checkpoints pour chaque ballon.
  */
-func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Db *sql.DB) error {
+func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, base *db.Env) error {
 	err := Tab_wd.Update_weather_data()
 	if err != nil {
 		fmt.Println(err)
@@ -98,7 +97,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Tab_wd.Print_weatherdata()
 	}
 	Lst_users.Ulist = list.New()
-	err = Lst_users.Get_users(Db)
+	err = Lst_users.Get_users(base.Db)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -106,7 +105,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Lst_users.Print_users()
 	}
 	Lst_ball.Blist = list.New()
-	err = Lst_ball.Get_balls(Lst_users, Db)
+	err = Lst_ball.Get_balls(Lst_users, base)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -261,7 +260,7 @@ func main() {
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 
-	err = Init_all(Tab_wd, Lst_users, Lst_ball, Db)
+	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb)
 	if err != nil {
 		return
 	}

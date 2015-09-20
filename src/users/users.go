@@ -1,31 +1,31 @@
-//# ************************************************************************** #
-//#                                                                            #
-//#                                                       :::      ::::::::    #
-//#  users.go                                           :+:      :+:    :+:    #
-//#                                                   +:+ +:+         +:+      #
-//#  by: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
-//#                                               +#+#+#+#+#+   +#+            #
-//#  created: 2015/06/11 13:13:33 by ymohl-cl          #+#    #+#              #
-//#  updated: 2015/06/11 13:16:35 by ymohl-cl         ###   ########.fr        #
-//#                                                                            #
-//# ************************************************************************** #
-
 package users
 
 import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	_ "github.com/lib/pq"
 	"protocol"
+	"strconv"
+	//	_ "github.com/lib/pq"
 	"time"
 )
 
-/* History request */
+/**
+** Date est la date a laquelle la requete a ete effectue.
+** Type_req_client et le type de requete effectue.
+**/
 type History struct {
 	Date            time.Time
 	Type_req_client int16
 }
+
+/**
+** -type Device
+** IdMobile est l'identifiant unique du mobile.
+** Pour le moment le format exact de l'IdMobile est inconnu.
+** History_req est une liste qui sera l'historique des requetes du client
+** depuis ce device.
+**/
 
 type Device struct {
 	IdMobile    int64      /* type int64 is temporary */
@@ -154,7 +154,7 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 func (LstU *All_users) Print_users() {
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v \n", e.Value.(User).Id, e.Value.(User).Login, e.Value.(User).Mail)
+		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
 		i++
 	}
 	return
@@ -207,7 +207,9 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 		var idDevice string
 		err = rows.Scan(&idDevice)
 		checkErr(err)
-		lDevice.PushBack(idDevice)
+		v, err := strconv.Atoi(idDevice)
+		checkErr(err)
+		lDevice.PushBack(&Device{IdMobile: int64(v), History_req: list.New()})
 	}
 	return lDevice
 }
@@ -231,7 +233,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		err = rows.Scan(&idUser, &login, &mailq, &pass)
 		checkErr(err)
 		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		lUser.PushBack(User{Login: login, Id: idUser, Mail: mailq, Device: lDevice})
+		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
