@@ -13,16 +13,16 @@
 package sock
 
 import (
-	"answer"
-	"ballon"
+	"Wibo/answer"
+	"Wibo/ballon"
+	"Wibo/owm"
+	"Wibo/protocol"
+	"Wibo/users"
 	"container/list"
 	"database/sql"
 	"fmt"
 	"io"
 	"net"
-	"owm"
-	"protocol"
-	"users"
 )
 
 /*

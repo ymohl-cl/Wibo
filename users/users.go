@@ -1,10 +1,10 @@
 package users
 
 import (
+	"Wibo/protocol"
 	"container/list"
 	"database/sql"
 	"fmt"
-	"protocol"
 	//	_ "github.com/lib/pq"
 	"time"
 )
