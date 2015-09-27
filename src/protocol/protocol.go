@@ -30,6 +30,8 @@ const (
 	FOLLOW_OFF = 6
 	NEW_BALL   = 7
 	SEND_BALL  = 8
+	MAGNET     = 9
+	ITINERARY  = 10
 )
 
 type Ack struct {
@@ -220,7 +222,7 @@ func (token *Request) Get_request(buff []byte) (er error) {
 	switch token.Rtype {
 	case SYNC:
 		return er
-	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF:
+	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF, ITINERARY:
 		token.Spec, er = Request_idball(TypBuff)
 	case POS:
 		token.Spec, er = Request_position(TypBuff)

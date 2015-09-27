@@ -63,7 +63,7 @@ type Ball struct {
 	Id_ball     int64
 	Title       string
 	Coord       *list.Element
-	IdBall      int64
+	Idball      int64
 	edited      bool
 	Wind        Wind
 	Messages    *list.List    /* Value: Message */
@@ -171,6 +171,38 @@ func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {
 		eball = eball.Next()
 	}
 	return eball
+}
+
+func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64) *list.List {
+	list_tmp := list.New()
+	var eb1 *list.Element
+	var eb2 *list.Element
+	var eb3 *list.Element
+
+	for i := 0; i < 3; i++ {
+		eball := balls.Blist.Front()
+		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
+			eball = eball.Next()
+		}
+		for eball.Value.(*Ball).Possessed != nil || (eball == eb1 || eball == eb2 || eball == eb3) {
+			eball = eball.Next()
+			if eball == nil {
+				eball = balls.Blist.Front()
+			}
+		}
+		switch i {
+		case 0:
+			eb1 = eball
+		case 1:
+			eb2 = eball
+		case 2:
+			eb3 = eball
+		}
+	}
+	list_tmp.PushBack(eb1)
+	list_tmp.PushBack(eb2)
+	list_tmp.PushBack(eb3)
+	return list_tmp
 }
 
 /* Apply the function Get_checkpointlist all ballons */

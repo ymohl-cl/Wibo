@@ -39,6 +39,8 @@ const (
 	FOLLOW_OFF = 6
 	NEW_BALL   = 7
 	SEND_BALL  = 8
+	MAGNET     = 9
+	ITINERARY  = 10
 	// DEFINE SERVER
 	CONN     = 1
 	INF_BALL = 2
@@ -256,12 +258,12 @@ func Manage_ack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer
 	return answer
 }
 
-func Write_nearby(Req *list.Element, list_tmp *list.List) (buf []byte) {
+func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16) (buf []byte) {
 	var answer Packet
 	var typesp Nearby
 
 	answer.head.octets = 24
-	answer.head.rtype = POS
+	answer.head.rtype = Type
 	answer.head.pnbr = 1
 	answer.head.pnum = 0
 	typesp.nbrball = (int32)(list_tmp.Len())
@@ -475,7 +477,7 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 		list_tmp.Remove(eball)
 		Len -= 1
 	}
-	answer := Write_nearby(Req, list_tmp)
+	answer := Write_nearby(Req, list_tmp, POS)
 	Data.Lst_asw.PushBack(answer)
 }
 
@@ -597,6 +599,35 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
+/* Create tree ball list with id random. If Ball is already taked, a first ball next is taked */
+func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
+	var tab [3]int64
+	list_tmp := list.New()
+	var ifball Posball
+
+	for i := 0; i < 3; i++ {
+		tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
+	}
+	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab)
+	eball := list_tmp_2.Front()
+	for eball != nil {
+		ball := eball.Value.(*ballon.Ball)
+		ifball.id = ball.Id_ball
+		ifball.title = ball.Title
+		ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
+		ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
+		ifball.wins = ball.Wind.Speed
+		ifball.wind = ball.Wind.Degress
+		list_tmp.PushBack(ifball)
+		eball = eball.Next()
+	}
+	answer := Write_nearby(requete, list_tmp, MAGNET)
+	Data.Lst_asw.PushBack(answer)
+}
+
+func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {
+}
+
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	request := Data.Lst_req.Front()
 	er = nil
@@ -622,6 +653,10 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 				Data.Manage_newball(request, Tab_wd)
 			case SEND_BALL:
 				Data.Manage_sendball(request, Tab_wd)
+			case MAGNET:
+				Data.Manage_magnet(request, Tab_wd)
+			case ITINERARY:
+				Data.Manage_itinerary(request, Tab_wd)
 			case ACK:
 			}
 		}

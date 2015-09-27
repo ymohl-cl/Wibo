@@ -96,21 +96,21 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 		Tab_wd.Print_weatherdata()
 	}
 	Lst_users.Ulist = list.New()
-	err = Lst_users.Get_users(base.Db)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	} else {
-		Lst_users.Print_users()
-	}
+	//	err = Lst_users.Get_users(base.Db)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return err
+	//	} else {
+	//		Lst_users.Print_users()
+	//	}
 	Lst_ball.Blist = list.New()
-	err = Lst_ball.Get_balls(Lst_users, base)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	} else {
-		Lst_ball.Print_all_balls()
-	}
+	//	err = Lst_ball.Get_balls(Lst_users, base)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return err
+	//	} else {
+	//		Lst_ball.Print_all_balls()
+	//	}
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
