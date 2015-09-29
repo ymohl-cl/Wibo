@@ -280,7 +280,11 @@ func Print_all_checkpoints(check *list.List) {
 }
 
 func Print_users_follower(ulist *list.List) {
-	euser := ulist.Front()
+	if (ulist == nil ){
+		fmt.Println("NOT FOLLOWERS!!!")
+		return
+	}
+ 	euser := ulist.Front()
 
 	for euser != nil {
 		user := euser.Value.(*list.Element).Value.(*users.User)
@@ -358,7 +362,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
-			3,
+			newBall.Creator.Value.(*users.User).Device.Front().Value.(users.Device).IdMobile,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
