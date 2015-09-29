@@ -64,7 +64,7 @@ type Ball struct {
 	Title       string
 	Coord       *list.Element
 	Idball      int64
-	edited      bool
+	Edited      bool
 	Wind        Wind
 	Messages    *list.List    /* Value: Message */
 	Date        time.Time     /* creation date */
@@ -144,17 +144,17 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 		calc_coord.Lon = tmp_coord.Lon + math.Atan2(math.Sin(dir)*math.Sin(speed/r_world)*math.Cos(tmp_coord.Lat), math.Cos(speed/r_world)-math.Sin(tmp_coord.Lat)*math.Sin(calc_coord.Lat))
 		calc_coord.Lat = 180 * calc_coord.Lat / math.Pi
 		calc_coord.Lon = 180 * calc_coord.Lon / math.Pi
-		if calc_coord.Lat < 2.10 {
-			checkpoint.Lat = 2.60
-		} else if calc_coord.Lat > 2.60 {
-			checkpoint.Lat = 2.10
+		if calc_coord.Lat < 48.72 {
+			checkpoint.Lat = 49.02
+		} else if calc_coord.Lat > 49.02 {
+			checkpoint.Lat = 48.72
 		} else {
 			checkpoint.Lat = calc_coord.Lat
 		}
-		if calc_coord.Lon < 48.72 {
-			checkpoint.Lon = 49.02
-		} else if calc_coord.Lon > 49.02 {
-			checkpoint.Lon = 48.72
+		if calc_coord.Lon < 2.10 {
+			checkpoint.Lon = 2.60
+		} else if calc_coord.Lon > 2.60 {
+			checkpoint.Lon = 2.10
 		} else {
 			checkpoint.Lon = calc_coord.Lon
 		}
@@ -380,7 +380,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 	i := 0
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-		if e.Value.(*Ball).edited == true && e.Value.(*Ball).Id_ball < ABalls.Id_max {
+		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < ABalls.Id_max {
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)
 			j := 0

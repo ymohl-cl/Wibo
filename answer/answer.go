@@ -492,6 +492,7 @@ func (Data *Data) Manage_taken(request *list.Element) {
 		ball := eball.Value.(*ballon.Ball)
 		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false {
 			ball.Possessed = Data.User
+			ball.Edited = true
 			ball.Followers.PushFront(Data.User)
 			Data.User.Value.(*users.User).Followed.PushBack(eball)
 			Lst_answer := Write_contentball(ball, TAKEN)
@@ -517,6 +518,7 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	var answer []byte
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == false {
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		eball.Value.(*ballon.Ball).Edited = true
 		eball.Value.(*ballon.Ball).Followers.PushBack(Data.User)
 		Data.User.Value.(*users.User).Followed.PushBack(eball)
 	} else {
@@ -537,6 +539,7 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 	if eball != nil &&
 		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
 		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
+		eball.Value.(*ballon.Ball).Edited = true
 		Data.User.Value.(*users.User).Followed.Remove(eball)
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
 
@@ -556,6 +559,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
 	Data.Lst_ball.Id_max++
 	ball.Id_ball = Data.Lst_ball.Id_max
+	ball.Edited = true
 	ball.Title = newball.Title
 	ball.Messages = list.New()
 	ball.Followers = list.New()
@@ -588,6 +592,7 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 
 	if eball != nil {
 		eball.Value.(*ballon.Ball).Possessed = nil
+		eball.Value.(*ballon.Ball).Edited = true
 		checkpoint.Coord.Lon = rqt.Spec.(protocol.Send_ball).Lonuser
 		checkpoint.Coord.Lat = rqt.Spec.(protocol.Send_ball).Latuser
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
@@ -606,12 +611,12 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	var ifball Posball
 
 	for i := 0; i < 3; i++ {
-		tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
+		tab[i] = rand.Int63n(5) // Temporaire le temps que Id_nax != 0
 	}
 	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab)
 	eball := list_tmp_2.Front()
 	for eball != nil {
-		ball := eball.Value.(*ballon.Ball)
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 		ifball.id = ball.Id_ball
 		ifball.title = ball.Title
 		ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon

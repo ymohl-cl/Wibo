@@ -33,11 +33,13 @@ import (
 ** Creation de checkpoint toutes les 3 heures.
 ** !! Viendra la synchronisation du cache dans la base de donnee tous les X temps !!
  */
-func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
+func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db.Env) {
 	channelfuncweatherdata := make(chan bool)
 	channelfuncmoveball := make(chan bool)
+	//	channelfuncupdatedata := make(chan bool)
 	defer close(channelfuncmoveball)
 	defer close(channelfuncweatherdata)
+	//	defer close(channelfuncupdatedata)
 
 	go func() {
 		for {
@@ -51,6 +53,12 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 			channelfuncweatherdata <- true
 		}
 	}()
+	//	go func() {
+	//		for {
+	//			time.Sleep(1 * time.Minute)
+	//			channelfuncupdatedata <- true
+	//		}
+	//	}()
 
 	for {
 		select {
@@ -76,6 +84,10 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 					fmt.Println(err)
 				}
 			}
+			//		case <-channelfuncupdatedata:
+			//			{
+			//				Lst_ball.Update_balls(Lst_ball, base)
+			//			}
 		}
 	}
 }
@@ -115,24 +127,24 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
 	var check_test0 ballon.Checkpoint
-	check_test0.Coord.Lon = 48.833086
-	check_test0.Coord.Lat = 2.316055
+	check_test0.Coord.Lon = 2.316055
+	check_test0.Coord.Lat = 48.833086
 	check_test0.Date = time.Now()
 	var check_test1 ballon.Checkpoint
-	check_test1.Coord.Lon = 48.833586
-	check_test1.Coord.Lat = 2.316065
+	check_test1.Coord.Lon = 2.316065
+	check_test1.Coord.Lat = 48.833586
 	check_test1.Date = time.Now()
 	var check_test2 ballon.Checkpoint
-	check_test2.Coord.Lon = 48.833368
-	check_test2.Coord.Lat = 2.316059
+	check_test2.Coord.Lon = 2.3080777
+	check_test2.Coord.Lat = 48.910253
 	check_test2.Date = time.Now()
 	var check_test3 ballon.Checkpoint
-	check_test3.Coord.Lon = 48.833286
-	check_test3.Coord.Lat = 2.316903
+	check_test3.Coord.Lon = 2.3080211
+	check_test3.Coord.Lat = 48.910361
 	check_test3.Date = time.Now()
 	var check_test4 ballon.Checkpoint
-	check_test4.Coord.Lon = 48.833986
-	check_test4.Coord.Lat = 2.316045
+	check_test4.Coord.Lon = 2.316045
+	check_test4.Coord.Lat = 48.833986
 	check_test4.Date = time.Now()
 	mmp2 := list.New()
 	mmp := list.New()
@@ -159,6 +171,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball0 := new(ballon.Ball)
 	ball0.Id_ball = 0
+	ball0.Edited = false
 	ball0.Title = "toto"
 	ball0.Coord = tmp_lst.PushBack(check_test0)
 	ball0.Wind = ballon.Wind{}
@@ -172,6 +185,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball1 := new(ballon.Ball)
 	ball1.Id_ball = 1
+	ball1.Edited = false
 	ball1.Title = "tata"
 	ball1.Coord = tmp_lst.PushBack(check_test1)
 	ball1.Wind = ballon.Wind{}
@@ -185,6 +199,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball2 := new(ballon.Ball)
 	ball2.Id_ball = 2
+	ball2.Edited = false
 	ball2.Title = "tutu"
 	ball2.Coord = tmp_lst.PushBack(check_test2)
 	ball2.Wind = ballon.Wind{}
@@ -198,6 +213,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball3 := new(ballon.Ball)
 	ball3.Id_ball = 3
+	ball3.Edited = false
 	ball3.Title = "tete"
 	ball3.Coord = tmp_lst.PushBack(check_test3)
 	ball3.Wind = ballon.Wind{}
@@ -211,6 +227,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball4 := new(ballon.Ball)
 	ball4.Id_ball = 4
+	ball4.Edited = false
 	ball4.Title = "tyty"
 	ball4.Coord = tmp_lst.PushBack(check_test4)
 	ball4.Wind = ballon.Wind{}
@@ -258,12 +275,11 @@ func main() {
 
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
-
 	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb)
 	if err != nil {
 		return
 	}
-	go Manage_goroutines(Tab_wd, Lst_ball)
+	go Manage_goroutines(Tab_wd, Lst_ball, myDb)
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)
