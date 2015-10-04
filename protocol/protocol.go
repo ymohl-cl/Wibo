@@ -66,6 +66,7 @@ type Send_ball struct {
 
 //iddevice int64 // Deviendra une string ou un buffer ..
 type Request struct {
+	//Ajouter User *Users,User
 	Octets   int16
 	Rtype    int16
 	Nbrpck   int32
