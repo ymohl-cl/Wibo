@@ -25,6 +25,25 @@ import (
 	"time"
 )
 
+const (
+	INTERVAL_PERIOD time.Duration = 24 * time.Hour
+	HOUR_TO_TICK    int           = 00
+	MINUTE_TO_TICK  int           = 00
+	SECOND_TO_TICK  int           = 00
+)
+
+/* Get the difference between Time.Now() et specifique time evenement and create a
+** Tick channel of time package
+ */
+func updateTicker() *time.Ticker {
+	nextTick := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), HOUR_TO_TICK, MINUTE_TO_TICK, SECOND_TO_TICK, 0, time.Local)
+	if !nextTick.After(time.Now()) {
+		nextTick = nextTick.Add(INTERVAL_PERIOD)
+	}
+	diff := nextTick.Sub(time.Now())
+	return time.NewTicker(diff)
+}
+
 /*
 ** Manage_goroutines va gerer les differentes processus endormis
 ** qui effectueront des taches tous les X temps.
@@ -51,6 +70,14 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db
 		for {
 			time.Sleep(3 * time.Hour)
 			channelfuncweatherdata <- true
+		}
+	}()
+	go func() {
+		ticker := updateTicker()
+		for {
+			<-ticker.C
+			Lst_ball.Send_AllBall()
+			ticker = updateTicker()
 		}
 	}()
 	//	go func() {
@@ -146,6 +173,11 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	check_test4.Coord.Lon = 2.316045
 	check_test4.Coord.Lat = 48.833986
 	check_test4.Date = time.Now()
+	var check_test5 ballon.Checkpoint
+	check_test4.Coord.Lon = 2.3080535
+	check_test4.Coord.Lat = 48.910242
+	check_test4.Date = time.Now()
+
 	mmp2 := list.New()
 	mmp := list.New()
 	var message0 ballon.Message
@@ -238,6 +270,20 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball4.Followers = list.New()
 	ball4.Creator = nil
 	Lst_ball.Blist.PushBack(ball4)
+
+	ball5 := new(ballon.Ball)
+	ball5.Id_ball = 5
+	ball5.Edited = false
+	ball5.Title = "PROUT"
+	ball5.Coord = tmp_lst.PushBack(check_test5)
+	ball5.Wind = ballon.Wind{}
+	ball5.Messages = mmp
+	ball5.Date = time.Now()
+	ball5.Checkpoints = list.New()
+	ball5.Possessed = nil
+	ball5.Followers = list.New()
+	ball5.Creator = nil
+	Lst_ball.Blist.PushBack(ball5)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 
 	err = Lst_ball.Create_checkpoint(Tab_wd)

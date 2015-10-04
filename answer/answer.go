@@ -454,7 +454,8 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 
 	eball := Data.Lst_ball.Blist.Front()
 	for eball != nil {
-		if eball.Value.(*ballon.Ball).Check_nearbycoord(Req) == true {
+		ball := eball.Value.(*ballon.Ball)
+		if ball.Check_userCreated(Data.User) == false && ball.Check_nearbycoord(Req) == true {
 			ball := eball.Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
 			ifball.title = ball.Title
@@ -490,7 +491,7 @@ func (Data *Data) Manage_taken(request *list.Element) {
 	}
 	if eball != nil {
 		ball := eball.Value.(*ballon.Ball)
-		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false {
+		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false && ball.Check_userCreated(Data.User) == false {
 			ball.Possessed = Data.User
 			ball.Edited = true
 			ball.Followers.PushFront(Data.User)
@@ -590,7 +591,7 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	var checkpoint ballon.Checkpoint
 	var answer []byte
 
-	if eball != nil {
+	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
 		eball.Value.(*ballon.Ball).Possessed = nil
 		eball.Value.(*ballon.Ball).Edited = true
 		checkpoint.Coord.Lon = rqt.Spec.(protocol.Send_ball).Lonuser

@@ -101,6 +101,21 @@ func (ball *Ball) Check_userfollower(user *list.Element) bool {
 	return false
 }
 
+func (ball *Ball) Check_userCreated(user *list.Element) bool {
+	if ball.Creator == user {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (ball *Ball) Check_userPossessed(user *list.Element) bool {
+	if ball.Possessed == user {
+		return true
+	}
+	return false
+}
+
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Spec.(protocol.Position).Lon
 	rlat := request.Value.(*protocol.Request).Spec.(protocol.Position).Lat
@@ -162,6 +177,10 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 	}
 	eball.Wind.Speed = station.Wind.Speed
 	eball.Wind.Degress = station.Wind.Degress
+}
+
+func (balls *All_ball) Send_AllBall() {
+
 }
 
 func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {

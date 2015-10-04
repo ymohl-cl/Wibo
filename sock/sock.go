@@ -65,9 +65,9 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 			Data.User, err = Lst_users.Check_user(Etoken, Db)
 			if err != nil {
 				fmt.Println("Error on check users")
+				// Return packet negatif.
 				return
 			}
-
 			if Data.Check_lstrequest() == true {
 				err = Data.Get_answer(Tab_wd, Db)
 				if err != nil {
