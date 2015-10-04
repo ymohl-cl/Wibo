@@ -14,6 +14,7 @@ package main
 
 import (
 	"Wibo/ballon"
+	"Wibo/crontask"
 	"Wibo/db"
 	"Wibo/owm"
 	"Wibo/request"
@@ -52,7 +53,7 @@ func updateTicker() *time.Ticker {
 ** Creation de checkpoint toutes les 3 heures.
 ** !! Viendra la synchronisation du cache dans la base de donnee tous les X temps !!
  */
-func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db.Env) {
+func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db.Env, Lst_User *users.All_users) {
 	channelfuncweatherdata := make(chan bool)
 	channelfuncmoveball := make(chan bool)
 	//	channelfuncupdatedata := make(chan bool)
@@ -76,7 +77,7 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db
 		ticker := updateTicker()
 		for {
 			<-ticker.C
-			Lst_ball.Send_AllBall()
+			crontask.Send_AllBall(Lst_ball, Lst_User, Tab_wd)
 			ticker = updateTicker()
 		}
 	}()
@@ -325,7 +326,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	go Manage_goroutines(Tab_wd, Lst_ball, myDb)
+	go Manage_goroutines(Tab_wd, Lst_ball, myDb, Lst_users)
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)

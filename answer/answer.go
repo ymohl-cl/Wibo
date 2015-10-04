@@ -485,17 +485,19 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 func (Data *Data) Manage_taken(request *list.Element) {
 	eball := Data.Lst_ball.Blist.Front()
 	rqt := request.Value.(*protocol.Request)
+	user := Data.User.Value.(*users.User)
 
 	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(*protocol.Request).Spec.(protocol.Ballid).Id {
 		eball = eball.Next()
 	}
-	if eball != nil {
+	if eball != nil && user.Possessed.Len() < 3 {
 		ball := eball.Value.(*ballon.Ball)
 		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false && ball.Check_userCreated(Data.User) == false {
 			ball.Possessed = Data.User
 			ball.Edited = true
 			ball.Followers.PushFront(Data.User)
-			Data.User.Value.(*users.User).Followed.PushBack(eball)
+			user.Followed.PushBack(eball)
+			user.Possessed.PushFront(eball)
 			Lst_answer := Write_contentball(ball, TAKEN)
 			Data.Lst_asw.PushBackList(Lst_answer)
 			ball.Clearcheckpoint()
@@ -556,33 +558,39 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
 	var mess ballon.Message
+	user := Data.User.Value.(*users.User)
 
-	newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
-	Data.Lst_ball.Id_max++
-	ball.Id_ball = Data.Lst_ball.Id_max
-	ball.Edited = true
-	ball.Title = newball.Title
-	ball.Messages = list.New()
-	ball.Followers = list.New()
-	ball.Checkpoints = list.New()
-	mess.Id = 0
-	mess.Size = (int32)(len(newball.Message))
-	mess.Content = newball.Message
-	mess.Type = 1
-	ball.Messages.PushFront(mess)
-	ball.Date = time.Now()
-	ball.Possessed = nil
-	ball.Followers.PushFront(Data.User)
-	ball.Creator = Data.User
-	eball := Data.Lst_ball.Blist.PushBack(ball)
-	checkpoint.Coord.Lon = rqt.Spec.(protocol.New_ball).Lonuser
-	checkpoint.Coord.Lat = rqt.Spec.(protocol.New_ball).Latuser
-	eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
-	eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
-	Data.User.Value.(*users.User).Followed.PushBack(eball)
-
-	answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
-	Data.Lst_asw.PushBack(answer)
+	if user.NbrBallSend < 10 {
+		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
+		Data.Lst_ball.Id_max++
+		ball.Id_ball = Data.Lst_ball.Id_max
+		ball.Edited = true
+		ball.Title = newball.Title
+		ball.Messages = list.New()
+		ball.Followers = list.New()
+		ball.Checkpoints = list.New()
+		mess.Id = 0
+		mess.Size = (int32)(len(newball.Message))
+		mess.Content = newball.Message
+		mess.Type = 1
+		ball.Messages.PushFront(mess)
+		ball.Date = time.Now()
+		ball.Possessed = nil
+		ball.Followers.PushFront(Data.User)
+		ball.Creator = Data.User
+		eball := Data.Lst_ball.Blist.PushBack(ball)
+		checkpoint.Coord.Lon = rqt.Coord.Lon
+		checkpoint.Coord.Lat = rqt.Coord.Lat
+		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
+		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		Data.User.Value.(*users.User).Followed.PushBack(eball)
+		Data.User.Value.(*users.User).NbrBallSend++
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
+		Data.Lst_asw.PushBack(answer)
+	} else {
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, 0, int32(0))
+		Data.Lst_asw.PushBack(answer)
+	}
 }
 
 func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
@@ -594,8 +602,8 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
 		eball.Value.(*ballon.Ball).Possessed = nil
 		eball.Value.(*ballon.Ball).Edited = true
-		checkpoint.Coord.Lon = rqt.Spec.(protocol.Send_ball).Lonuser
-		checkpoint.Coord.Lat = rqt.Spec.(protocol.Send_ball).Latuser
+		checkpoint.Coord.Lon = rqt.Coord.Lon
+		checkpoint.Coord.Lat = rqt.Coord.Lat
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, eball.Value.(*ballon.Ball).Id_ball, int32(1))

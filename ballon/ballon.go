@@ -117,8 +117,8 @@ func (ball *Ball) Check_userPossessed(user *list.Element) bool {
 }
 
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
-	rlon := request.Value.(*protocol.Request).Spec.(protocol.Position).Lon
-	rlat := request.Value.(*protocol.Request).Spec.(protocol.Position).Lat
+	rlon := request.Value.(*protocol.Request).Coord.Lon
+	rlat := request.Value.(*protocol.Request).Coord.Lat
 	if ball.Coord != nil {
 		coord := ball.Coord.Value.(Checkpoint).Coord
 		if coord.Lon < rlon+0.01 &&
@@ -177,10 +177,6 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 	}
 	eball.Wind.Speed = station.Wind.Speed
 	eball.Wind.Degress = station.Wind.Degress
-}
-
-func (balls *All_ball) Send_AllBall() {
-
 }
 
 func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {

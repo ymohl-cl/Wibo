@@ -31,14 +31,22 @@ type Device struct {
 	History_req *list.List /* Value: History */
 }
 
+type Coordinate struct {
+	Lon float64
+	Lat float64
+}
+
 type User struct {
-	Id       int64
-	Login    string
-	Mail     string
-	Password string
-	Device   *list.List /* Value: Device */
-	Log      time.Time  /*Date of the last query */
-	Followed *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
+	Id          int64
+	Login       string
+	Mail        string
+	Password    string
+	NbrBallSend int
+	Coord       Coordinate
+	Device      *list.List /* Value: Device */
+	Log         time.Time  /*Date of the last query */
+	Followed    *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
+	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 }
 
 type All_users struct {
@@ -80,6 +88,9 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *lis
 		usr.Device = list.New()
 		usr.Log = time.Now()
 		usr.Followed = list.New()
+		usr.Coord.Lon = rqt.Coord.Lon
+		usr.Coord.Lat = rqt.Coord.Lat
+		usr.Possessed = list.New()
 		hist_device.IdMobile = request.Value.(*protocol.Request).Deviceid
 		hist_device.History_req = list.New()
 		hist_device.History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
@@ -88,7 +99,10 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *lis
 		ulist.Add_new_user(usr, Db)
 	} else {
 		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
-		user.Value.(*User).Log = time.Now()
+		usr := user.Value.(*User)
+		usr.Log = time.Now()
+		usr.Coord.Lon = rqt.Coord.Lon
+		usr.Coord.Lat = rqt.Coord.Lat
 	}
 	return user, nil
 }
