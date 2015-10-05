@@ -18,7 +18,6 @@ func checkErr(err error) {
 	}
 }
 
-
 func TestBallon(t *testing.T) {
 
 	var err error
@@ -38,33 +37,38 @@ func TestBallon(t *testing.T) {
 	check_test0.Coord.Lon = 48.833086
 	check_test0.Coord.Lat = 2.316055
 	check_test0.Date = time.Now()
+
 	var check_test1 ballon.Checkpoint
 	check_test1.Coord.Lon = 48.833586
 	check_test1.Coord.Lat = 2.316065
 	check_test1.Date = time.Now()
+
 	var check_test2 ballon.Checkpoint
 	check_test2.Coord.Lon = 48.833368
 	check_test2.Coord.Lat = 2.316059
 	check_test2.Date = time.Now()
+
 	var check_test3 ballon.Checkpoint
 	check_test3.Coord.Lon = 48.833286
 	check_test3.Coord.Lat = 2.316903
 	check_test3.Date = time.Now()
+
 	var check_test4 ballon.Checkpoint
 	check_test4.Coord.Lon = 48.833986
 	check_test4.Coord.Lat = 2.316045
 	check_test4.Date = time.Now()
-	mmp2 := list.New()
-	mmp := list.New()
+
+	lmessages := list.New()
+	listMessage1 := list.New()
 	var message0 ballon.Message
 	message0.Id = 0
 	message0.Size = 68
-	message0.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
+	message0.Content = "Mensaje 1 test"
 	message0.Type = 1
 	var message1 ballon.Message
 	message1.Id = 0
 	message1.Size = 68
-	message1.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
+	message1.Content = "Mensaje 2 test"
 	message1.Type = 1
 	var message2 ballon.Message
 	message2.Id = 2
@@ -72,17 +76,17 @@ func TestBallon(t *testing.T) {
 	message2.Content = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean com"
 	message2.Type = 1
 
-	mmp.PushBack(message0)
-	mmp2.PushBack(message0)
-	mmp2.PushBack(message1)
-	mmp2.PushBack(message2)
+	listMessage1.PushBack(message0)
+	lmessages.PushBack(message0)
+	lmessages.PushBack(message1)
+	lmessages.PushBack(message2)
 
 	ball0 := new(ballon.Ball)
 	ball0.Id_ball = 0
 	ball0.Title = "toto"
 	ball0.Coord = tmp_lst.PushBack(check_test0)
 	ball0.Wind = ballon.Wind{}
-	ball0.Messages = mmp
+	ball0.Messages = listMessage1
 	ball0.Date = time.Now()
 	ball0.Checkpoints = list.New()
 	ball0.Possessed = nil
@@ -95,7 +99,7 @@ func TestBallon(t *testing.T) {
 	ball1.Title = "tata"
 	ball1.Coord = tmp_lst.PushBack(check_test1)
 	ball1.Wind = ballon.Wind{}
-	ball1.Messages = mmp
+	ball1.Messages = listMessage1
 	ball1.Date = time.Now()
 	ball1.Checkpoints = list.New()
 	ball1.Possessed = nil
@@ -108,7 +112,7 @@ func TestBallon(t *testing.T) {
 	ball2.Title = "tutu"
 	ball2.Coord = tmp_lst.PushBack(check_test2)
 	ball2.Wind = ballon.Wind{}
-	ball2.Messages = mmp
+	ball2.Messages = listMessage1
 	ball2.Date = time.Now()
 	ball2.Checkpoints = list.New()
 	ball2.Possessed = nil
@@ -121,7 +125,7 @@ func TestBallon(t *testing.T) {
 	ball3.Title = "tete"
 	ball3.Coord = tmp_lst.PushBack(check_test3)
 	ball3.Wind = ballon.Wind{}
-	ball3.Messages = mmp
+	ball3.Messages = listMessage1
 	ball3.Date = time.Now()
 	ball3.Checkpoints = list.New()
 	ball3.Possessed = nil
@@ -132,9 +136,10 @@ func TestBallon(t *testing.T) {
 	ball4 := new(ballon.Ball)
 	ball4.Id_ball = 4
 	ball4.Title = "tyty"
+	ball4.Edited = true
 	ball4.Coord = tmp_lst.PushBack(check_test4)
 	ball4.Wind = ballon.Wind{}
-	ball4.Messages = mmp
+	ball4.Messages = listMessage1
 	ball4.Date = time.Now()
 	ball4.Checkpoints = list.New()
 	ball4.Possessed = nil
@@ -142,7 +147,8 @@ func TestBallon(t *testing.T) {
 	ball4.Creator = nil
 	Lst_ball.Blist.PushBack(ball4)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
-	checkUpdate_balls(t, Lst_ball, myDb)
+		Lst_ball.Update_balls(Lst_ball, myDb)
+	fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
 	Lst_ball.Print_all_balls()
 	checkErr(err)
 
