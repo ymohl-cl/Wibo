@@ -387,8 +387,6 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m");
 	fmt.Printf("%v Id Max", ABalls.Id_max);
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-
-
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)

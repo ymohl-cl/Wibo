@@ -5,6 +5,8 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
+	//"errors"
+	"golang.org/x/crypto/bcrypt"
 	//	_ "github.com/lib/pq"
 	"time"
 )
@@ -18,6 +20,10 @@ type History struct {
 	Type_req_client int16
 }
 
+type userError struct {
+    prob string
+		err error
+}
 /**
 ** -type Device
 ** IdMobile est l'identifiant unique du mobile.
@@ -36,6 +42,7 @@ type User struct {
 	Login    string
 	Mail     string
 	Password string
+	PassByte []byte
 	Device   *list.List /* Value: Device */
 	Log      time.Time  /*Date of the last query */
 	Followed *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
@@ -109,20 +116,28 @@ func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool,
 	return executed, err
 }
 
+func (e *userError) Error() string {
+    return fmt.Sprintf("%s - %v", e.prob, e.err)
+}
+
 /**
 * Insert new user to wibo_base
 *	TODO: imput verification
 **/
 
-func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) {
+func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error){
 	var err error
+	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 10)
+	if err != nil {
+		return false, &userError{"Error add new user", err}
+	}
 	tblname := "user"
 	_, err = Db.Exec(
 		fmt.Sprintf(
-			"INSERT INTO \"%s\"(id_type_g, groupname, login, password, salt, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", tblname),
-		1, "particulier", new_user.Login, new_user.Password, "saltTest", time.Now(), time.Now(), new_user.Mail)
+			"INSERT INTO \"%s\"(id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7)", tblname),
+		1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
 	checkErr(err)
-	return
+	return true, nil
 }
 
 /**

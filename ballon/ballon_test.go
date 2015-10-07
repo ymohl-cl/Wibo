@@ -7,6 +7,7 @@ import (
 	"time"
 	"Wibo/ballon"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	//	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -30,6 +31,43 @@ func TestBallon(t *testing.T) {
 	Db, err := myDb.OpenCo(err)
 	Lst_ball.Get_balls(Lst_users, myDb)
 	fmt.Println(Db)
+
+	user1 := new(users.User)
+	user1.Id = 1
+	user1.Login = "user1"
+	user1.Mail = "user1@mail.com"
+	user1.Password = "pass1"
+	user1.Device = list.New()
+	user1.Log = time.Now()
+	user1.Followed = list.New()
+	pass := []byte(user1.Password)
+	fmt.Println("password test")
+	bpass, err := bcrypt.GenerateFromPassword(pass, 10)
+	fmt.Println(len(bpass))
+	if err != nil {
+		t.Fatalf("GenerateFromPassword error: %s", err)
+	}
+	if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
+		t.Errorf("%v should hash %s correctly", bpass, pass)
+	}
+
+	//tblname := "user"
+	// _, err = Db.Exec(
+	// 	fmt.Sprintf(
+	// 		"INSERT INTO \"%s\"(id_type_g, groupname, login, password, passbyte, salt, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", tblname),
+	// 	1, "particulier",user1.Login,"pass", user1.Password, "saltTest", time.Now(), time.Now(),user1.Mail)
+
+	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
+	for rows.Next() {
+		var idUser int64
+		var login string
+		var mailq string
+		var passbyte []byte
+		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
+		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
+			t.Errorf("%v should hash %s correctly", bpass, passbyte)
+		}
+	}
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
@@ -147,13 +185,13 @@ func TestBallon(t *testing.T) {
 	ball4.Creator = nil
 	Lst_ball.Blist.PushBack(ball4)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
-		Lst_ball.Update_balls(Lst_ball, myDb)
-	fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
-	Lst_ball.Print_all_balls()
+	//Lst_ball.Update_balls(Lst_ball, myDb)
+	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
+	// Lst_ball.Print_all_balls()
 	checkErr(err)
 
 }
 
-func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){
-		LBall.Update_balls(LBall, base)
-}
+// func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){
+// 		LBall.Update_balls(LBall, base)
+// }
