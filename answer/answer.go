@@ -14,6 +14,7 @@ package answer
 
 import (
 	"Wibo/ballon"
+	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/protocol"
 	"Wibo/users"
@@ -32,19 +33,27 @@ const (
 	ACK   = 32767
 	TAKEN = 4
 	// DEFINE CLIENT
-	SYNC       = 1
-	UPDATE     = 2
-	POS        = 3
-	FOLLOW_ON  = 5
-	FOLLOW_OFF = 6
-	NEW_BALL   = 7
-	SEND_BALL  = 8
-	MAGNET     = 9
-	ITINERARY  = 10
+	SYNC          = 1
+	UPDATE        = 2
+	POS           = 3
+	FOLLOW_ON     = 5
+	FOLLOW_OFF    = 6
+	NEW_BALL      = 7
+	SEND_BALL     = 8
+	MAGNET        = 9
+	ITINERARY     = 10
+	TYPELOG       = 11 // Identification du device et de l'user si pre-enregistre.
+	CREATEACCOUNT = 12 // Creation d'un compte. // Confirmation par email en suspend
+	SYNCROACCOUNT = 13
+	DELOG         = 14 // Deconnexion d'un compte et retablissement de luser par defautl.
 	// DEFINE SERVER
 	CONN     = 1
 	INF_BALL = 2
 	NEARBY   = 3
+	// DEFINE STATUS LOG
+	UNKNOWN     = 1
+	DEFAULTUSER = 2
+	USERLOGGED  = 3
 )
 
 type Posball struct {
@@ -104,6 +113,8 @@ type Data struct {
 	Lst_asw   *list.List /* Value: ([]byte) which defines list answer */
 	Lst_ball  *ballon.All_ball
 	Lst_users *users.All_users
+	Logged    int16
+	Device    *list.Element /* *list.Element.Value.(*device.device) */
 	User      *list.Element /* Value: (*users.User) */
 }
 
@@ -172,6 +183,9 @@ func (Data *Data) Check_lstrequest() bool {
 	nr := new(protocol.Request)
 	tr := new(protocol.Request)
 
+	if Data.Logged == UNKNOWN {
+		return true
+	}
 	tr = tmp.Value.(*protocol.Request)
 	for next != nil {
 		nr = next.Value.(*protocol.Request)
@@ -639,6 +653,56 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
+func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.List) (er error) {
+	req := request.Value.(protocol.Request)
+	er = nil
+	flag := true
+
+	if req.Rtype != TYPELOG {
+		er = errors.New("Bad type to Manage_Login")
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	} else {
+		if Data.Device == nil {
+			Data.Device, er = Dlist.GetDevice(Etoken, Db)
+		}
+		if er == nil {
+			device := Data.Device.Value.(*list.Element).Value.(*device.Device)
+			if Compare(req.Spec.Log.Email, [320]byte) == 0 {
+				Data.Logged == DEFAULTUSER
+				Data.User = device.UserDefault
+			} else {
+				Data.User = Data.Lst_users.Check_user(Etoken, Db) // revoir
+				if Data.User == nil {
+					flag = false
+					Data.Logged == DEFAULTUSER
+					device.UserSpec = nil
+					Data.User = device.UserDefault
+				} else {
+					Data.Logged == USERLOGGED
+					device.UserSpec = Data.User
+					device.AddUserSpec(Data.User)
+				}
+			}
+		}
+		if er != nil || flag == false {
+			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		} else {
+			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+		}
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
+func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
+}
+
+func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
+}
+
+func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
+}
+
 func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {
 }
 
@@ -647,8 +711,9 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	er = nil
 	if request == nil {
 		er = errors.New("Get answer, but no request.")
+	} else if Data.Logged == UNKNOWN {
+		er = Data.Manage_Login(request, Db) // Get device et user
 	} else {
-		Data.User, er = Data.Lst_users.Check_user(request, Db)
 		if er == nil {
 			switch request.Value.(*protocol.Request).Rtype {
 			case SYNC:
@@ -672,6 +737,14 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 			case ITINERARY:
 				Data.Manage_itinerary(request, Tab_wd)
 			case ACK:
+			case TYPELOG:
+				er = Data.Manage_Login(request, Db)
+			case CREATEACCOUNT:
+				er = Data.Manage_CreateAccount(request, Db) // Get device et user on new connection.
+			case SYNCROACCOUNT:
+				er = Data.Manage_SyncAccount(request, Db) // Get device et user on new connection.
+			case DELOG:
+				Data.Manage_Delog(request, Db) // Get device et user on new connection.
 			}
 		}
 	}

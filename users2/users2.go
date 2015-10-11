@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-//type Device struct {
-//	IdMobile    int64      /* type int64 is temporary */
-//	History_req *list.List /* Value: History */
-//}
-
 /**
 ** Date est la date a laquelle la requete a ete effectue.
 ** Type_req_client et le type de requete effectue.
@@ -30,23 +25,28 @@ type History struct {
 ** History_req est une liste qui sera l'historique des requetes du client
 ** depuis ce device.
 **/
+
+type Device struct {
+	IdMobile    int64      /* type int64 is temporary */
+	History_req *list.List /* Value: History */
+}
+
 type Coordinate struct {
 	Lon float64
 	Lat float64
 }
 
 type User struct {
-	Id    int64
-	Login string
-	Mail  string
-	//	Password    string // pas utile car la comparaison sera faite avec la bdd
+	Id          int64
+	Login       string
+	Mail        string
+	Password    string
 	NbrBallSend int
 	Coord       Coordinate
-	//	Device      *list.List /* Value: Device */
+	Device      *list.List /* Value: Device */
 	Log         time.Time  /*Date of the last query */
 	Followed    *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
-	HistoricReq *list.List /* list History */
 }
 
 type All_users struct {
