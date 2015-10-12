@@ -122,7 +122,8 @@ func (e *userError) Error() string {
 
 /**
 * Insert new user to wibo_base
-*	TODO: imput verification
+*	constrain valid_mail(text) default verification
+* query to check if mail is already registered
 **/
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error){
@@ -134,9 +135,15 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, erro
 	tblname := "user"
 	_, err = Db.Exec(
 		fmt.Sprintf(
-			"INSERT INTO \"%s\"(id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7)", tblname),
-		1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
-	checkErr(err)
+			"INSERT INTO \"%s\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXIST (SELECT mail FROM \"%s\" WHERE mail = '%s'", tblname,tblname, new_user.Mail), 1, "particulier",
+			new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	// _, err = Db.Exec(
+	// 	fmt.Sprintf(
+	// 		"INSERT INTO \"%s\"(id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7)", tblname),
+	// 	1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

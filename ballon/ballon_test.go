@@ -34,8 +34,8 @@ func TestBallon(t *testing.T) {
 
 	user1 := new(users.User)
 	user1.Id = 1
-	user1.Login = "user1"
-	user1.Mail = "user1@mail.com"
+	user1.Login = "user3"
+	user1.Mail = "user3@mail.com"
 	user1.Password = "pass1"
 	user1.Device = list.New()
 	user1.Log = time.Now()
@@ -50,6 +50,10 @@ func TestBallon(t *testing.T) {
 	if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
+
+	bool, err := Lst_users.Add_new_user(user1, Db)
+	fmt.Println(bool)
+	fmt.Println(err)
 
 	//tblname := "user"
 	// _, err = Db.Exec(
