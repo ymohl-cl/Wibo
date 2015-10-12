@@ -671,7 +671,8 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 				Data.Logged == DEFAULTUSER
 				Data.User = device.UserDefault
 			} else {
-				Data.User = Data.Lst_users.Check_user(Etoken, Db) // revoir
+				//				Data.User = Data.Lst_users.Check_user(Etoken, Db) // revoir
+				Data.User = Data.Lst_users.SearchUserToDevice(Etoken, Db, device.Historic)
 				if Data.User == nil {
 					flag = false
 					Data.Logged == DEFAULTUSER
@@ -680,7 +681,7 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 				} else {
 					Data.Logged == USERLOGGED
 					device.UserSpec = Data.User
-					device.AddUserSpec(Data.User)
+					device.AddUserSpecOnHistory(Data.User)
 				}
 			}
 		}
@@ -695,15 +696,21 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 }
 
 func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
+	// Check if email already exist.
+	// If exist, return null and send acknowledgement negative
+	// Else add to bdd new user and in List user and send acknowledgement positve
 }
 
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
+
 }
 
 func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
+
 }
 
 func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {
+
 }
 
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {

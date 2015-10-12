@@ -11,11 +11,12 @@ import (
 /* *list.Element.Value.(*users.User) */
 /* Historic to user historic logged on this device */
 type Device struct {
-	Idbdd       int64
-	Id          string
-	UserDefault *list.Element
-	UserSpec    *list.Element
-	Historic    *list.List
+	Idbdd         int64
+	Id            string
+	IdUserDefault int64
+	UserDefault   *list.Element
+	UserSpec      *list.Element
+	Historic      *list.List
 }
 
 type All_Devices struct {
@@ -28,7 +29,7 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Data *a
 	er = nil
 
 	if req.IdMobile.Len() == 1 {
-		er = errors.New("Id mobile mobile bas format")
+		er = errors.New("Id mobile bad format")
 		return nil, er
 	}
 	for ed != nil && Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
@@ -40,7 +41,7 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Data *a
 	return ed, er
 }
 
-func (Device *Device) AddUserSpec(euser *list.Element) {
+func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 	e := Device.Historic
 	user1 := euser.Value.(*users.User)
 
@@ -70,9 +71,11 @@ func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db
 	newDevice.Historic = list.New()
 	newDevice.Id = Id
 	newDevice.UserDefault = Ulist.AddNewDefaultUser()
-	// AddNewDefaultUser creer un utilisateur par default pour le device.
+	// AddNewDefaultUser: creer un utilisateur par default pour le device.
 	// L'ajoute a la liste des users.
 	// Insere l'user dans la base de donnee.
+	//userspec a null
+	//Historic  = list new
 
 	// ICI AJOUTER LE DEVICE A LA BASE DE DONNEE DES DEVICES.
 	Ed := Devices.Dlist.PushFront(newDevice)

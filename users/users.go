@@ -6,6 +6,9 @@ import (
 	"database/sql"
 	"fmt"
 	//	_ "github.com/lib/pq"
+	//	"errors"
+	"bytes"
+	"strings"
 	"time"
 )
 
@@ -36,9 +39,9 @@ type Coordinate struct {
 }
 
 type User struct {
-	Id    int64
-	Login string
-	Mail  string
+	Id int64
+	//	Login string Not use, not login
+	Mail string
 	//	Password    string // pas utile car la comparaison sera faite avec la bdd
 	NbrBallSend int
 	Coord       Coordinate
@@ -64,10 +67,57 @@ func (User *User) User_is_online() bool {
 	}
 }
 
+func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
+	euser := lst.Front()
+	user := euser.Value.(*list.Element).Value.(*User)
+	mail := (bytes.NewBuffer(email)).String()
+
+	for euser != nil && Compare(user.Mail, mail) != 0 {
+		euser = euser.Next()
+		user = euser.Value.(*list.Element).Value.(*User)
+	}
+	if euser != nil {
+		return euser.Value.(*list.Element)
+	}
+	return nil
+}
+
+func FoundUserOnListLvl1(lst *list.List, email [320]byte) *list.Element {
+	euser := lst.Front()
+	user := euser.Value.(*User)
+	mail := (bytes.NewBuffer(email)).String()
+
+	for euser != nil && strings.Compare(user.Mail, mail) != 0 {
+		euser = euser.Next()
+		user = euser.Value.(*User)
+	}
+	if euser != nil {
+		return euser
+	}
+	return nil
+}
+
+/*
+** Search request' user on list parameter, if not found, search in all list.
+** If not found, return nil, else, check request' password.
+** If Password is OK return user else return nil
+ */
+func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *list.List) *list.Element {
+	req := request.Value.(protocol.Request)
+	user := FoundUserOnListLvl2(History, req.Spec.(protocol.Log).Email)
+	if user == nil {
+		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
+	}
+	if user != nil {
+		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
+	}
+	return user
+}
+
 /*
 ** Manage users's connexion
  */
-func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
+/*func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
 	user = ulist.Ulist.Front()
 	var device *list.Element
 
@@ -105,11 +155,17 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *lis
 		usr.Coord.Lat = rqt.Coord.Lat
 	}
 	return user, nil
-}
+}*/
 
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
+
+func CheckPasswordUser(user *list.Element, pass [512]byte, Db *sql.DB) *list.Element {
+	// if pass is OK return user
+	// else return NULL
+	return user
+}
 
 /**
 * Delete user from id and mail
