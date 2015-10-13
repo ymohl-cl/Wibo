@@ -671,7 +671,6 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 				Data.Logged == DEFAULTUSER
 				Data.User = device.UserDefault
 			} else {
-				//				Data.User = Data.Lst_users.Check_user(Etoken, Db) // revoir
 				Data.User = Data.Lst_users.SearchUserToDevice(Etoken, Db, device.Historic)
 				if Data.User == nil {
 					flag = false
@@ -696,17 +695,102 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 }
 
 func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
-	// Check if email already exist.
-	// If exist, return null and send acknowledgement negative
-	// Else add to bdd new user and in List user and send acknowledgement positve
+	req := request.Value.(protocol.Request)
+	er = nil
+	user := new(users.User)
+
+	if CheckValidMail(req.Spec.(protocol.Log).Email) == true {
+		user.MAil = req.Spec.(protocol.Log).Email
+		user.NbrBallSend = 0
+		user.Coord.Lon = req.Coord.Lon
+		user.Coord.Lat = req.Coord.Lat
+		user.Followed = list.New()
+		user.Possessed = list.New()
+		user.HistoricReq = list.New()
+		eUser = Data.Lst_users.Add_new_user(user, db)
+		Data.Device.Value.(*Device).Historic.PushFront(eUser)
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
+func AddFollowed(euser *list.Element, euserDefault *list.Element) {
+	user := euser.Value.(*users.User)
+	userDefault := euserDefault.Value.(*users.User)
+
+	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
+		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
+			if idball == ball.Id_ball {
+				break
+			}
+		}
+		if tball == nil {
+			user.Followed.PushFront(eball)
+			ball.Followers.PushFront(euser)
+		}
+	}
+}
+
+func GetPossessed(euser *list.Element, euserDefault *list.Element) {
+	user := euser.Value.(*users.User)
+	userDefault := euserDefault.Value.(*users.User)
+
+	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
+		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
+			if idball == ball.Id_ball {
+				break
+			}
+		}
+		if tball == nil {
+			user.Followed.PushFront(eball)
+			ball.Followers.PushFront(euser)
+			user.Possessed.PushFront(eball)
+			ball.Possessed = euser
+		}
+	}
 }
 
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
-
+	er = nil
+	req := request.Value.(protocol.Request)
+	if Data.Logged == USERLOGGED {
+		device := Data.Device.Value.(*Device)
+		user := Data.User.Value.(*list.Element).Value.(*users.User)
+		userDefault := device.UserDefault.Value.(*users.User)
+		user.NbrBallSend += userDefault.NbrBallSend
+		user.Coord.Lon = req.Coord.Lon
+		user.Coord.Lat = req.Coord.Lat
+		user.Log = time.Now()
+		AddFollowed(device.UserSpec, device.UserDefault)
+		GetPossessed(device.User, device.UserDefault)
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
 }
 
 func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
+	device := Data.Device.Value.(*Device)
 
+	if Data.Logged == USERLOGGED {
+		Data.User.Value.(*users.User).Log = time.Now()
+		Data.User = device.UserDefault
+		device.UserSpec = nil
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
 }
 
 func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {

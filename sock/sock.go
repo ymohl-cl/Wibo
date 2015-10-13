@@ -42,6 +42,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	Data.Lst_asw = list.New()
 	Data.Lst_ball = Lst_ball
 	Data.Lst_users = Lst_users
+	Data.Logged = UNKNOWN
 
 	fmt.Println("Start handle Connection")
 	defer conn.Close()
