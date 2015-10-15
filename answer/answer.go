@@ -14,6 +14,7 @@ package answer
 
 import (
 	"Wibo/ballon"
+	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/protocol"
 	"Wibo/users"
@@ -32,19 +33,27 @@ const (
 	ACK   = 32767
 	TAKEN = 4
 	// DEFINE CLIENT
-	SYNC       = 1
-	UPDATE     = 2
-	POS        = 3
-	FOLLOW_ON  = 5
-	FOLLOW_OFF = 6
-	NEW_BALL   = 7
-	SEND_BALL  = 8
-	MAGNET     = 9
-	ITINERARY  = 10
+	SYNC          = 1
+	UPDATE        = 2
+	POS           = 3
+	FOLLOW_ON     = 5
+	FOLLOW_OFF    = 6
+	NEW_BALL      = 7
+	SEND_BALL     = 8
+	MAGNET        = 9
+	ITINERARY     = 10
+	TYPELOG       = 11 // Identification du device et de l'user si pre-enregistre.
+	CREATEACCOUNT = 12 // Creation d'un compte. // Confirmation par email en suspend
+	SYNCROACCOUNT = 13
+	DELOG         = 14 // Deconnexion d'un compte et retablissement de luser par defautl.
 	// DEFINE SERVER
 	CONN     = 1
 	INF_BALL = 2
 	NEARBY   = 3
+	// DEFINE STATUS LOG
+	UNKNOWN     = 1
+	DEFAULTUSER = 2
+	USERLOGGED  = 3
 )
 
 type Posball struct {
@@ -104,6 +113,8 @@ type Data struct {
 	Lst_asw   *list.List /* Value: ([]byte) which defines list answer */
 	Lst_ball  *ballon.All_ball
 	Lst_users *users.All_users
+	Logged    int16
+	Device    *list.Element /* *list.Element.Value.(*device.device) */
 	User      *list.Element /* Value: (*users.User) */
 }
 
@@ -172,6 +183,9 @@ func (Data *Data) Check_lstrequest() bool {
 	nr := new(protocol.Request)
 	tr := new(protocol.Request)
 
+	if Data.Logged == UNKNOWN {
+		return true
+	}
 	tr = tmp.Value.(*protocol.Request)
 	for next != nil {
 		nr = next.Value.(*protocol.Request)
@@ -454,7 +468,8 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 
 	eball := Data.Lst_ball.Blist.Front()
 	for eball != nil {
-		if eball.Value.(*ballon.Ball).Check_nearbycoord(Req) == true {
+		ball := eball.Value.(*ballon.Ball)
+		if ball.Check_userCreated(Data.User) == false && ball.Check_nearbycoord(Req) == true {
 			ball := eball.Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
 			ifball.title = ball.Title
@@ -484,16 +499,19 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 func (Data *Data) Manage_taken(request *list.Element) {
 	eball := Data.Lst_ball.Blist.Front()
 	rqt := request.Value.(*protocol.Request)
+	user := Data.User.Value.(*users.User)
 
 	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(*protocol.Request).Spec.(protocol.Ballid).Id {
 		eball = eball.Next()
 	}
-	if eball != nil {
+	if eball != nil && user.Possessed.Len() < 3 {
 		ball := eball.Value.(*ballon.Ball)
-		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false {
+		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false && ball.Check_userCreated(Data.User) == false {
 			ball.Possessed = Data.User
+			ball.Edited = true
 			ball.Followers.PushFront(Data.User)
-			Data.User.Value.(*users.User).Followed.PushBack(eball)
+			user.Followed.PushBack(eball)
+			user.Possessed.PushFront(eball)
 			Lst_answer := Write_contentball(ball, TAKEN)
 			Data.Lst_asw.PushBackList(Lst_answer)
 			ball.Clearcheckpoint()
@@ -517,6 +535,7 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	var answer []byte
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == false {
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		eball.Value.(*ballon.Ball).Edited = true
 		eball.Value.(*ballon.Ball).Followers.PushBack(Data.User)
 		Data.User.Value.(*users.User).Followed.PushBack(eball)
 	} else {
@@ -537,6 +556,7 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 	if eball != nil &&
 		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
 		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
+		eball.Value.(*ballon.Ball).Edited = true
 		Data.User.Value.(*users.User).Followed.Remove(eball)
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
 
@@ -552,32 +572,39 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
 	var mess ballon.Message
+	user := Data.User.Value.(*users.User)
 
-	newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
-	Data.Lst_ball.Id_max++
-	ball.Id_ball = Data.Lst_ball.Id_max
-	ball.Title = newball.Title
-	ball.Messages = list.New()
-	ball.Followers = list.New()
-	ball.Checkpoints = list.New()
-	mess.Id = 0
-	mess.Size = (int32)(len(newball.Message))
-	mess.Content = newball.Message
-	mess.Type = 1
-	ball.Messages.PushFront(mess)
-	ball.Date = time.Now()
-	ball.Possessed = nil
-	ball.Followers.PushFront(Data.User)
-	ball.Creator = Data.User
-	eball := Data.Lst_ball.Blist.PushBack(ball)
-	checkpoint.Coord.Lon = rqt.Spec.(protocol.New_ball).Lonuser
-	checkpoint.Coord.Lat = rqt.Spec.(protocol.New_ball).Latuser
-	eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
-	eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
-	Data.User.Value.(*users.User).Followed.PushBack(eball)
-
-	answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
-	Data.Lst_asw.PushBack(answer)
+	if user.NbrBallSend < 10 {
+		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
+		Data.Lst_ball.Id_max++
+		ball.Id_ball = Data.Lst_ball.Id_max
+		ball.Edited = true
+		ball.Title = newball.Title
+		ball.Messages = list.New()
+		ball.Followers = list.New()
+		ball.Checkpoints = list.New()
+		mess.Id = 0
+		mess.Size = (int32)(len(newball.Message))
+		mess.Content = newball.Message
+		mess.Type = 1
+		ball.Messages.PushFront(mess)
+		ball.Date = time.Now()
+		ball.Possessed = nil
+		ball.Followers.PushFront(Data.User)
+		ball.Creator = Data.User
+		eball := Data.Lst_ball.Blist.PushBack(ball)
+		checkpoint.Coord.Lon = rqt.Coord.Lon
+		checkpoint.Coord.Lat = rqt.Coord.Lat
+		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
+		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		Data.User.Value.(*users.User).Followed.PushBack(eball)
+		Data.User.Value.(*users.User).NbrBallSend++
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
+		Data.Lst_asw.PushBack(answer)
+	} else {
+		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, 0, int32(0))
+		Data.Lst_asw.PushBack(answer)
+	}
 }
 
 func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
@@ -586,10 +613,11 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	var checkpoint ballon.Checkpoint
 	var answer []byte
 
-	if eball != nil {
+	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
 		eball.Value.(*ballon.Ball).Possessed = nil
-		checkpoint.Coord.Lon = rqt.Spec.(protocol.Send_ball).Lonuser
-		checkpoint.Coord.Lat = rqt.Spec.(protocol.Send_ball).Latuser
+		eball.Value.(*ballon.Ball).Edited = true
+		checkpoint.Coord.Lon = rqt.Coord.Lon
+		checkpoint.Coord.Lat = rqt.Coord.Lat
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, eball.Value.(*ballon.Ball).Id_ball, int32(1))
@@ -606,12 +634,12 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	var ifball Posball
 
 	for i := 0; i < 3; i++ {
-		tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
+		tab[i] = rand.Int63n(5) // Temporaire le temps que Id_nax != 0
 	}
 	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab)
 	eball := list_tmp_2.Front()
 	for eball != nil {
-		ball := eball.Value.(*ballon.Ball)
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 		ifball.id = ball.Id_ball
 		ifball.title = ball.Title
 		ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
@@ -625,7 +653,148 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
+func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.List) (er error) {
+	req := request.Value.(protocol.Request)
+	er = nil
+	flag := true
+
+	if req.Rtype != TYPELOG {
+		er = errors.New("Bad type to Manage_Login")
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	} else {
+		if Data.Device == nil {
+			Data.Device, er = Dlist.GetDevice(Etoken, Db)
+		}
+		if er == nil {
+			device := Data.Device.Value.(*list.Element).Value.(*device.Device)
+			if Compare(req.Spec.Log.Email, [320]byte) == 0 {
+				Data.Logged == DEFAULTUSER
+				Data.User = device.UserDefault
+			} else {
+				Data.User = Data.Lst_users.SearchUserToDevice(Etoken, Db, device.Historic)
+				if Data.User == nil {
+					flag = false
+					Data.Logged == DEFAULTUSER
+					device.UserSpec = nil
+					Data.User = device.UserDefault
+				} else {
+					Data.Logged == USERLOGGED
+					device.UserSpec = Data.User
+					device.AddUserSpecOnHistory(Data.User)
+				}
+			}
+		}
+		if er != nil || flag == false {
+			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		} else {
+			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+		}
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
+func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
+	req := request.Value.(protocol.Request)
+	er = nil
+	user := new(users.User)
+
+	if CheckValidMail(req.Spec.(protocol.Log).Email) == true {
+		user.MAil = req.Spec.(protocol.Log).Email
+		user.NbrBallSend = 0
+		user.Coord.Lon = req.Coord.Lon
+		user.Coord.Lat = req.Coord.Lat
+		user.Followed = list.New()
+		user.Possessed = list.New()
+		user.HistoricReq = list.New()
+		eUser = Data.Lst_users.Add_new_user(user, db)
+		Data.Device.Value.(*Device).Historic.PushFront(eUser)
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
+func AddFollowed(euser *list.Element, euserDefault *list.Element) {
+	user := euser.Value.(*users.User)
+	userDefault := euserDefault.Value.(*users.User)
+
+	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
+		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
+			if idball == ball.Id_ball {
+				break
+			}
+		}
+		if tball == nil {
+			user.Followed.PushFront(eball)
+			ball.Followers.PushFront(euser)
+		}
+	}
+}
+
+func GetPossessed(euser *list.Element, euserDefault *list.Element) {
+	user := euser.Value.(*users.User)
+	userDefault := euserDefault.Value.(*users.User)
+
+	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
+		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
+			if idball == ball.Id_ball {
+				break
+			}
+		}
+		if tball == nil {
+			user.Followed.PushFront(eball)
+			ball.Followers.PushFront(euser)
+			user.Possessed.PushFront(eball)
+			ball.Possessed = euser
+		}
+	}
+}
+
+func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
+	er = nil
+	req := request.Value.(protocol.Request)
+	if Data.Logged == USERLOGGED {
+		device := Data.Device.Value.(*Device)
+		user := Data.User.Value.(*list.Element).Value.(*users.User)
+		userDefault := device.UserDefault.Value.(*users.User)
+		user.NbrBallSend += userDefault.NbrBallSend
+		user.Coord.Lon = req.Coord.Lon
+		user.Coord.Lat = req.Coord.Lat
+		user.Log = time.Now()
+		AddFollowed(device.UserSpec, device.UserDefault)
+		GetPossessed(device.User, device.UserDefault)
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
+func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
+	device := Data.Device.Value.(*Device)
+
+	if Data.Logged == USERLOGGED {
+		Data.User.Value.(*users.User).Log = time.Now()
+		Data.User = device.UserDefault
+		device.UserSpec = nil
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	} else {
+		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+	}
+	Data.Lst_asw.PushBack(answer)
+	return er
+}
+
 func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {
+
 }
 
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
@@ -633,8 +802,9 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	er = nil
 	if request == nil {
 		er = errors.New("Get answer, but no request.")
+	} else if Data.Logged == UNKNOWN {
+		er = Data.Manage_Login(request, Db) // Get device et user
 	} else {
-		Data.User, er = Data.Lst_users.Check_user(request, Db)
 		if er == nil {
 			switch request.Value.(*protocol.Request).Rtype {
 			case SYNC:
@@ -658,6 +828,14 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 			case ITINERARY:
 				Data.Manage_itinerary(request, Tab_wd)
 			case ACK:
+			case TYPELOG:
+				er = Data.Manage_Login(request, Db)
+			case CREATEACCOUNT:
+				er = Data.Manage_CreateAccount(request, Db) // Get device et user on new connection.
+			case SYNCROACCOUNT:
+				er = Data.Manage_SyncAccount(request, Db) // Get device et user on new connection.
+			case DELOG:
+				Data.Manage_Delog(request, Db) // Get device et user on new connection.
 			}
 		}
 	}

@@ -14,6 +14,7 @@ package main
 
 import (
 	"Wibo/ballon"
+	"Wibo/crontask"
 	"Wibo/db"
 	"Wibo/owm"
 	"Wibo/request"
@@ -25,6 +26,25 @@ import (
 	"time"
 )
 
+const (
+	INTERVAL_PERIOD time.Duration = 24 * time.Hour
+	HOUR_TO_TICK    int           = 00
+	MINUTE_TO_TICK  int           = 00
+	SECOND_TO_TICK  int           = 00
+)
+
+/* Get the difference between Time.Now() et specifique time evenement and create a
+** Tick channel of time package
+ */
+func updateTicker() *time.Ticker {
+	nextTick := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), HOUR_TO_TICK, MINUTE_TO_TICK, SECOND_TO_TICK, 0, time.Local)
+	if !nextTick.After(time.Now()) {
+		nextTick = nextTick.Add(INTERVAL_PERIOD)
+	}
+	diff := nextTick.Sub(time.Now())
+	return time.NewTicker(diff)
+}
+
 /*
 ** Manage_goroutines va gerer les differentes processus endormis
 ** qui effectueront des taches tous les X temps.
@@ -33,11 +53,13 @@ import (
 ** Creation de checkpoint toutes les 3 heures.
 ** !! Viendra la synchronisation du cache dans la base de donnee tous les X temps !!
  */
-func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
+func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db.Env, Lst_User *users.All_users) {
 	channelfuncweatherdata := make(chan bool)
 	channelfuncmoveball := make(chan bool)
+	//	channelfuncupdatedata := make(chan bool)
 	defer close(channelfuncmoveball)
 	defer close(channelfuncweatherdata)
+	//	defer close(channelfuncupdatedata)
 
 	go func() {
 		for {
@@ -51,6 +73,20 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 			channelfuncweatherdata <- true
 		}
 	}()
+	go func() {
+		ticker := updateTicker()
+		for {
+			<-ticker.C
+			crontask.Send_AllBall(Lst_ball, Lst_User, Tab_wd)
+			ticker = updateTicker()
+		}
+	}()
+	//	go func() {
+	//		for {
+	//			time.Sleep(1 * time.Minute)
+	//			channelfuncupdatedata <- true
+	//		}
+	//	}()
 
 	for {
 		select {
@@ -76,6 +112,10 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball) {
 					fmt.Println(err)
 				}
 			}
+			//		case <-channelfuncupdatedata:
+			//			{
+			//				Lst_ball.Update_balls(Lst_ball, base)
+			//			}
 		}
 	}
 }
@@ -115,25 +155,30 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
 	var check_test0 ballon.Checkpoint
-	check_test0.Coord.Lon = 48.833086
-	check_test0.Coord.Lat = 2.316055
+	check_test0.Coord.Lon = 2.316055
+	check_test0.Coord.Lat = 48.833086
 	check_test0.Date = time.Now()
 	var check_test1 ballon.Checkpoint
-	check_test1.Coord.Lon = 48.833586
-	check_test1.Coord.Lat = 2.316065
+	check_test1.Coord.Lon = 2.316065
+	check_test1.Coord.Lat = 48.833586
 	check_test1.Date = time.Now()
 	var check_test2 ballon.Checkpoint
-	check_test2.Coord.Lon = 48.833368
-	check_test2.Coord.Lat = 2.316059
+	check_test2.Coord.Lon = 2.3080777
+	check_test2.Coord.Lat = 48.910253
 	check_test2.Date = time.Now()
 	var check_test3 ballon.Checkpoint
-	check_test3.Coord.Lon = 48.833286
-	check_test3.Coord.Lat = 2.316903
+	check_test3.Coord.Lon = 2.3080211
+	check_test3.Coord.Lat = 48.910361
 	check_test3.Date = time.Now()
 	var check_test4 ballon.Checkpoint
-	check_test4.Coord.Lon = 48.833986
-	check_test4.Coord.Lat = 2.316045
+	check_test4.Coord.Lon = 2.316045
+	check_test4.Coord.Lat = 48.833986
 	check_test4.Date = time.Now()
+	var check_test5 ballon.Checkpoint
+	check_test4.Coord.Lon = 2.3080535
+	check_test4.Coord.Lat = 48.910242
+	check_test4.Date = time.Now()
+
 	mmp2 := list.New()
 	mmp := list.New()
 	var message0 ballon.Message
@@ -159,6 +204,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball0 := new(ballon.Ball)
 	ball0.Id_ball = 0
+	ball0.Edited = false
 	ball0.Title = "toto"
 	ball0.Coord = tmp_lst.PushBack(check_test0)
 	ball0.Wind = ballon.Wind{}
@@ -172,6 +218,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball1 := new(ballon.Ball)
 	ball1.Id_ball = 1
+	ball1.Edited = false
 	ball1.Title = "tata"
 	ball1.Coord = tmp_lst.PushBack(check_test1)
 	ball1.Wind = ballon.Wind{}
@@ -185,6 +232,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball2 := new(ballon.Ball)
 	ball2.Id_ball = 2
+	ball2.Edited = false
 	ball2.Title = "tutu"
 	ball2.Coord = tmp_lst.PushBack(check_test2)
 	ball2.Wind = ballon.Wind{}
@@ -198,6 +246,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball3 := new(ballon.Ball)
 	ball3.Id_ball = 3
+	ball3.Edited = false
 	ball3.Title = "tete"
 	ball3.Coord = tmp_lst.PushBack(check_test3)
 	ball3.Wind = ballon.Wind{}
@@ -211,6 +260,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 
 	ball4 := new(ballon.Ball)
 	ball4.Id_ball = 4
+	ball4.Edited = false
 	ball4.Title = "tyty"
 	ball4.Coord = tmp_lst.PushBack(check_test4)
 	ball4.Wind = ballon.Wind{}
@@ -221,6 +271,20 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball4.Followers = list.New()
 	ball4.Creator = nil
 	Lst_ball.Blist.PushBack(ball4)
+
+	ball5 := new(ballon.Ball)
+	ball5.Id_ball = 5
+	ball5.Edited = false
+	ball5.Title = "PROUT"
+	ball5.Coord = tmp_lst.PushBack(check_test5)
+	ball5.Wind = ballon.Wind{}
+	ball5.Messages = mmp
+	ball5.Date = time.Now()
+	ball5.Checkpoints = list.New()
+	ball5.Possessed = nil
+	ball5.Followers = list.New()
+	ball5.Creator = nil
+	Lst_ball.Blist.PushBack(ball5)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 
 	err = Lst_ball.Create_checkpoint(Tab_wd)
@@ -258,12 +322,11 @@ func main() {
 
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
-
 	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb)
 	if err != nil {
 		return
 	}
-	go Manage_goroutines(Tab_wd, Lst_ball)
+	go Manage_goroutines(Tab_wd, Lst_ball, myDb, Lst_users)
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)

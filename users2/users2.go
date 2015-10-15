@@ -5,18 +5,9 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	"errors"
-	"golang.org/x/crypto/bcrypt"
-	valid "github.com/asaskevich/govalidator"
-	"bytes"
-	"strings"
+	//	_ "github.com/lib/pq"
 	"time"
 )
-
-//type Device struct {
-//	IdMobile    int64      /* type int64 is temporary */
-//	History_req *list.List /* Value: History */
-//}
 
 /**
 ** Date est la date a laquelle la requete a ete effectue.
@@ -27,10 +18,6 @@ type History struct {
 	Type_req_client int16
 }
 
-type userError struct {
-    prob string
-		err error
-}
 /**
 ** -type Device
 ** IdMobile est l'identifiant unique du mobile.
@@ -38,26 +25,28 @@ type userError struct {
 ** History_req est une liste qui sera l'historique des requetes du client
 ** depuis ce device.
 **/
+
+type Device struct {
+	IdMobile    int64      /* type int64 is temporary */
+	History_req *list.List /* Value: History */
+}
+
 type Coordinate struct {
 	Lon float64
 	Lat float64
 }
 
 type User struct {
-	Id       int64
-	Login    string
-	Mail     string
-	Password string
-	PassByte []byte
-	Device   *list.List /* Value: Device */
-	Log      time.Time  /*Date of the last query */
-	Followed *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
+	Id          int64
+	Login       string
+	Mail        string
+	Password    string
 	NbrBallSend int
 	Coord       Coordinate
-//	Device      *list.List /* Value: Device */
+	Device      *list.List /* Value: Device */
 	Log         time.Time  /*Date of the last query */
+	Followed    *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
-	HistoricReq *list.List /* list History */
 }
 
 type All_users struct {
@@ -75,57 +64,10 @@ func (User *User) User_is_online() bool {
 	}
 }
 
-func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*list.Element).Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
-
-	for euser != nil && Compare(user.Mail, mail) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*list.Element).Value.(*User)
-	}
-	if euser != nil {
-		return euser.Value.(*list.Element)
-	}
-	return nil
-}
-
-func FoundUserOnListLvl1(lst *list.List, email [320]byte) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
-
-	for euser != nil && strings.Compare(user.Mail, mail) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*User)
-	}
-	if euser != nil {
-		return euser
-	}
-	return nil
-}
-
-/*
-** Search request' user on list parameter, if not found, search in all list.
-** If not found, return nil, else, check request' password.
-** If Password is OK return user else return nil
- */
-func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *list.List) *list.Element {
-	req := request.Value.(protocol.Request)
-	user := FoundUserOnListLvl2(History, req.Spec.(protocol.Log).Email)
-	if user == nil {
-		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
-	}
-	if user != nil {
-		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
-	}
-	return user
-}
-
 /*
 ** Manage users's connexion
  */
-/*func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
+func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
 	user = ulist.Ulist.Front()
 	var device *list.Element
 
@@ -163,17 +105,11 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 		usr.Coord.Lat = rqt.Coord.Lat
 	}
 	return user, nil
-}*/
+}
 
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
-
-func CheckPasswordUser(user *list.Element, pass [512]byte, Db *sql.DB) *list.Element {
-	// if pass is OK return user
-	// else return NULL
-	return user
-}
 
 /**
 * Delete user from id and mail
@@ -187,53 +123,20 @@ func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool,
 	return executed, err
 }
 
-func (e *userError) Error() string {
-    return fmt.Sprintf("%s - %v", e.prob, e.err)
-}
-
 /**
 * Insert new user to wibo_base
-*	constrain valid_mail(text) default verification
-* query to check if mail is already registered
+*	TODO: imput verification
 **/
 
-func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error){
+func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) {
 	var err error
-	if (len(new_user.Password) > 0) {
-		/* really danger below */
-		new_user.Password = "ThisIsAPasswordDefault2015OP"
-	}
-	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 30)
-	if err != nil {
-		return false, &userError{"Error add new user", err}
-	}
-
-	if (len(new_user.Mail) > 0){
-			if valid.IsEmail(new_user.Mail) != true {
-			return false, errors.New("Wrong mail format")
-		}
-	}
-	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, 	$6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail);
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
-/*
-Insert user default
-	insert a user with default data
-*/
-func (Lst_users *All_users) AddNewDefaultUser(Dv *sql.DB) (*list.Element, error){
-	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015", 30)
-	if err != nil {
-		return false, &userError{"Error add new user", err}
-	}
-	id, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now());
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	tblname := "user"
+	_, err = Db.Exec(
+		fmt.Sprintf(
+			"INSERT INTO \"%s\"(id_type_g, groupname, login, password, salt, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", tblname),
+		1, "particulier", new_user.Login, new_user.Password, "saltTest", time.Now(), time.Now(), new_user.Mail)
+	checkErr(err)
+	return
 }
 
 /**

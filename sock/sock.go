@@ -25,6 +25,13 @@ import (
 	"net"
 )
 
+const (
+	TYPELOG     = 0
+	UNKNOWN     = 1
+	DEFAULTUSER = 2
+	USERLOGGED  = 3
+)
+
 /*
 ** handleConnection received client's requests and manages the exchange with
 ** client
@@ -35,6 +42,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 	Data.Lst_asw = list.New()
 	Data.Lst_ball = Lst_ball
 	Data.Lst_users = Lst_users
+	Data.Logged = UNKNOWN
 
 	fmt.Println("Start handle Connection")
 	defer conn.Close()
@@ -62,12 +70,27 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				/* FIN DES TESTS */
 			}
 			Etoken := Data.Lst_req.PushBack(Token)
-			Data.User, err = Lst_users.Check_user(Etoken, Db)
-			if err != nil {
-				fmt.Println("Error on check users")
-				return
-			}
-
+			// Cette partie doit etre dans Answer.
+			//			if Data.Logged == UNKNOWN {
+			//				if Token.Rtype != TYPELOG {
+			//					fmt.Println("Reception anormale")
+			//					// return packet negatif.
+			//					return
+			//				}
+			//				Data.Device, err = Dlist.GetDevice(Etoken, Db)
+			//				if err != nil {
+			//					fmt.Println("Error on GetDevice")
+			//					// Return packet negatif.
+			//					return
+			//				}
+			//				Data.User, err = Lst_users.Check_user(Etoken, Db)
+			//				if err != nil {
+			//					fmt.Println("Error on check users")
+			//					// Return packet negatif.
+			//					return
+			//				}
+			//				//Send packet acknowledgement positif
+			//			}
 			if Data.Check_lstrequest() == true {
 				err = Data.Get_answer(Tab_wd, Db)
 				if err != nil {

@@ -101,9 +101,24 @@ func (ball *Ball) Check_userfollower(user *list.Element) bool {
 	return false
 }
 
+func (ball *Ball) Check_userCreated(user *list.Element) bool {
+	if ball.Creator == user {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (ball *Ball) Check_userPossessed(user *list.Element) bool {
+	if ball.Possessed == user {
+		return true
+	}
+	return false
+}
+
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
-	rlon := request.Value.(*protocol.Request).Spec.(protocol.Position).Lon
-	rlat := request.Value.(*protocol.Request).Spec.(protocol.Position).Lat
+	rlon := request.Value.(*protocol.Request).Coord.Lon
+	rlat := request.Value.(*protocol.Request).Coord.Lat
 	if ball.Coord != nil {
 		coord := ball.Coord.Value.(Checkpoint).Coord
 		if coord.Lon < rlon+0.01 &&
@@ -144,17 +159,17 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 		calc_coord.Lon = tmp_coord.Lon + math.Atan2(math.Sin(dir)*math.Sin(speed/r_world)*math.Cos(tmp_coord.Lat), math.Cos(speed/r_world)-math.Sin(tmp_coord.Lat)*math.Sin(calc_coord.Lat))
 		calc_coord.Lat = 180 * calc_coord.Lat / math.Pi
 		calc_coord.Lon = 180 * calc_coord.Lon / math.Pi
-		if calc_coord.Lat < 2.10 {
-			checkpoint.Lat = 2.60
-		} else if calc_coord.Lat > 2.60 {
-			checkpoint.Lat = 2.10
+		if calc_coord.Lat < 48.72 {
+			checkpoint.Lat = 49.02
+		} else if calc_coord.Lat > 49.02 {
+			checkpoint.Lat = 48.72
 		} else {
 			checkpoint.Lat = calc_coord.Lat
 		}
-		if calc_coord.Lon < 48.72 {
-			checkpoint.Lon = 49.02
-		} else if calc_coord.Lon > 49.02 {
-			checkpoint.Lon = 48.72
+		if calc_coord.Lon < 2.10 {
+			checkpoint.Lon = 2.60
+		} else if calc_coord.Lon > 2.60 {
+			checkpoint.Lon = 2.10
 		} else {
 			checkpoint.Lon = calc_coord.Lon
 		}
@@ -387,7 +402,9 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m");
 	fmt.Printf("%v Id Max", ABalls.Id_max);
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
+
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)
 			j := 0
