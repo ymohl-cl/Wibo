@@ -35,7 +35,7 @@ func TestBallon(t *testing.T) {
 	user1 := new(users.User)
 	user1.Id = 1
 	user1.Login = "user3"
-	user1.Mail = "user3@mail.com"
+	user1.Mail = ""
 	user1.Password = "pass1"
 	user1.Device = list.New()
 	user1.Log = time.Now()

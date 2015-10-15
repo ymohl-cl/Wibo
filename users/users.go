@@ -5,9 +5,9 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	//"errors"
+	"errors"
 	"golang.org/x/crypto/bcrypt"
-	//	_ "github.com/lib/pq"
+	valid "github.com/asaskevich/govalidator"
 	"time"
 )
 
@@ -128,19 +128,21 @@ func (e *userError) Error() string {
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error){
 	var err error
+	if (len(new_user.Password) > 0) {
+		/* really danger below */
+		new_user.Password = "ThisIsAPasswordDefault2015OP"
+	}
 	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 10)
 	if err != nil {
 		return false, &userError{"Error add new user", err}
 	}
-	tblname := "user"
-	_, err = Db.Exec(
-		fmt.Sprintf(
-			"INSERT INTO \"%s\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) SELECT $1, $2, $3, $4, $5, $6, $7 WHERE NOT EXIST (SELECT mail FROM \"%s\" WHERE mail = '%s'", tblname,tblname, new_user.Mail), 1, "particulier",
-			new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
-	// _, err = Db.Exec(
-	// 	fmt.Sprintf(
-	// 		"INSERT INTO \"%s\"(id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7)", tblname),
-	// 	1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+
+	if (len(new_user.Mail) > 0){
+			if valid.IsEmail(new_user.Mail) != true {
+			return false, errors.New("Wrong mail format")
+		}
+	}
+	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, 	$6, make_uid());", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now());
 	if err != nil {
 		return false, err
 	}
