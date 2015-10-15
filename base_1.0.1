@@ -1,0 +1,1076 @@
+--
+-- PostgreSQL database dump
+--
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: topology; Type: SCHEMA; Schema: -; Owner: jbernabe
+--
+
+CREATE SCHEMA topology;
+
+
+ALTER SCHEMA topology OWNER TO jbernabe;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
+
+
+--
+-- Name: postgis_topology; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;
+
+
+--
+-- Name: EXTENSION postgis_topology; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_topology IS 'PostGIS topology spatial types and functions';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: getalldevices(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getalldevices() RETURNS TABLE(deviceid integer, userid integer, loginuser character varying, usertype integer, usermail character varying)
+    LANGUAGE plpgsql
+    AS $$ BEGIN RETURN QUERY EXECUTE 'SELECT device.id AS DeviceId, device.user_id_user AS UserId, "user".login AS LoginUser, "user".id_type_g AS UserType, "user".mail AS UserMail FROM device LEFT OUTER JOIN "user" ON (device.user_id_user = "user".id_user)'; END  $$;
+
+
+ALTER FUNCTION public.getalldevices() OWNER TO wibo;
+
+--
+-- Name: getcontainers(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainers() RETURNS TABLE(idballon integer, idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
+    LANGUAGE plpgsql
+    AS $$ 
+ BEGIN  RETURN  QUERY EXECUTE 'SELECT  container.id AS contIndex, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon, container.device_id as idDevice,  ST_AsText(container.location_ct) FROM container';  END$$;
+
+
+ALTER FUNCTION public.getcontainers() OWNER TO wibo;
+
+--
+-- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction numeric, speedcont integer, creationdate timestamp without time zone, deviceid integer, locationcont text)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS     TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, date(container.creationdate) + interval '1 hour',     container.device_id as idDevice,  ST_AsText(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $$;
+
+
+ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO wibo;
+
+--
+-- Name: getcontainersbyuseridjson(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersbyuseridjson(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon, container.device_id as idDevice,  ST_AsGeoJson(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $$;
+
+
+ALTER FUNCTION public.getcontainersbyuseridjson(iduser integer) OWNER TO wibo;
+
+--
+-- Name: getcontainersjson(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersjson() RETURNS TABLE(idballon integer, idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
+    LANGUAGE plpgsql
+    AS $$ 
+ BEGIN  RETURN  QUERY EXECUTE 'SELECT  container.id AS contIndex, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon, container.device_id as idDevice,  ST_AsGeoJson(container.location_ct) FROM container';  END$$;
+
+
+ALTER FUNCTION public.getcontainersjson() OWNER TO wibo;
+
+--
+-- Name: getdevicesbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getdevicesbyuserid(iduser integer) RETURNS TABLE(macaddr character varying)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT  device.macaddr AS MacAddressDevice FROM device WHERE user_id_user = iduser; END  $$;
+
+
+ALTER FUNCTION public.getdevicesbyuserid(iduser integer) OWNER TO wibo;
+
+--
+-- Name: insertcontainer(integer, integer, integer, integer, double precision, double precision, text, integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION insertcontainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc double precision, speedc double precision, title text, idx integer) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, device_id, location_ct, idcreator, titlename, ianix) VALUES(directionc, speedc , device, ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx) RETURNING id;  END; $$;
+
+
+ALTER FUNCTION public.insertcontainer(idcreatorc integer, latitudec integer, longitudec integer, device integer, directionc double precision, speedc double precision, title text, idx integer) OWNER TO wibo;
+
+--
+-- Name: make_uid(); Type: FUNCTION; Schema: public; Owner: jbernabe
+--
+
+CREATE FUNCTION make_uid() RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    new_uid text;
+done bool;
+BEGIN
+    done := false;
+    WHILE NOT done LOOP new_uid := stringify_bigint(pseudo_encrypt(cast(extract(epoch from now())::integer as int)));
+done := NOT exists(SELECT 1 FROM "user" WHERE mail=new_uid);
+END LOOP;
+    RETURN new_uid;
+END;
+$$;
+
+
+ALTER FUNCTION public.make_uid() OWNER TO jbernabe;
+
+--
+-- Name: pseudo_encrypt(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+--
+
+CREATE FUNCTION pseudo_encrypt(value integer) RETURNS integer
+    LANGUAGE plpgsql IMMUTABLE STRICT
+    AS $$
+DECLARE
+l1 int;
+l2 int;
+r1 int;
+r2 int;
+i int:=0;
+BEGIN
+ l1:= (VALUE >> 16) & 65535;
+ r1:= VALUE & 65535;
+ WHILE i < 3 LOOP
+   l2 := r1;
+   r2 := l1 # ((((1366 * r1 + 150889) % 714021) / 714021.0) * 32767)::int;
+   l1 := l2;
+   r1 := r2;
+   i := i + 1;
+ END LOOP;
+ RETURN ((r1 << 16) + l1);
+END;
+$$;
+
+
+ALTER FUNCTION public.pseudo_encrypt(value integer) OWNER TO jbernabe;
+
+--
+-- Name: stringify_bigint(bigint); Type: FUNCTION; Schema: public; Owner: jbernabe
+--
+
+CREATE FUNCTION stringify_bigint(n bigint) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE STRICT
+    AS $$
+DECLARE
+ alphabet text:='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+ base int:=length(alphabet); 
+ _n bigint:=abs(n);
+ output text:='';
+BEGIN
+ LOOP
+   output := output || substr(alphabet, 1+(_n%base)::int, 1);
+   _n := _n / base; 
+   EXIT WHEN _n=0;
+ END LOOP;
+ RETURN output;
+END $$;
+
+
+ALTER FUNCTION public.stringify_bigint(n bigint) OWNER TO jbernabe;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: checkpoints; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE checkpoints (
+    id integer NOT NULL,
+    date date NOT NULL,
+    containerid integer NOT NULL,
+    attractbymagnet boolean NOT NULL,
+    location_ckp geography(Point,4326)
+);
+
+
+ALTER TABLE checkpoints OWNER TO wibo;
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE checkpoints_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE checkpoints_id_seq OWNER TO wibo;
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE checkpoints_id_seq OWNED BY checkpoints.id;
+
+
+--
+-- Name: type_container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_container (
+    id_type_c integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_container OWNER TO wibo;
+
+--
+-- Name: container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE container (
+    id integer NOT NULL,
+    direction numeric(5,2) NOT NULL,
+    speed integer NOT NULL,
+    device_id integer NOT NULL,
+    location_ct geography(Point,4326),
+    idcreator integer,
+    titlename character varying(255),
+    ianix integer,
+    creationdate timestamp with time zone DEFAULT now(),
+    idcurrentuser integer
+)
+INHERITS (type_container);
+
+
+ALTER TABLE container OWNER TO wibo;
+
+--
+-- Name: container_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE container_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE container_id_seq OWNER TO wibo;
+
+--
+-- Name: container_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE container_id_seq OWNED BY container.id;
+
+
+--
+-- Name: type_device; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_device (
+    id_type_d integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_device OWNER TO wibo;
+
+--
+-- Name: device; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE device (
+    id integer NOT NULL,
+    macaddr character varying(18) NOT NULL,
+    user_id_user integer NOT NULL,
+    lastusemagnet date
+)
+INHERITS (type_device);
+
+
+ALTER TABLE device OWNER TO wibo;
+
+--
+-- Name: device_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE device_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE device_id_seq OWNER TO wibo;
+
+--
+-- Name: device_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE device_id_seq OWNED BY device.id;
+
+
+--
+-- Name: followed; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE followed (
+    id integer NOT NULL,
+    container_id integer NOT NULL,
+    device_id integer,
+    iduser integer
+);
+
+
+ALTER TABLE followed OWNER TO wibo;
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE followed_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE followed_id_seq OWNER TO wibo;
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE followed_id_seq OWNED BY followed.id;
+
+
+--
+-- Name: type_message; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_message (
+    id_type_m integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_message OWNER TO wibo;
+
+--
+-- Name: message; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE message (
+    id integer NOT NULL,
+    content text NOT NULL,
+    containerid integer NOT NULL,
+    device_id integer,
+    creationdate timestamp with time zone DEFAULT now()
+)
+INHERITS (type_message);
+
+
+ALTER TABLE message OWNER TO wibo;
+
+--
+-- Name: message_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE message_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE message_id_seq OWNER TO wibo;
+
+--
+-- Name: message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE message_id_seq OWNED BY message.id;
+
+
+--
+-- Name: reception; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE reception (
+    id integer NOT NULL,
+    receptiontime date NOT NULL,
+    location_rc geography(Point,4326),
+    idcontainer integer NOT NULL,
+    device_id integer NOT NULL
+);
+
+
+ALTER TABLE reception OWNER TO wibo;
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE reception_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE reception_id_seq OWNER TO wibo;
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE reception_id_seq OWNED BY reception.id;
+
+
+--
+-- Name: type_information; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_information (
+    id_type_info integer NOT NULL,
+    name_info character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_information OWNER TO wibo;
+
+--
+-- Name: shared; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE shared (
+    id integer NOT NULL,
+    type_shared integer NOT NULL,
+    device_id integer NOT NULL
+)
+INHERITS (type_information);
+
+
+ALTER TABLE shared OWNER TO wibo;
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE shared_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE shared_id_seq OWNER TO wibo;
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE shared_id_seq OWNED BY shared.id;
+
+
+--
+-- Name: type_group; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_group (
+    id_type_g integer NOT NULL,
+    groupname character varying(20) NOT NULL
+);
+
+
+ALTER TABLE type_group OWNER TO wibo;
+
+--
+-- Name: user; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE "user" (
+    id_user integer NOT NULL,
+    login character varying(255) NOT NULL,
+    lastlogin date NOT NULL,
+    creationdate date NOT NULL,
+    mail character varying(510) DEFAULT make_uid() NOT NULL,
+    passbyte bytea NOT NULL
+)
+INHERITS (type_group);
+
+
+ALTER TABLE "user" OWNER TO wibo;
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE user_id_user_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE user_id_user_seq OWNER TO wibo;
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE user_id_user_seq OWNED BY "user".id_user;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY checkpoints ALTER COLUMN id SET DEFAULT nextval('checkpoints_id_seq'::regclass);
+
+
+--
+-- Name: id_type_c; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN id_type_c SET DEFAULT 1;
+
+
+--
+-- Name: typename; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN typename SET DEFAULT 'red'::character varying;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN id SET DEFAULT nextval('container_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY device ALTER COLUMN id SET DEFAULT nextval('device_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed ALTER COLUMN id SET DEFAULT nextval('followed_id_seq'::regclass);
+
+
+--
+-- Name: id_type_m; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN id_type_m SET DEFAULT 1;
+
+
+--
+-- Name: typename; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN typename SET DEFAULT 'text'::character varying;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN id SET DEFAULT nextval('message_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY reception ALTER COLUMN id SET DEFAULT nextval('reception_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY shared ALTER COLUMN id SET DEFAULT nextval('shared_id_seq'::regclass);
+
+
+--
+-- Name: id_user; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY "user" ALTER COLUMN id_user SET DEFAULT nextval('user_id_user_seq'::regclass);
+
+
+--
+-- Data for Name: checkpoints; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY checkpoints (id, date, containerid, attractbymagnet, location_ckp) FROM stdin;
+\.
+
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('checkpoints_id_seq', 1, false);
+
+
+--
+-- Data for Name: container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY container (id_type_c, typename, id, direction, speed, device_id, location_ct, idcreator, titlename, ianix, creationdate, idcurrentuser) FROM stdin;
+\.
+
+
+--
+-- Name: container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('container_id_seq', 71, true);
+
+
+--
+-- Data for Name: device; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY device (id_type_d, typename, id, macaddr, user_id_user, lastusemagnet) FROM stdin;
+\.
+
+
+--
+-- Name: device_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('device_id_seq', 12, true);
+
+
+--
+-- Data for Name: followed; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY followed (id, container_id, device_id, iduser) FROM stdin;
+\.
+
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('followed_id_seq', 1, true);
+
+
+--
+-- Data for Name: message; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY message (id_type_m, typename, id, content, containerid, device_id, creationdate) FROM stdin;
+\.
+
+
+--
+-- Name: message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('message_id_seq', 11, true);
+
+
+--
+-- Data for Name: reception; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY reception (id, receptiontime, location_rc, idcontainer, device_id) FROM stdin;
+\.
+
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('reception_id_seq', 1, false);
+
+
+--
+-- Data for Name: shared; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY shared (id_type_info, name_info, id, type_shared, device_id) FROM stdin;
+\.
+
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('shared_id_seq', 1, false);
+
+
+--
+-- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: jbernabe
+--
+
+COPY spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_container (id_type_c, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_device; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_device (id_type_d, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_group; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_group (id_type_g, groupname) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_information; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_information (id_type_info, name_info) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_message; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_message (id_type_m, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY "user" (id_type_g, groupname, id_user, login, lastlogin, creationdate, mail, passbyte) FROM stdin;
+1	particulier	28	user3	2015-10-14	2015-10-14	test@mail.com	\\x243261243130244e68306b5448762e6b7072396f714d3962654d4f3565775a4d307576336c496663615932792e59332f474f53706630504f64495243
+1	particulier	29	user3	2015-10-14	2015-10-14	2	\\x243261243130244967635539345a325358484b3241626f48776e793275377379754f3647634c344455476e30783958384b67416e362e354a38616353
+1	particulier	31	user3	2015-10-14	2015-10-14		\\x243261243130244b3850575768392e62664e2e2f4a6e4d61654455382e4f75736d7a542f6a75386b765844466452744f594c54323077517472316b71
+1	particulier	34	user3	2015-10-14	2015-10-14	RENze	\\x243261243130246379354f6453374c704a45355059746772494943574f694f534e37676d77437552744a6564476e2e6967385572496f474f5266794b
+1	particulier	35	user3	2015-10-14	2015-10-14	qzW1Ub	\\x24326124313024595a4a6647595177794570346f6e7a795042334a58756b765131436d3135494f775247566b4468566f534177454865777135714261
+1	particulier	36	user3	2015-10-14	2015-10-14	9Davkb	\\x24326124313024556a5851652f62525055514d6a5a44787a6c5362504f4752324c754869495a372f312f7065746665487654616f32504f6e352e4f69
+1	particulier	37	user3	2015-10-14	2015-10-14	Zy01H	\\x2432612431302439382e54383534517878336d523158484544414d312e6b495243706144635662627442312f424532574c45534e6e6168644b423365
+\.
+
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('user_id_user_seq', 37, true);
+
+
+SET search_path = topology, pg_catalog;
+
+--
+-- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: jbernabe
+--
+
+COPY topology (id, name, srid, "precision", hasz) FROM stdin;
+\.
+
+
+--
+-- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: jbernabe
+--
+
+COPY layer (topology_id, layer_id, schema_name, table_name, feature_column, feature_type, level, child_id) FROM stdin;
+\.
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: checkpoints_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY checkpoints
+    ADD CONSTRAINT checkpoints_pk PRIMARY KEY (id);
+
+
+--
+-- Name: container_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_pk PRIMARY KEY (id);
+
+
+--
+-- Name: device_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY device
+    ADD CONSTRAINT device_pk PRIMARY KEY (id);
+
+
+--
+-- Name: followed_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_pk PRIMARY KEY (id);
+
+
+--
+-- Name: message_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_pk PRIMARY KEY (id);
+
+
+--
+-- Name: reception_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY reception
+    ADD CONSTRAINT reception_pk PRIMARY KEY (id);
+
+
+--
+-- Name: shared_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY shared
+    ADD CONSTRAINT shared_pk PRIMARY KEY (id);
+
+
+--
+-- Name: type_container_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_container
+    ADD CONSTRAINT type_container_pk PRIMARY KEY (id_type_c);
+
+
+--
+-- Name: type_device_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_device
+    ADD CONSTRAINT type_device_pk PRIMARY KEY (id_type_d);
+
+
+--
+-- Name: type_group_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_group
+    ADD CONSTRAINT type_group_pk PRIMARY KEY (id_type_g);
+
+
+--
+-- Name: type_information_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_information
+    ADD CONSTRAINT type_information_pk PRIMARY KEY (id_type_info);
+
+
+--
+-- Name: type_message_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_message
+    ADD CONSTRAINT type_message_pk PRIMARY KEY (id_type_m);
+
+
+--
+-- Name: user_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY "user"
+    ADD CONSTRAINT user_pk PRIMARY KEY (id_user);
+
+
+--
+-- Name: checkpoints_container_id_idx; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE INDEX checkpoints_container_id_idx ON checkpoints USING btree (containerid, date);
+
+
+--
+-- Name: constraint_mail; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE UNIQUE INDEX constraint_mail ON "user" USING btree (mail);
+
+
+--
+-- Name: message_idx_container; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE INDEX message_idx_container ON message USING btree (containerid);
+
+
+--
+-- Name: checkpoints_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY checkpoints
+    ADD CONSTRAINT checkpoints_container FOREIGN KEY (containerid) REFERENCES container(id);
+
+
+--
+-- Name: container_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: container_user; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_user FOREIGN KEY (idcreator) REFERENCES "user"(id_user);
+
+
+--
+-- Name: device_user; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY device
+    ADD CONSTRAINT device_user FOREIGN KEY (user_id_user) REFERENCES "user"(id_user);
+
+
+--
+-- Name: followed_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_container FOREIGN KEY (container_id) REFERENCES container(id);
+
+
+--
+-- Name: followed_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: message_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_container FOREIGN KEY (containerid) REFERENCES container(id);
+
+
+--
+-- Name: message_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: reception_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY reception
+    ADD CONSTRAINT reception_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: shared_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY shared
+    ADD CONSTRAINT shared_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
