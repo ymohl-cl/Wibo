@@ -378,7 +378,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
-			newBall.Creator.Value.(*users.User).Device.Front().Value.(users.Device).IdMobile,
+			3,//newBall.Creator.Value.(*users.User).Device.Front().Value.(users.Device).IdMobile,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,

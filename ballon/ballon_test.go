@@ -50,28 +50,22 @@ func TestBallon(t *testing.T) {
 	if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
+	
+	// bool, err := Lst_users.Add_new_user(user1, Db)
+	// fmt.Println(bool)
+	// fmt.Println(err)
 
-	bool, err := Lst_users.Add_new_user(user1, Db)
-	fmt.Println(bool)
-	fmt.Println(err)
-
-	//tblname := "user"
-	// _, err = Db.Exec(
-	// 	fmt.Sprintf(
-	// 		"INSERT INTO \"%s\"(id_type_g, groupname, login, password, passbyte, salt, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", tblname),
-	// 	1, "particulier",user1.Login,"pass", user1.Password, "saltTest", time.Now(), time.Now(),user1.Mail)
-
-	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
-	for rows.Next() {
-		var idUser int64
-		var login string
-		var mailq string
-		var passbyte []byte
-		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
-		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
-			t.Errorf("%v should hash %s correctly", bpass, passbyte)
-		}
-	}
+	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
+	// for rows.Next() {
+	// 	var idUser int64
+	// 	var login string
+	// 	var mailq string
+	// 	var passbyte []byte
+	// 	err = rows.Scan(&idUser, &login, &mailq, &passbyte)
+	// 	if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
+	// 		t.Errorf("%v should hash %s correctly", bpass, passbyte)
+	// 	}
+	// }
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
@@ -194,6 +188,25 @@ func TestBallon(t *testing.T) {
 	// Lst_ball.Print_all_balls()
 	checkErr(err)
 
+}
+
+
+func BenchmarkAddNewDefaultUser(b *testing.B){
+		var err error
+		Lst_users := new(users.All_users)
+		myDb := new(db.Env)
+		Lst_users.Ulist = list.New()
+		Db, err := myDb.OpenCo(err)
+		if err != nil {
+			b.Fatalf("benchmarkConnection: %s", err)
+		}
+		  for n := 0; n < b.N; n++ {
+				defU, err := Lst_users.AddNewDefaultUser(Db)
+				if err != nil {
+				b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
+			}
+			fmt.Println(defU)
+        }
 }
 
 // func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){

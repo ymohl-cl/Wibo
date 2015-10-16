@@ -1,15 +1,15 @@
 package users
 
 import (
-	"Wibo/protocol"
+	//"Wibo/protocol"
 	"container/list"
 	"database/sql"
 	"fmt"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 	valid "github.com/asaskevich/govalidator"
-	"bytes"
-	"strings"
+	//"bytes"
+	//"strings"
 	"time"
 )
 
@@ -55,7 +55,6 @@ type User struct {
 	NbrBallSend int
 	Coord       Coordinate
 //	Device      *list.List /* Value: Device */
-	Log         time.Time  /*Date of the last query */
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	HistoricReq *list.List /* list History */
 }
@@ -75,52 +74,52 @@ func (User *User) User_is_online() bool {
 	}
 }
 
-func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*list.Element).Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
+// func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
+// 	euser := lst.Front()
+// 	user := euser.Value.(*list.Element).Value.(*User)
+// 	mail := (bytes.NewBuffer(email)).String()
 
-	for euser != nil && Compare(user.Mail, mail) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*list.Element).Value.(*User)
-	}
-	if euser != nil {
-		return euser.Value.(*list.Element)
-	}
-	return nil
-}
+// 	for euser != nil && Compare(user.Mail, mail) != 0 {
+// 		euser = euser.Next()
+// 		user = euser.Value.(*list.Element).Value.(*User)
+// 	}
+// 	if euser != nil {
+// 		return euser.Value.(*list.Element)
+// 	}
+// 	return nil
+// }
 
-func FoundUserOnListLvl1(lst *list.List, email [320]byte) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
+// func FoundUserOnListLvl1(lst *list.List, email [320]byte) *list.Element {
+// 	euser := lst.Front()
+// 	user := euser.Value.(*User)
+// 	mail := (bytes.NewBuffer(email)).String()
 
-	for euser != nil && strings.Compare(user.Mail, mail) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*User)
-	}
-	if euser != nil {
-		return euser
-	}
-	return nil
-}
+// 	for euser != nil && strings.Compare(user.Mail, mail) != 0 {
+// 		euser = euser.Next()
+// 		user = euser.Value.(*User)
+// 	}
+// 	if euser != nil {
+// 		return euser
+// 	}
+// 	return nil
+// }
 
 /*
 ** Search request' user on list parameter, if not found, search in all list.
 ** If not found, return nil, else, check request' password.
 ** If Password is OK return user else return nil
  */
-func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *list.List) *list.Element {
-	req := request.Value.(protocol.Request)
-	user := FoundUserOnListLvl2(History, req.Spec.(protocol.Log).Email)
-	if user == nil {
-		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
-	}
-	if user != nil {
-		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
-	}
-	return user
-}
+// func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *list.List) *list.Element {
+// 	req := request.Value.(protocol.Request)
+// 	user := FoundUserOnListLvl2(History, req.Spec.(protocol.Log).Email)
+// 	if user == nil {
+// 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
+// 	}
+// 	if user != nil {
+// 		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
+// 	}
+// 	return user
+// }
 
 /*
 ** Manage users's connexion
@@ -203,7 +202,7 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, erro
 		/* really danger below */
 		new_user.Password = "ThisIsAPasswordDefault2015OP"
 	}
-	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 30)
+	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 15)
 	if err != nil {
 		return false, &userError{"Error add new user", err}
 	}
@@ -224,16 +223,23 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, erro
 Insert user default
 	insert a user with default data
 */
-func (Lst_users *All_users) AddNewDefaultUser(Dv *sql.DB) (*list.Element, error){
-	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015", 30)
+func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) (*list.Element) {
+	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
 	if err != nil {
-		return false, &userError{"Error add new user", err}
+		return nil
 	}
-	id, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now());
+	rows, err := Db.Query(
+		"INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now())
 	if err != nil {
-		return false, err
+		return nil
 	}
-	return true, nil
+	for rows.Next() {
+		var IdUserDefault int64
+		err = rows.Scan(&IdUserDefault)
+		Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
+	}
+	
+	return Lst_users.Ulist.Back()
 }
 
 /**

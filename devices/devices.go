@@ -5,7 +5,6 @@ import (
 	"Wibo/users"
 	"container/list"
 	"database/sql"
-	"errors"
 )
 
 /* *list.Element.Value.(*users.User) */
@@ -66,18 +65,25 @@ func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 ** Ajouter l'user par default dans la liste des users.
 ** Ajouter le list element de l'user dans Device.UserDefault.
  */
-func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db *sql.Env) *list.Element {
+func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db *sql.DB) (*list.Element, error) {
+	var err error
 	newDevice := new(Device)
 	newDevice.Historic = list.New()
 	newDevice.Id = Id
 	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db)
-	// AddNewDefaultUser: creer un utilisateur par default pour le device.
-	// L'ajoute a la liste des users.
-	// Insere l'user dans la base de donnee.
-	//userspec a null
-	//Historic  = list new
-
-	// ICI AJOUTER LE DEVICE A LA BASE DE DONNEE DES DEVICES.
-	Ed := Devices.Dlist.PushFront(newDevice)
-	return Ed
+	if err != nil {
+		return nil, err
+	}
+	newDevice.UserSpec = nil
+	rows, err := Db.Query("INSERT INTO device (id_type_d, typename, idclient, user_id_user) VALUES ($1, $2, $3, $4) RETURNING id;", 1, "device_default",newDevice.Id, newDevice.UserDefault.Value.(*users.User).Id)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+			err = rows.Scan(&newDevice.IdUserDefault)
+			if err != nil {
+				return nil, err
+			}
+	}
+	return Devices.Dlist.PushFront(newDevice), nil
 }

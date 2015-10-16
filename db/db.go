@@ -22,7 +22,7 @@ type Env struct {
 func (dbp *Env) OpenCo(error) (*sql.DB, error) {
 
 	var err error
-	db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=5432")
+	db, err := sql.Open("postgres", "user=jbernabe  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=5432")
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
