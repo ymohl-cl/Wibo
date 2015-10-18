@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"database/sql"
 	"errors"
+	"strings"
 )
 
 /* *list.Element.Value.(*users.User) */
@@ -23,30 +24,30 @@ type All_Devices struct {
 	Dlist *list.List
 }
 
-func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Data *answer.Data) (dvc *list.Element, er error) {
+func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *users.All_users) (dvc *list.Element, er error) {
 	req := request.Value.(protocol.Request)
 	ed := Devices.Dlist.Front()
 	er = nil
 
-	if req.IdMobile.Len() == 1 {
+	if len(req.IdMobile) == 1 {
 		er = errors.New("Id mobile bad format")
 		return nil, er
 	}
-	for ed != nil && Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
+	for ed != nil && strings.Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
 		ed = ed.Next()
 	}
 	if ed == nil {
-		ed = Devices.AddDeviceOnBdd(req.IdMobile, Data.Lst_users, Db)
+		ed, er = Devices.AddDeviceOnBdd(req.IdMobile, Ulist, Db)
 	}
 	return ed, er
 }
 
 func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
-	e := Device.Historic
+	e := Device.Historic.Front()
 	user1 := euser.Value.(*users.User)
 
 	for e != nil {
-		user2 := e.Value.(*list.Element).(*users.User)
+		user2 := e.Value.(*list.Element).Value.(*users.User)
 		if user2.Id == user1.Id {
 			break
 		}

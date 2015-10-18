@@ -15,6 +15,7 @@ package sock
 import (
 	"Wibo/answer"
 	"Wibo/ballon"
+	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/protocol"
 	"Wibo/users"
@@ -36,12 +37,13 @@ const (
 ** handleConnection received client's requests and manages the exchange with
 ** client
  */
-func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
+func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB, Lst_devices *devices.All_Devices) {
 	Data := new(answer.Data)
 	Data.Lst_req = list.New()
 	Data.Lst_asw = list.New()
 	Data.Lst_ball = Lst_ball
 	Data.Lst_users = Lst_users
+	Data.Lst_devices = Lst_devices
 	Data.Logged = UNKNOWN
 
 	fmt.Println("Start handle Connection")
@@ -69,7 +71,8 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 				Token.Print_token_debug()
 				/* FIN DES TESTS */
 			}
-			Etoken := Data.Lst_req.PushBack(Token)
+			Data.Lst_req.PushBack(Token)
+			//Etoken := Data.Lst_req.PushBack(Token)
 			// Cette partie doit etre dans Answer.
 			//			if Data.Logged == UNKNOWN {
 			//				if Token.Rtype != TYPELOG {
@@ -121,7 +124,7 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 ** handleConnection va recuperer et repondre au requete du client jusqu'a
 ** arriver a un etat close.
  */
-func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB) {
+func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.All_data, Db *sql.DB, Lst_devices *devices.All_Devices) {
 	ln, err := net.Listen("tcp", ":45899")
 	if err != nil {
 		fmt.Println("Error listen:", err)
@@ -133,6 +136,6 @@ func Listen(Lst_users *users.All_users, Lst_ball *ballon.All_ball, Tab_wd *owm.A
 		if err != nil {
 			fmt.Println("Error Accept:", err)
 		}
-		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd, Db)
+		go handleConnection(conn, Lst_users, Lst_ball, Tab_wd, Db, Lst_devices)
 	}
 }

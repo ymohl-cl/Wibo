@@ -4,10 +4,10 @@ import (
 	"Wibo/protocol"
 	"container/list"
 	"database/sql"
+	"errors"
 	"fmt"
-	//	_ "github.com/lib/pq"
-	//	"errors"
-	"bytes"
+	valid "github.com/asaskevich/govalidator"
+	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"time"
 )
@@ -57,6 +57,11 @@ type All_users struct {
 	Id_max int64
 }
 
+type userError struct {
+	prob string
+	err  error
+}
+
 func (User *User) User_is_online() bool {
 	t_now := time.Now()
 	t_user := User.Log
@@ -67,12 +72,11 @@ func (User *User) User_is_online() bool {
 	}
 }
 
-func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
+func FoundUserOnListLvl2(lst *list.List, email string) *list.Element {
 	euser := lst.Front()
 	user := euser.Value.(*list.Element).Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
 
-	for euser != nil && Compare(user.Mail, mail) != 0 {
+	for euser != nil && strings.Compare(user.Mail, email) != 0 {
 		euser = euser.Next()
 		user = euser.Value.(*list.Element).Value.(*User)
 	}
@@ -82,12 +86,11 @@ func FoundUserOnListLvl2(lst *list.List, email [320]byte) *list.Element {
 	return nil
 }
 
-func FoundUserOnListLvl1(lst *list.List, email [320]byte) *list.Element {
+func FoundUserOnListLvl1(lst *list.List, email string) *list.Element {
 	euser := lst.Front()
 	user := euser.Value.(*User)
-	mail := (bytes.NewBuffer(email)).String()
 
-	for euser != nil && strings.Compare(user.Mail, mail) != 0 {
+	for euser != nil && strings.Compare(user.Mail, email) != 0 {
 		euser = euser.Next()
 		user = euser.Value.(*User)
 	}
@@ -114,54 +117,15 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 	return user
 }
 
-/*
-** Manage users's connexion
- */
-/*func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB) (user *list.Element, err error) {
-	user = ulist.Ulist.Front()
-	var device *list.Element
-
-	rqt := request.Value.(*protocol.Request)
-	for user != nil {
-		device = user.Value.(*User).Device.Front()
-		for device != nil && device.Value.(Device).IdMobile != rqt.Deviceid {
-			device = device.Next()
-		}
-		if device != nil {
-			break
-		}
-		user = user.Next()
-	}
-	if user == nil {
-		usr := new(User)
-		var hist_device Device
-		usr.Device = list.New()
-		usr.Log = time.Now()
-		usr.Followed = list.New()
-		usr.Coord.Lon = rqt.Coord.Lon
-		usr.Coord.Lat = rqt.Coord.Lat
-		usr.Possessed = list.New()
-		hist_device.IdMobile = request.Value.(*protocol.Request).Deviceid
-		hist_device.History_req = list.New()
-		hist_device.History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
-		usr.Device.PushFront(hist_device)
-		user = ulist.Ulist.PushBack(usr)
-		ulist.Add_new_user(usr, Db)
-	} else {
-		device.Value.(Device).History_req.PushFront(History{time.Now(), request.Value.(*protocol.Request).Rtype})
-		usr := user.Value.(*User)
-		usr.Log = time.Now()
-		usr.Coord.Lon = rqt.Coord.Lon
-		usr.Coord.Lat = rqt.Coord.Lat
-	}
-	return user, nil
-}*/
-
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 
-func CheckPasswordUser(user *list.Element, pass [512]byte, Db *sql.DB) *list.Element {
+func CheckValidMail(email string) bool {
+	return true
+}
+
+func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Element {
 	// if pass is OK return user
 	// else return NULL
 	return user
@@ -189,13 +153,14 @@ func (e *userError) Error() string {
 * query to check if mail is already registered
 **/
 
-func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error) {
+func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string) (bool, error) {
 	var err error
-	if len(new_user.Password) > 0 {
+
+	if len(Pass) > 1 {
 		/* really danger below */
-		new_user.Password = "ThisIsAPasswordDefault2015OP"
+		Pass = "ThisIsAPasswordDefault2015OP"
 	}
-	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 15)
+	bpass, err := bcrypt.GenerateFromPassword([]byte(Pass), 15)
 	if err != nil {
 		return false, &userError{"Error add new user", err}
 	}
@@ -205,7 +170,9 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, erro
 			return false, errors.New("Wrong mail format")
 		}
 	}
-	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, 	$6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	//	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+
+	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Mail, bpass, time.Now(), time.Now(), new_user.Mail)
 	if err != nil {
 		return false, err
 	}
@@ -229,7 +196,8 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
-		Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
+		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault})
+		//Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
 	}
 
 	return Lst_users.Ulist.Back()
@@ -246,11 +214,13 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	for rows.Next() {
 		var idUser int64
-		var login string
+		//		var login string
 		var mailq string
-		err = rows.Scan(&idUser, &login, &mailq)
+		//		err = rows.Scan(&idUser, &login, &mailq)
+		err = rows.Scan(&idUser, &mailq)
 		checkErr(err)
-		return initUser(idUser, login, mailq)
+		//		return initUser(idUser, login, mailq)
+		return initUser(idUser, mailq)
 	}
 	return nil
 }
@@ -263,7 +233,8 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 func (LstU *All_users) Print_users() {
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
+		//		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
+		fmt.Printf("%v | %v \n", e.Value.(*User).Id, e.Value.(*User).Mail)
 		i++
 	}
 	return
@@ -283,10 +254,11 @@ func checkErr(err error) {
 * InitUser
 * initialisation of new user instance with custom data
  */
-func initUser(uid int64, login string, mail string) *User {
+//func initUser(uid int64, login string, mail string) *User {
+func initUser(uid int64, mail string) *User {
 	t := new(User)
+	//t.Login = login
 	t.Id = uid
-	t.Login = login
 	t.Mail = mail
 	return (t)
 }
@@ -295,10 +267,13 @@ func initUser(uid int64, login string, mail string) *User {
 * NewUser
 * Create User instance and return it
 **/
-
-func (Lusr *All_users) NewUser(login string, mail string, pass string) *User {
-	return &User{Login: login, Mail: mail, Password: pass}
+func (Lusr *All_users) NewUser(mail string) *User {
+	return &User{Mail: mail}
 }
+
+//func (Lusr *All_users) NewUser(login string, mail string, pass string) *User {
+//	return &User{Login: login, Mail: mail, Password: pass}
+//}
 
 /**
 * GetDevicesByIdUser
@@ -334,13 +309,16 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64
-		var login string
+		//		var login string
 		var mailq string
 		var pass string
-		err = rows.Scan(&idUser, &login, &mailq, &pass)
+		//		err = rows.Scan(&idUser, &login, &mailq, &pass)
+		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
+		//		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
+		//		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
+		//		lUser.PushBack(&User{Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New()})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)

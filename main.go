@@ -16,6 +16,7 @@ import (
 	"Wibo/ballon"
 	"Wibo/crontask"
 	"Wibo/db"
+	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/request"
 	"Wibo/sock"
@@ -128,7 +129,7 @@ func Manage_goroutines(Tab_wd *owm.All_data, Lst_ball *ballon.All_ball, base *db
 ** 3: On recupere la liste des ballons dans la base de donnee et on y attache les users concernes par le ballon
 ** 4: On cree la liste des checkpoints pour chaque ballon.
  */
-func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, base *db.Env) error {
+func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon.All_ball, base *db.Env, Lst_Devices *devices.All_Devices) error {
 	err := Tab_wd.Update_weather_data()
 	if err != nil {
 		fmt.Println(err)
@@ -151,6 +152,14 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	//		return err
 	//	} else {
 	//		Lst_ball.Print_all_balls()
+	//	}
+	Lst_Devices.Dlist = list.New()
+	//	err = Lst_Devices.Get_devices(Lst_users, base)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return err
+	//	} else {
+	//		Lst_Devices.Print_all_devices()
 	//	}
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
@@ -319,11 +328,12 @@ func main() {
 	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
 	Lst_ball := new(ballon.All_ball)
+	Lst_Devices := new(devices.All_Devices)
 	myDb := new(db.Env)
 
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
-	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb)
+	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb, Lst_Devices)
 	if err != nil {
 		return
 	}
@@ -331,7 +341,7 @@ func main() {
 
 	request.Init_handle_request()
 	go http.ListenAndServe(":8080", nil)
-	go sock.Listen(Lst_users, Lst_ball, Tab_wd, Db)
+	go sock.Listen(Lst_users, Lst_ball, Tab_wd, Db, Lst_Devices)
 
 	for {
 		time.Sleep(time.Second * 60)

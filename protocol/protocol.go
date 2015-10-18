@@ -65,8 +65,8 @@ type Send_ball struct {
 }
 
 type Log struct {
-	Email [320]byte
-	Pswd  [512]byte
+	Email string
+	Pswd  string
 }
 
 //iddevice int64 // Deviendra une string ou un buffer ..
@@ -75,7 +75,7 @@ type Request struct {
 	Rtype    int16
 	Nbrpck   int32
 	Numpck   int32
-	IdMobile [40]byte
+	IdMobile string
 	//	Deviceid int64
 	Coord Position
 	Spec  interface{}
@@ -156,17 +156,21 @@ func Request_sendball(TypBuff *bytes.Buffer) (ball Send_ball, er error) {
 
 func Request_Log(TypBuff *bytes.Buffer) (log Log, er error) {
 	var err error
+	var email [320]byte
+	var pswd [512]byte
 
-	err = binary.Read(TypBuff, binary.BigEndian, &log.Email)
+	err = binary.Read(TypBuff, binary.BigEndian, &email)
 	if err != nil {
 		er = errors.New("Get_sendball in protocol: Error binary.Read")
 		return log, er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &log.Pswd)
+	log.Email = string(email[:320])
+	err = binary.Read(TypBuff, binary.BigEndian, &pswd)
 	if err != nil {
 		er = errors.New("Get_sendball in protocol: Error binary.Read")
 		return log, er
 	}
+	log.Pswd = string(pswd[:512])
 	return log, er
 }
 
@@ -176,6 +180,7 @@ func Request_Log(TypBuff *bytes.Buffer) (log Log, er error) {
  */
 func (token *Request) Get_request(buff []byte) (er error) {
 	TypBuff := bytes.NewBuffer(buff)
+	var IdMobile [40]byte
 
 	er = nil
 	err := binary.Read(TypBuff, binary.BigEndian, &token.Octets)
@@ -199,12 +204,13 @@ func (token *Request) Get_request(buff []byte) (er error) {
 		er = errors.New("Get_request in protocol: Error binary.Read")
 		return er
 	}
-	err = binary.Read(TypBuff, binary.BigEndian, &token.IdMobile)
+	err = binary.Read(TypBuff, binary.BigEndian, &IdMobile)
 	if err != nil {
 		er = errors.New("Get_request in protocol: Error binary.Read")
 		return er
 	}
-	TypBuff.Next(32)
+	token.IdMobile = string(IdMobile[:40])
+	//	TypBuff.Next(32)
 	err = binary.Read(TypBuff, binary.BigEndian, &token.Coord.Lon)
 	if err != nil {
 		er = errors.New("Get_position in protocol: Error binary.Read")

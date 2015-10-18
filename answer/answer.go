@@ -109,13 +109,14 @@ type Packet struct {
 }
 
 type Data struct {
-	Lst_req   *list.List /* Value: (*protocol.Request) which defines list request */
-	Lst_asw   *list.List /* Value: ([]byte) which defines list answer */
-	Lst_ball  *ballon.All_ball
-	Lst_users *users.All_users
-	Logged    int16
-	Device    *list.Element /* *list.Element.Value.(*device.device) */
-	User      *list.Element /* Value: (*users.User) */
+	Lst_req     *list.List /* Value: (*protocol.Request) which defines list request */
+	Lst_asw     *list.List /* Value: ([]byte) which defines list answer */
+	Lst_ball    *ballon.All_ball
+	Lst_users   *users.All_users
+	Lst_devices *devices.All_Devices
+	Logged      int16
+	Device      *list.Element /* *list.Element.Value.(*device.device) */
+	User        *list.Element /* Value: (*users.User) */
 }
 
 /* Cut one string in two news strings */
@@ -256,7 +257,7 @@ func Write_conn(plist *list.List) (alist *list.List) {
 }
 
 /* Write_type_Ack */
-func Manage_ack(Type int16, IdMobile int64, IdBallon int64, value int32) (answer []byte) {
+func Manage_ack(Type int16, IdBallon int64, value int32) (answer []byte) {
 	tpack := Packet{}
 
 	tpack.head.octets = int16(32)
@@ -457,7 +458,7 @@ func (Data *Data) Manage_update(request *list.Element) {
 		Lst_answer := Write_contentball(ball, UPDATE)
 		Data.Lst_asw.PushBackList(Lst_answer)
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -516,11 +517,11 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			Data.Lst_asw.PushBackList(Lst_answer)
 			ball.Clearcheckpoint()
 		} else {
-			answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+			answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 			Data.Lst_asw.PushBack(answer)
 		}
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -534,12 +535,12 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	}
 	var answer []byte
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == false {
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 		eball.Value.(*ballon.Ball).Edited = true
 		eball.Value.(*ballon.Ball).Followers.PushBack(Data.User)
 		Data.User.Value.(*users.User).Followed.PushBack(eball)
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -558,10 +559,10 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
 		eball.Value.(*ballon.Ball).Edited = true
 		Data.User.Value.(*users.User).Followed.Remove(eball)
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -599,10 +600,10 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		Data.User.Value.(*users.User).Followed.PushBack(eball)
 		Data.User.Value.(*users.User).NbrBallSend++
-		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, ball.Id_ball, int32(1))
+		answer := Manage_ack(rqt.Rtype, ball.Id_ball, int32(1))
 		Data.Lst_asw.PushBack(answer)
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Deviceid, 0, int32(0))
+		answer := Manage_ack(rqt.Rtype, 0, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -620,9 +621,9 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		checkpoint.Coord.Lat = rqt.Coord.Lat
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, eball.Value.(*ballon.Ball).Id_ball, int32(1))
+		answer = Manage_ack(rqt.Rtype, eball.Value.(*ballon.Ball).Id_ball, int32(1))
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Deviceid, rqt.Spec.(protocol.Send_ball).Id, int32(0))
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Send_ball).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -653,41 +654,42 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	Data.Lst_asw.PushBack(answer)
 }
 
-func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.List) (er error) {
+func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices.All_Devices) (er error) {
 	req := request.Value.(protocol.Request)
 	er = nil
 	flag := true
+	var answer []byte
 
 	if req.Rtype != TYPELOG {
 		er = errors.New("Bad type to Manage_Login")
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		answer = Manage_ack(TYPELOG, 0, int32(0))
 	} else {
 		if Data.Device == nil {
-			Data.Device, er = Dlist.GetDevice(Etoken, Db)
+			Data.Device, er = Dlist.GetDevice(request, Db, Data.Lst_users)
 		}
 		if er == nil {
-			device := Data.Device.Value.(*list.Element).Value.(*device.Device)
-			if Compare(req.Spec.Log.Email, [320]byte) == 0 {
-				Data.Logged == DEFAULTUSER
+			device := Data.Device.Value.(*list.Element).Value.(*devices.Device)
+			if len(req.Spec.(protocol.Log).Email) <= 1 {
+				Data.Logged = DEFAULTUSER
 				Data.User = device.UserDefault
 			} else {
-				Data.User = Data.Lst_users.SearchUserToDevice(Etoken, Db, device.Historic)
+				//				Data.User = Data.Lst_users.SearchUserToDevice(request, Db, device.Historic)
 				if Data.User == nil {
 					flag = false
-					Data.Logged == DEFAULTUSER
+					Data.Logged = DEFAULTUSER
 					device.UserSpec = nil
 					Data.User = device.UserDefault
 				} else {
-					Data.Logged == USERLOGGED
+					Data.Logged = USERLOGGED
 					device.UserSpec = Data.User
 					device.AddUserSpecOnHistory(Data.User)
 				}
 			}
 		}
 		if er != nil || flag == false {
-			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+			answer = Manage_ack(TYPELOG, 0, int32(0))
 		} else {
-			answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+			answer = Manage_ack(TYPELOG, 0, int32(1))
 		}
 	}
 	Data.Lst_asw.PushBack(answer)
@@ -697,21 +699,28 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *list.Li
 func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
 	req := request.Value.(protocol.Request)
 	er = nil
-	user := new(users.User)
+	User := new(users.User)
+	var answer []byte
 
-	if CheckValidMail(req.Spec.(protocol.Log).Email) == true {
-		user.MAil = req.Spec.(protocol.Log).Email
-		user.NbrBallSend = 0
-		user.Coord.Lon = req.Coord.Lon
-		user.Coord.Lat = req.Coord.Lat
-		user.Followed = list.New()
-		user.Possessed = list.New()
-		user.HistoricReq = list.New()
-		eUser = Data.Lst_users.Add_new_user(user, db)
-		Data.Device.Value.(*Device).Historic.PushFront(eUser)
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+	if users.CheckValidMail(req.Spec.(protocol.Log).Email) == true {
+		User.Mail = req.Spec.(protocol.Log).Email
+		User.NbrBallSend = 0
+		User.Coord.Lon = req.Coord.Lon
+		User.Coord.Lat = req.Coord.Lat
+		User.Followed = list.New()
+		User.Possessed = list.New()
+		User.HistoricReq = list.New()
+		flag, err := Data.Lst_users.Add_new_user(User, Db, req.Spec.(protocol.Log).Pswd)
+		er = err
+		if flag == true {
+			eUser := Data.Lst_users.Ulist.PushFront(User)
+			Data.Device.Value.(*devices.Device).Historic.PushFront(eUser)
+			answer = Manage_ack(TYPELOG, 0, int32(1))
+		} else {
+			answer = Manage_ack(TYPELOG, 0, int32(0))
+		}
 	} else {
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		answer = Manage_ack(TYPELOG, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
@@ -720,10 +729,11 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 func AddFollowed(euser *list.Element, euserDefault *list.Element) {
 	user := euser.Value.(*users.User)
 	userDefault := euserDefault.Value.(*users.User)
+	var tball *list.Element
 
 	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
-		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+		for tball = user.Followed.Front(); tball != nil; tball.Next() {
 			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
 			if idball == ball.Id_ball {
 				break
@@ -739,6 +749,7 @@ func AddFollowed(euser *list.Element, euserDefault *list.Element) {
 func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 	user := euser.Value.(*users.User)
 	userDefault := euserDefault.Value.(*users.User)
+	var tball *list.Element
 
 	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
@@ -760,8 +771,10 @@ func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
 	er = nil
 	req := request.Value.(protocol.Request)
+	var answer []byte
+
 	if Data.Logged == USERLOGGED {
-		device := Data.Device.Value.(*Device)
+		device := Data.Device.Value.(*devices.Device)
 		user := Data.User.Value.(*list.Element).Value.(*users.User)
 		userDefault := device.UserDefault.Value.(*users.User)
 		user.NbrBallSend += userDefault.NbrBallSend
@@ -769,25 +782,26 @@ func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er erro
 		user.Coord.Lat = req.Coord.Lat
 		user.Log = time.Now()
 		AddFollowed(device.UserSpec, device.UserDefault)
-		GetPossessed(device.User, device.UserDefault)
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+		GetPossessed(device.UserSpec, device.UserDefault)
+		answer = Manage_ack(TYPELOG, 0, int32(1))
 	} else {
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		answer = Manage_ack(TYPELOG, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
 }
 
 func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
-	device := Data.Device.Value.(*Device)
+	device := Data.Device.Value.(*devices.Device)
+	var answer []byte
 
 	if Data.Logged == USERLOGGED {
 		Data.User.Value.(*users.User).Log = time.Now()
 		Data.User = device.UserDefault
 		device.UserSpec = nil
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(1))
+		answer = Manage_ack(TYPELOG, 0, int32(1))
 	} else {
-		answer = Manage_ack(TYPELOG, rqt.Deviceid, 0, int32(0))
+		answer = Manage_ack(TYPELOG, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
@@ -803,7 +817,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	if request == nil {
 		er = errors.New("Get answer, but no request.")
 	} else if Data.Logged == UNKNOWN {
-		er = Data.Manage_Login(request, Db) // Get device et user
+		er = Data.Manage_Login(request, Db, Data.Lst_devices) // Get device et user
 	} else {
 		if er == nil {
 			switch request.Value.(*protocol.Request).Rtype {
@@ -829,7 +843,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 				Data.Manage_itinerary(request, Tab_wd)
 			case ACK:
 			case TYPELOG:
-				er = Data.Manage_Login(request, Db)
+				er = Data.Manage_Login(request, Db, Data.Lst_devices)
 			case CREATEACCOUNT:
 				er = Data.Manage_CreateAccount(request, Db) // Get device et user on new connection.
 			case SYNCROACCOUNT:
@@ -848,9 +862,9 @@ func (Data *Data) Get_aknowledgement(Lst_usr *users.All_users) (answer []byte) {
 	treq := elem.Value.(*protocol.Request)
 
 	if treq.Rtype == NEW_BALL {
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, 0, int32(1))
+		answer = Manage_ack(treq.Rtype, 0, int32(1))
 	} else {
-		answer = Manage_ack(treq.Rtype, treq.Deviceid, treq.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Manage_ack(treq.Rtype, treq.Spec.(protocol.Ballid).Id, int32(1))
 	}
 	return answer
 }

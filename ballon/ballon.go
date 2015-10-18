@@ -300,7 +300,7 @@ func Print_users_follower(ulist *list.List) {
 	for euser != nil {
 		user := euser.Value.(*list.Element).Value.(*users.User)
 		fmt.Println("User ...")
-		fmt.Println(user.Device)
+		fmt.Println(user.Mail)
 		euser = euser.Next()
 	}
 }
