@@ -179,20 +179,60 @@ func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool,
 	return executed, err
 }
 
+func (e *userError) Error() string {
+	return fmt.Sprintf("%s - %v", e.prob, e.err)
+}
+
 /**
 * Insert new user to wibo_base
-*	TODO: imput verification
+*	constrain valid_mail(text) default verification
+* query to check if mail is already registered
 **/
 
-func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) {
+func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB) (bool, error) {
 	var err error
-	tblname := "user"
-	_, err = Db.Exec(
-		fmt.Sprintf(
-			"INSERT INTO \"%s\"(id_type_g, groupname, login, password, salt, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", tblname),
-		1, "particulier", new_user.Login, new_user.Password, "saltTest", time.Now(), time.Now(), new_user.Mail)
-	checkErr(err)
-	return
+	if len(new_user.Password) > 0 {
+		/* really danger below */
+		new_user.Password = "ThisIsAPasswordDefault2015OP"
+	}
+	bpass, err := bcrypt.GenerateFromPassword([]byte(new_user.Password), 15)
+	if err != nil {
+		return false, &userError{"Error add new user", err}
+	}
+
+	if len(new_user.Mail) > 0 {
+		if valid.IsEmail(new_user.Mail) != true {
+			return false, errors.New("Wrong mail format")
+		}
+	}
+	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, 	$6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+/*
+Insert user default
+	insert a user with default data
+*/
+func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
+	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
+	if err != nil {
+		return nil
+	}
+	rows, err := Db.Query(
+		"INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now())
+	if err != nil {
+		return nil
+	}
+	for rows.Next() {
+		var IdUserDefault int64
+		err = rows.Scan(&IdUserDefault)
+		Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
+	}
+
+	return Lst_users.Ulist.Back()
 }
 
 /**
