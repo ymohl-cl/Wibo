@@ -26,6 +26,7 @@ import (
 	"time"
 )
 
+// Struct to define interval time in updateTicker()
 const (
 	INTERVAL_PERIOD time.Duration = 24 * time.Hour
 	HOUR_TO_TICK    int           = 00
