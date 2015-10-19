@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -165,6 +166,7 @@ func Request_Log(TypBuff *bytes.Buffer) (log Log, er error) {
 		return log, er
 	}
 	log.Email = string(email[:320])
+	log.Email = strings.Trim(log.Email, "\x00")
 	err = binary.Read(TypBuff, binary.BigEndian, &pswd)
 	if err != nil {
 		er = errors.New("Get_sendball in protocol: Error binary.Read")
@@ -210,7 +212,7 @@ func (token *Request) Get_request(buff []byte) (er error) {
 		return er
 	}
 	token.IdMobile = string(IdMobile[:40])
-	//	TypBuff.Next(32)
+	token.IdMobile = strings.Trim(token.IdMobile, "\x00")
 	err = binary.Read(TypBuff, binary.BigEndian, &token.Coord.Lon)
 	if err != nil {
 		er = errors.New("Get_position in protocol: Error binary.Read")

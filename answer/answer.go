@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -655,7 +656,7 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 }
 
 func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices.All_Devices) (er error) {
-	req := request.Value.(protocol.Request)
+	req := request.Value.(*protocol.Request)
 	er = nil
 	flag := true
 	var answer []byte
@@ -668,7 +669,7 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			Data.Device, er = Dlist.GetDevice(request, Db, Data.Lst_users)
 		}
 		if er == nil {
-			device := Data.Device.Value.(*list.Element).Value.(*devices.Device)
+			device := Data.Device.Value.(*devices.Device)
 			if len(req.Spec.(protocol.Log).Email) <= 1 {
 				Data.Logged = DEFAULTUSER
 				Data.User = device.UserDefault
@@ -692,12 +693,14 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			answer = Manage_ack(TYPELOG, 0, int32(1))
 		}
 	}
+	// block ?
+	fmt.Println("Fin de manage Login")
 	Data.Lst_asw.PushBack(answer)
 	return er
 }
 
 func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er error) {
-	req := request.Value.(protocol.Request)
+	req := request.Value.(*protocol.Request)
 	er = nil
 	User := new(users.User)
 	var answer []byte
@@ -712,16 +715,25 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 		User.HistoricReq = list.New()
 		flag, err := Data.Lst_users.Add_new_user(User, Db, req.Spec.(protocol.Log).Pswd)
 		er = err
+		if err != nil {
+			fmt.Println("Add_new_user pas content")
+			fmt.Println(err)
+		}
 		if flag == true {
+			fmt.Println("FLAG TRUE !")
 			eUser := Data.Lst_users.Ulist.PushFront(User)
 			Data.Device.Value.(*devices.Device).Historic.PushFront(eUser)
-			answer = Manage_ack(TYPELOG, 0, int32(1))
+			answer = Manage_ack(CREATEACCOUNT, 0, int32(1))
 		} else {
-			answer = Manage_ack(TYPELOG, 0, int32(0))
+			fmt.Println("FLAG FLASE !")
+			answer = Manage_ack(CREATEACCOUNT, 0, int32(0))
 		}
 	} else {
-		answer = Manage_ack(TYPELOG, 0, int32(0))
+		fmt.Println("WHY ?")
+		answer = Manage_ack(CREATEACCOUNT, 0, int32(0))
 	}
+	fmt.Println("err:")
+	fmt.Println(er)
 	Data.Lst_asw.PushBack(answer)
 	return er
 }
@@ -770,7 +782,7 @@ func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
 	er = nil
-	req := request.Value.(protocol.Request)
+	req := request.Value.(*protocol.Request)
 	var answer []byte
 
 	if Data.Logged == USERLOGGED {
@@ -783,9 +795,9 @@ func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er erro
 		user.Log = time.Now()
 		AddFollowed(device.UserSpec, device.UserDefault)
 		GetPossessed(device.UserSpec, device.UserDefault)
-		answer = Manage_ack(TYPELOG, 0, int32(1))
+		answer = Manage_ack(SYNCROACCOUNT, 0, int32(1))
 	} else {
-		answer = Manage_ack(TYPELOG, 0, int32(0))
+		answer = Manage_ack(SYNCROACCOUNT, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
@@ -799,9 +811,9 @@ func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
 		Data.User.Value.(*users.User).Log = time.Now()
 		Data.User = device.UserDefault
 		device.UserSpec = nil
-		answer = Manage_ack(TYPELOG, 0, int32(1))
+		answer = Manage_ack(DELOG, 0, int32(1))
 	} else {
-		answer = Manage_ack(TYPELOG, 0, int32(0))
+		answer = Manage_ack(DELOG, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er

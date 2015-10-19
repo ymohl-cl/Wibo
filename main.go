@@ -173,12 +173,12 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	check_test1.Coord.Lat = 48.833586
 	check_test1.Date = time.Now()
 	var check_test2 ballon.Checkpoint
-	check_test2.Coord.Lon = 2.3080777
-	check_test2.Coord.Lat = 48.910253
+	check_test2.Coord.Lon = 2.30810777
+	check_test2.Coord.Lat = 48.919253
 	check_test2.Date = time.Now()
 	var check_test3 ballon.Checkpoint
-	check_test3.Coord.Lon = 2.3080211
-	check_test3.Coord.Lat = 48.910361
+	check_test3.Coord.Lon = 2.3088211
+	check_test3.Coord.Lat = 48.918361
 	check_test3.Date = time.Now()
 	var check_test4 ballon.Checkpoint
 	check_test4.Coord.Lon = 2.316045

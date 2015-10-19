@@ -122,12 +122,30 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 
 func CheckValidMail(email string) bool {
-	return true
+	tmp := valid.IsEmail(email)
+	if tmp == true {
+		fmt.Println("Email ok:")
+	} else {
+		fmt.Println("Email KO:")
+	}
+	fmt.Println(email)
+	return tmp
 }
 
 func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Element {
-	// if pass is OK return user
-	// else return NULL
+	var err error
+	passb := []byte(pass)
+	rows, err := Db.Query("SELECT id_user, mail, bpass FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	for rows.Next() {
+		var idUser int64
+		var mailq string
+		var bpass []byte
+		err = rows.Scan(&idUser, &mailq, bpass)
+		checkErr(err)
+		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
+			return nil
+		}
+	}
 	return user
 }
 
@@ -170,9 +188,9 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 			return false, errors.New("Wrong mail format")
 		}
 	}
-	//	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6);", 1, "particulier", bpass, time.Now(), time.Now(), new_user.Mail)
 
-	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Mail, bpass, time.Now(), time.Now(), new_user.Mail)
+	//	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, creationdate, mail) VALUES ($1, $2, $3, $4, $5);", 1, "particulier", new_user.Mail, bpass, time.Now(), time.Now(), new_user.Mail)
 	if err != nil {
 		return false, err
 	}
@@ -186,20 +204,23 @@ Insert user default
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
 	if err != nil {
+		fmt.Println("Error crypt")
+		fmt.Println(err)
 		return nil
 	}
 	rows, err := Db.Query(
-		"INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now())
+		"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, time.Now(), time.Now())
 	if err != nil {
+		fmt.Println("Error insert")
+		fmt.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
-		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault})
+		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault, Followed: list.New(), Possessed: list.New(), HistoricReq: list.New()})
 		//Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
 	}
-
 	return Lst_users.Ulist.Back()
 }
 
@@ -305,7 +326,8 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 
 	var err error
 	lUser := list.New()
-	rows, err := Db.Query("SELECT id_user, login, mail, password FROM \"user\";")
+	//	rows, err := Db.Query("SELECT id_user, login, mail, password FROM \"user\";")
+	rows, err := Db.Query("SELECT id_user, mail, password FROM \"user\";")
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64

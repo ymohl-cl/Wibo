@@ -3,9 +3,11 @@ package devices
 import (
 	"Wibo/protocol"
 	"Wibo/users"
+	//	"bytes"
 	"container/list"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -25,12 +27,13 @@ type All_Devices struct {
 }
 
 func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *users.All_users) (dvc *list.Element, er error) {
-	req := request.Value.(protocol.Request)
+	req := request.Value.(*protocol.Request)
 	ed := Devices.Dlist.Front()
 	er = nil
 
 	if len(req.IdMobile) == 1 {
 		er = errors.New("Id mobile bad format")
+		fmt.Println(er)
 		return nil, er
 	}
 	for ed != nil && strings.Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
@@ -38,7 +41,11 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *
 	}
 	if ed == nil {
 		ed, er = Devices.AddDeviceOnBdd(req.IdMobile, Ulist, Db)
+		if er != nil {
+			fmt.Println("Echec add device on bdd")
+		}
 	}
+	fmt.Println(er)
 	return ed, er
 }
 
@@ -68,17 +75,25 @@ func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db
 	newDevice.Historic = list.New()
 	newDevice.Id = Id
 	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db)
+	if newDevice.UserDefault == nil {
+		return nil, errors.New("Add new default user not permission")
+	}
+	newDevice.IdUserDefault = newDevice.UserDefault.Value.(*users.User).Id
 	if err != nil {
 		return nil, err
 	}
 	newDevice.UserSpec = nil
-	rows, err := Db.Query("INSERT INTO device (id_type_d, typename, idclient, user_id_user) VALUES ($1, $2, $3, $4) RETURNING id;", 1, "device_default", newDevice.Id, newDevice.UserDefault.Value.(*users.User).Id)
+	rows, err := Db.Query("INSERT INTO device (id_type_d, typename, idclient, user_id_user) VALUES ($1, $2, $3, $4) RETURNING id;", 1, "device_default", newDevice.Id, newDevice.IdUserDefault)
 	if err != nil {
+		fmt.Println("Db query pas content")
+		fmt.Println(err)
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&newDevice.IdUserDefault)
+		err = rows.Scan(&newDevice.Idbdd)
 		if err != nil {
+			fmt.Println("Rows scan pas content")
+			fmt.Println(err)
 			return nil, err
 		}
 	}

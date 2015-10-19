@@ -97,7 +97,12 @@ func handleConnection(conn net.Conn, Lst_users *users.All_users, Lst_ball *ballo
 			if Data.Check_lstrequest() == true {
 				err = Data.Get_answer(Tab_wd, Db)
 				if err != nil {
+					fmt.Println("err is differ to nil")
 					fmt.Println(err)
+					Front := Data.Lst_asw.Front()
+					//fmt.Println("Answer sending:")
+					fmt.Println(Front.Value.([]byte))
+					size, err = conn.Write(Front.Value.([]byte))
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
