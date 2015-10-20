@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-//type Device struct {
-//	IdMobile    int64      /* type int64 is temporary */
-//	History_req *list.List /* Value: History */
-//}
-
 /**
 ** Date est la date a laquelle la requete a ete effectue.
 ** Type_req_client et le type de requete effectue.
@@ -26,35 +21,40 @@ type History struct {
 	Type_req_client int16
 }
 
-/**
-** -type Device
-** IdMobile est l'identifiant unique du mobile.
-** Pour le moment le format exact de l'IdMobile est inconnu.
-** History_req est une liste qui sera l'historique des requetes du client
-** depuis ce device.
-**/
 type Coordinate struct {
 	Lon float64
 	Lat float64
 }
 
+type StatsUser struct {
+	CreationDate  time.Time /* Date de creation set par le serveur */
+	NbrBallCreate int64     /* Nombre de ballon cree par l'user */
+	NbrCatch      int64     /* Nombre de ballon catche par l'user */
+	NbrSend       int64     /* Nombre de ballon envoye par l'user */
+	NbrFollow     int64     /* Nombre de ballon Follow par l'user */
+	NbrMessage    int64     /* Nombre de message ecris par l'user */
+}
+
 type User struct {
-	Id int64
-	//	Login string Not use, not login
-	Mail string
-	//	Password    string // pas utile car la comparaison sera faite avec la bdd
-	NbrBallSend int
-	Coord       Coordinate
-	//	Device      *list.List /* Value: Device */
-	Log         time.Time  /*Date of the last query */
+	Id          int64      /* Id bdd de l'user set par la base de donnee */
+	Mail        string     /* Mail de l'user */
+	NbrBallSend int        /** Nombre de ballon envoye le meme jour */
+	Coord       Coordinate /* Interface Coord pour connaitre la position de l'user */
+	Log         time.Time  /** Date of the last query doned by user: Peut devenir deprecated */
 	Followed    *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
-	HistoricReq *list.List /* list History */
+	HistoricReq *list.List /* Liste d'interface History, compose l'historique des requetes utilisateurs */
+	Stats       *StatsUser /* Interface Stats, Statistique de la vie du ballon */
+	/* Les valeurs suivantes sont deprecated */
+	//Device      *list.List /* Value: Device */
+	//Password    string // pas utile car la comparaison sera faite avec la bdd
+	//Login string Not use, not login
 }
 
 type All_users struct {
-	Ulist  *list.List
-	Id_max int64
+	Ulist *list.List
+	//Id_max int64
+	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 }
 
 type userError struct {

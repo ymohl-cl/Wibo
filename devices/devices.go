@@ -14,12 +14,12 @@ import (
 /* *list.Element.Value.(*users.User) */
 /* Historic to user historic logged on this device */
 type Device struct {
-	Idbdd         int64
-	Id            string
-	IdUserDefault int64
-	UserDefault   *list.Element
-	UserSpec      *list.Element
-	Historic      *list.List
+	Idbdd         int64         /* Idbdd */
+	Id            string        /* Chaine de 40 octets pour l'identification unique device */
+	IdUserDefault int64         /* Id de la bdd user, du user default */
+	UserDefault   *list.Element /* User default device */
+	UserSpec      *list.Element /** User specifique compte existant */
+	Historic      *list.List    /* Liste de *list.Element.Value.(users.User) qui se sont deja connecte depuis ce device. Le user Default est exclu */
 }
 
 type All_Devices struct {

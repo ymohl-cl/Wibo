@@ -59,19 +59,29 @@ type Wind struct {
 	Degress float64
 }
 
+type StatsBall struct {
+	CreationDate time.Time   /* Date de creation, set par le serveur */
+	CoordCreated *Coordinate /* Lieu de creation */
+	Nbrkm        float64     /* Nombre de kilometre parcourus */
+	NbrFollow    int64       /* Nombre de personne qui follow le ballon */
+	NbrCatch     int64       /* Nombre de fois ou le ballon a ete attrappe. */
+	NbrMagnet    int64       /* Nombre de fois ou le ballon a ete aimante */
+}
+
 type Ball struct {
-	Id_ball     int64
-	Title       string
-	Coord       *list.Element
-	Idball      int64
-	Edited      bool
-	Wind        Wind
-	Messages    *list.List    /* Value: Message */
-	Date        time.Time     /* creation date */
-	Checkpoints *list.List    /* list checkpoints's ball a five minutes inteval */
-	Possessed   *list.Element /* Value: (*users.User) */
-	Followers   *list.List    /* Value: *list.Element.Value.(*users.User) */
-	Creator     *list.Element /* Value: (*users.User) */
+	Id_ball int64         /* Id de la base de donnee, defini par le serveur */
+	Title   string        /* Titre du ballon */
+	Coord   *list.Element /* Interface coordonnee, stocke les coordonnees */
+	//	Idball      int64         /** Idball -- deprecated a supprimer */
+	Edited      bool          /** Edited, Flag de modification (ne tiens pas compte des changement dans Coord et Checkpoints) */
+	Wind        Wind          /* Interface Wind, stocke les donnees des vents */
+	Messages    *list.List    /* Liste d'interface Message: Contenu du message, l'id 0 est le message de creation du ballon */
+	Date        time.Time     /* Creation date, set par le serveur */
+	Checkpoints *list.List    /** Liste interface checkpoints */
+	Possessed   *list.Element /* Value: (*users.User), user qui possede le ballon */
+	Followers   *list.List    /* List d'insterface *list.Element.Value.(*users.User), Constitue la liste des utilisateurs qui suivents le ballon */
+	Creator     *list.Element /* Value: (*users.User), user qui a creer le ballon */
+	Stats       *StatsBall    /* Interface Stats: Statistiques de la vie du ballon */
 }
 
 type All_ball struct {
