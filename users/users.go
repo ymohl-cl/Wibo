@@ -272,7 +272,6 @@ func checkErr(err error) {
 //func initUser(uid int64, login string, mail string) *User {
 func initUser(uid int64, mail string) *User {
 	t := new(User)
-	//t.Login = login
 	t.Id = uid
 	t.Mail = mail
 	return (t)
@@ -324,7 +323,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var pass string
 		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New()})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)

@@ -361,14 +361,16 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	$4 directionc float,
 	$5 speedc float,
 	$6 title text,
-	$7 idx integer)
+	$7 idx integer, 
+	$8 date)
 */
+
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
 	fmt.Printf("Insert  Id User %v | IdBall %v | \n", newBall.Creator.Value.(*users.User).Id, newBall.Id_ball)
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7)")
+		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		checkErr(err)
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
@@ -376,7 +378,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
-			newBall.Id_ball)
+			newBall.Id_ball,
+			newBall.Date)
 		for rs.Next() {
 			var idC int
 			err = rs.Scan(&idC)
@@ -489,7 +492,7 @@ func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) *list
 }
 
 func GetCurrentUserBall(LUser *list.List, idBall int, Db *sql.DB) *list.Element {
-	stm, err := Db.Prepare("SELECT idcurrentuser  FROM container WHERE id=($1)")
+	stm, err := Db.Prepare("SELECT idcurrentuser FROM container WHERE id=($1)")
 	checkErr(err)
 	rows, err := stm.Query(idBall)
 	checkErr(err)
@@ -517,7 +520,14 @@ func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Elemen
 /**
 * GetListBallsByUser
 * getContainersByUserId is a native psql function with
-* RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
+* RETURNS TABLE(
+			idballon integer, 
+			titlename varchar(255),
+			idtype integer, direction numeric,
+			speedcont integer,
+			creationdate date,
+			deviceid integer,
+			locationcont text)
  */
 
 func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist *list.List) *list.List {
