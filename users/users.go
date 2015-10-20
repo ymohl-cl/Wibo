@@ -55,6 +55,7 @@ type All_users struct {
 	Ulist *list.List
 	//Id_max int64
 	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
+	NbrUsers   int64
 }
 
 type userError struct {

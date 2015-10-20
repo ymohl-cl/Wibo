@@ -327,6 +327,7 @@ func main() {
 	var err error
 	Tab_wd := new(owm.All_data)
 	Lst_users := new(users.All_users)
+	Lst_users.GlobalStat = new(users.StatsUser)
 	Lst_ball := new(ballon.All_ball)
 	Lst_Devices := new(devices.All_Devices)
 	myDb := new(db.Env)

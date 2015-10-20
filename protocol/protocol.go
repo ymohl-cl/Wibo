@@ -21,22 +21,25 @@ import (
 )
 
 const (
-	_             = iota
-	ACK           = 32767
-	SYNC          = 1
-	MAJ           = 2
-	POS           = 3
-	TAKEN         = 4
-	FOLLOW_ON     = 5
-	FOLLOW_OFF    = 6
-	NEW_BALL      = 7
-	SEND_BALL     = 8
-	MAGNET        = 9
+	_          = iota
+	ACK        = 32767
+	SYNC       = 1
+	MAJ        = 2
+	POS        = 3
+	TAKEN      = 4
+	FOLLOW_ON  = 5
+	FOLLOW_OFF = 6
+	NEW_BALL   = 7
+	SEND_BALL  = 8
+	MAGNET     = 9
+	// Itinerary is depreacated
 	ITINERARY     = 10
 	TYPELOG       = 11
 	CREATEACCOUNT = 12
 	SYNCROACCOUNT = 13
 	DELOG         = 14
+	STATSUSER     = 15
+	STATSBALL     = 16
 )
 
 type Ack struct {
@@ -51,6 +54,11 @@ type Position struct {
 
 type Ballid struct {
 	Id int64
+}
+
+type Taken struct {
+	Id         int64
+	FlagMagnet int16
 }
 
 type New_ball struct {
@@ -95,6 +103,19 @@ func Request_ack(TypBuff *bytes.Buffer) (ack Ack, er error) {
 		return ack, er
 	}
 	return ack, er
+}
+
+func Request_taken(TypBuff *bytes.Buffer) (tkn Taken, er error) {
+	err := binary.Read(TypBuff, binary.BigEndian, &tkn.Id)
+	if err != nil {
+		return tkn, err
+	}
+	err = binary.Read(TypBuff, binary.BigEndian, &tkn.FlagMagnet)
+	if err != nil {
+		return tkn, err
+	}
+	TypBuff.Next(6)
+	return tkn, err
 }
 
 /* Decode types MAJ, TAKEN, FOLLOW_ON, and FOLLOW_OFF */
@@ -226,9 +247,11 @@ func (token *Request) Get_request(buff []byte) (er error) {
 	switch token.Rtype {
 	case SYNC:
 		return er
-	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF, ITINERARY:
+	case MAJ, FOLLOW_ON, FOLLOW_OFF, ITINERARY, STATSBALL:
 		token.Spec, er = Request_idball(TypBuff)
 	case POS:
+	case TAKEN:
+		token.Spec, er = Request_taken(TypBuff)
 	case NEW_BALL:
 		token.Spec, er = Request_newball(TypBuff)
 	case SEND_BALL:
@@ -239,6 +262,7 @@ func (token *Request) Get_request(buff []byte) (er error) {
 		token.Spec, er = Request_Log(TypBuff)
 	case SYNCROACCOUNT:
 	case DELOG:
+	case STATSUSER:
 	}
 	return er
 }
@@ -257,9 +281,12 @@ func (token *Request) Print_token_debug() {
 	switch token.Rtype {
 	case SYNC:
 		fmt.Println("Data base synchronisation, type 1")
-	case MAJ, TAKEN, FOLLOW_ON, FOLLOW_OFF:
+	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
 		fmt.Println(token.Spec.(Ballid).Id)
 	case POS:
+	case TAKEN:
+		fmt.Println(token.Spec.(Taken).Id)
+		fmt.Println(token.Spec.(Taken).FlagMagnet)
 	case NEW_BALL:
 		fmt.Println(token.Spec.(New_ball).Title)
 		fmt.Println(token.Spec.(New_ball).Octets)
@@ -271,5 +298,6 @@ func (token *Request) Print_token_debug() {
 	case ACK:
 		fmt.Println(token.Spec.(Ack).Atype)
 		fmt.Println(token.Spec.(Ack).Status)
+	case STATSUSER:
 	}
 }

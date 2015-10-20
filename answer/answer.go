@@ -47,6 +47,8 @@ const (
 	CREATEACCOUNT = 12 // Creation d'un compte. // Confirmation par email en suspend
 	SYNCROACCOUNT = 13
 	DELOG         = 14 // Deconnexion d'un compte et retablissement de luser par defautl.
+	STATSUSER     = 15
+	STATSBALL     = 16
 	// DEFINE SERVER
 	CONN     = 1
 	INF_BALL = 2
@@ -517,12 +519,26 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			Lst_answer := Write_contentball(ball, TAKEN)
 			Data.Lst_asw.PushBackList(Lst_answer)
 			ball.Clearcheckpoint()
+			/* Begin Stats */
+			user.Stats.NbrCatch++
+			user.Stats.NbrFollow++
+			Data.Lst_users.GlobalStat.NbrCatch++
+			if ball.Followers.Len() == 1 {
+				Data.Lst_users.GlobalStat.NbrFollow++
+			}
+			ball.Stats.NbrCatch++
+			ball.Stats.NbrFollow++
+			ball.Stats.NbrKm += ball.AddStatsDistance(rqt.Coord.Lon, rqt.Coord.Lat)
+			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
+				ball.Stats.NbrMagnet++
+			}
+			/* End Stats */
 		} else {
-			answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
+			answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
 			Data.Lst_asw.PushBack(answer)
 		}
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -536,10 +552,16 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	}
 	var answer []byte
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == false {
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 		eball.Value.(*ballon.Ball).Edited = true
 		eball.Value.(*ballon.Ball).Followers.PushBack(Data.User)
-		Data.User.Value.(*users.User).Followed.PushBack(eball)
+		user := Data.User.Value.(*users.User)
+		user.Followed.PushBack(eball)
+		user.Stats.NbrFollow++
+		if eball.Value.(*ballon.Ball).Followers.Len() == 1 {
+			Data.Lst_users.GlobalStat.NbrFollow++
+		}
+		eball.Value.(*ballon.Ball).Stats.NbrFollow++
+		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 	} else {
 		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
@@ -559,7 +581,13 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
 		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
 		eball.Value.(*ballon.Ball).Edited = true
-		Data.User.Value.(*users.User).Followed.Remove(eball)
+		user := Data.User.Value.(*users.User)
+		user.Followed.Remove(eball)
+		user.Stats.NbrFollow--
+		if eball.Value.(*ballon.Ball).Followers.Len() == 0 {
+			Data.Lst_users.GlobalStat.NbrFollow--
+		}
+		eball.Value.(*ballon.Ball).Stats.NbrFollow--
 		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 
 	} else {
@@ -599,8 +627,23 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		checkpoint.Coord.Lat = rqt.Coord.Lat
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
-		Data.User.Value.(*users.User).Followed.PushBack(eball)
-		Data.User.Value.(*users.User).NbrBallSend++
+		user := Data.User.Value.(*users.User)
+		user.Followed.PushBack(eball)
+		user.NbrBallSend++
+		// Begin Stats
+		user.Stats.NbrMessage++
+		user.Stats.NbrBallCreate++
+		user.Stats.NbrSend++
+		user.Stats.NbrFollow++
+		Data.Lst_users.GlobalStat.NbrBallCreate++
+		Data.Lst_users.GlobalStat.NbrSend++
+		Data.Lst_users.GlobalStat.NbrFollow++
+		Data.Lst_users.GlobalStat.NbrMessage++
+		ball.Stats.CreationDate = time.Now()
+		ball.Stats.CoordCreated = new(ballon.Coordinate)
+		ball.Stats.CoordCreated.Lon = rqt.Coord.Lon
+		ball.Stats.CoordCreated.Lat = rqt.Coord.Lat
+		// End Stats
 		answer := Manage_ack(rqt.Rtype, ball.Id_ball, int32(1))
 		Data.Lst_asw.PushBack(answer)
 	} else {
@@ -622,6 +665,13 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		checkpoint.Coord.Lat = rqt.Coord.Lat
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		/* Begin stats ---- */
+		user := Data.User.Value.(*users.User)
+		user.Stats.NbrMessage++
+		user.Stats.NbrSend++
+		Data.Lst_users.GlobalStat.NbrSend++
+		Data.Lst_users.GlobalStat.NbrMessage++
+		/* End Stats --- */
 		answer = Manage_ack(rqt.Rtype, eball.Value.(*ballon.Ball).Id_ball, int32(1))
 	} else {
 		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Send_ball).Id, int32(0))
@@ -723,6 +773,11 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 			fmt.Println("FLAG TRUE !")
 			eUser := Data.Lst_users.Ulist.PushFront(User)
 			Data.Device.Value.(*devices.Device).Historic.PushFront(eUser)
+			/* Begin Stats */
+			User.Stats = new(users.StatsUser)
+			User.Stats.CreationDate = time.Now()
+			Data.Lst_users.NbrUsers++
+			/* End Stats */
 			answer = Manage_ack(CREATEACCOUNT, 0, int32(1))
 		} else {
 			fmt.Println("FLAG FLASE !")
@@ -743,19 +798,25 @@ func AddFollowed(euser *list.Element, euserDefault *list.Element) {
 	userDefault := euserDefault.Value.(*users.User)
 	var tball *list.Element
 
-	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+	fmt.Println("AddFollowed")
+	for eball := userDefault.Followed.Front(); eball != nil; eball = eball.Next() {
+		fmt.Println("eball check")
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
-		for tball = user.Followed.Front(); tball != nil; tball.Next() {
+		for tball = user.Followed.Front(); tball != nil; tball = tball.Next() {
+			fmt.Println("tball followed")
 			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
 			if idball == ball.Id_ball {
+				fmt.Println("idball == ball.Id_ball")
 				break
 			}
 		}
 		if tball == nil {
-			user.Followed.PushFront(eball)
+			fmt.Println("tball == nil")
+			user.Followed.PushBack(eball.Value.(*list.Element))
 			ball.Followers.PushFront(euser)
 		}
 	}
+	fmt.Println("fin Add Followed")
 }
 
 func GetPossessed(euser *list.Element, euserDefault *list.Element) {
@@ -763,21 +824,27 @@ func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 	userDefault := euserDefault.Value.(*users.User)
 	var tball *list.Element
 
-	for eball := userDefault.Followed.Front(); eball != nil; eball.Next() {
+	fmt.Println("GetPossessed")
+	for eball := userDefault.Followed.Front(); eball != nil; eball = eball.Next() {
+		//		fmt.Println("eball found")
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
-		for tball := user.Followed.Front(); tball != nil; tball.Next() {
+		for tball := user.Followed.Front(); tball != nil; tball = tball.Next() {
+			//			fmt.Println("tball followed")
 			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
 			if idball == ball.Id_ball {
+				//				fmt.Println("idball == ball.Id_ball")
 				break
 			}
 		}
 		if tball == nil {
-			user.Followed.PushFront(eball)
-			ball.Followers.PushFront(euser)
-			user.Possessed.PushFront(eball)
+			//			fmt.Println("tball == nil")
+			//			user.Followed.PushFront(eball)
+			//			ball.Followers.PushFront(euser)
+			user.Possessed.PushFront(eball.Value.(*list.Element))
 			ball.Possessed = euser
 		}
 	}
+	fmt.Println("end GetPossessed")
 }
 
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
@@ -787,7 +854,7 @@ func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er erro
 
 	if Data.Logged == USERLOGGED {
 		device := Data.Device.Value.(*devices.Device)
-		user := Data.User.Value.(*list.Element).Value.(*users.User)
+		user := Data.User.Value.(*users.User)
 		userDefault := device.UserDefault.Value.(*users.User)
 		user.NbrBallSend += userDefault.NbrBallSend
 		user.Coord.Lon = req.Coord.Lon
@@ -862,6 +929,10 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 				er = Data.Manage_SyncAccount(request, Db) // Get device et user on new connection.
 			case DELOG:
 				Data.Manage_Delog(request, Db) // Get device et user on new connection.
+			case STATSUSER:
+				Data.Manage_StatUser(request, Db)
+			case STATSBALL:
+				Data.Manage_StatBall(request, Db)
 			}
 		}
 	}

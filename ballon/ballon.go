@@ -62,7 +62,7 @@ type Wind struct {
 type StatsBall struct {
 	CreationDate time.Time   /* Date de creation, set par le serveur */
 	CoordCreated *Coordinate /* Lieu de creation */
-	Nbrkm        float64     /* Nombre de kilometre parcourus */
+	NbrKm        float64     /* Nombre de kilometre parcourus */
 	NbrFollow    int64       /* Nombre de personne qui follow le ballon */
 	NbrCatch     int64       /* Nombre de fois ou le ballon a ete attrappe. */
 	NbrMagnet    int64       /* Nombre de fois ou le ballon a ete aimante */
@@ -88,6 +88,27 @@ type All_ball struct {
 	sync.RWMutex
 	Blist  *list.List /* Value: *Ball */
 	Id_max int64      /* Set by bdd and incremented by server */
+}
+
+func (ball *Ball) AddStatsDistance(lon_user float64, lat_user float64) float64 {
+	var r float64
+	r = 6371000
+	var a float64
+	var c float64
+	var d float64
+	var latdiff float64
+	var londiff float64
+
+	lonBall := ball.Coord.Value.(*Checkpoint).Coord.Lon
+	latBall := ball.Coord.Value.(*Checkpoint).Coord.Lon
+	latdiff = (lat_user - latBall) * (math.Pi / 180)
+	londiff = (lon_user - lonBall) * (math.Pi / 180)
+	latBall = latBall * (math.Pi / 180)
+	lat_user = lat_user * (math.Pi / 180)
+	a = math.Sin(latdiff/2)*math.Sin(latdiff/2) + math.Cos(lat_user)*math.Cos(latBall)*math.Sin(londiff/2)*math.Sin(londiff/2)
+	c = 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	d = r * c
+	return d / 100
 }
 
 func (ball *Ball) Print_list_checkpoints() {
@@ -255,6 +276,7 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 	for elem != nil {
 		ball := elem.Value.(*Ball)
 		if ball.Coord != nil {
+			statsCoord := ball.Coord.Value.(*Checkpoint).Coord
 			ball.Coord = ball.Coord.Next()
 			if ball.Coord != nil {
 				ball.Checkpoints.Remove(ball.Checkpoints.Front())
@@ -265,6 +287,7 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 					return err
 				}
 			}
+			ball.Stats.NbrKm += ball.AddStatsDistance(statsCoord.Lon, statsCoord.Lat)
 		}
 		elem.Value = ball
 		elem = elem.Next()
