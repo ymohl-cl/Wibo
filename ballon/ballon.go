@@ -358,23 +358,21 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	$1 idcreatorc integer,
 	$2 latitudec integer,
 	$3 longitudec integer,
-	$4 device integer,
-	$5 directionc float,
-	$6 speedc float,
-	$7 title text,
-	$8 idx integer)
+	$4 directionc float,
+	$5 speedc float,
+	$6 title text,
+	$7 idx integer)
 */
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
 	fmt.Printf("Insert  Id User %v | IdBall %v | \n", newBall.Creator.Value.(*users.User).Id, newBall.Id_ball)
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
+		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7)")
 		checkErr(err)
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
-			3, //newBall.Creator.Value.(*users.User).Device.Front().Value.(users.Device).IdMobile,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,

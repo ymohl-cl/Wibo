@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-//type Device struct {
-//	IdMobile    int64      /* type int64 is temporary */
-//	History_req *list.List /* Value: History */
-//}
-
 /**
 ** Date est la date a laquelle la requete a ete effectue.
 ** Type_req_client et le type de requete effectue.
@@ -26,35 +21,40 @@ type History struct {
 	Type_req_client int16
 }
 
-/**
-** -type Device
-** IdMobile est l'identifiant unique du mobile.
-** Pour le moment le format exact de l'IdMobile est inconnu.
-** History_req est une liste qui sera l'historique des requetes du client
-** depuis ce device.
-**/
 type Coordinate struct {
 	Lon float64
 	Lat float64
 }
 
+type StatsUser struct {
+	CreationDate  time.Time /* Date de creation set par le serveur */
+	NbrBallCreate int64     /* Nombre de ballon cree par l'user */
+	NbrCatch      int64     /* Nombre de ballon catche par l'user */
+	NbrSend       int64     /* Nombre de ballon envoye par l'user */
+	NbrFollow     int64     /* Nombre de ballon Follow par l'user */
+	NbrMessage    int64     /* Nombre de message ecris par l'user */
+}
+
 type User struct {
-	Id int64
-	//	Login string Not use, not login
-	Mail string
-	//	Password    string // pas utile car la comparaison sera faite avec la bdd
-	NbrBallSend int
-	Coord       Coordinate
-	//	Device      *list.List /* Value: Device */
-	Log         time.Time  /*Date of the last query */
+	Id          int64      /* Id bdd de l'user set par la base de donnee */
+	Mail        string     /* Mail de l'user */
+	NbrBallSend int        /** Nombre de ballon envoye le meme jour */
+	Coord       Coordinate /* Interface Coord pour connaitre la position de l'user */
+	Log         time.Time  /** Date of the last query doned by user: Peut devenir deprecated */
 	Followed    *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
-	HistoricReq *list.List /* list History */
+	HistoricReq *list.List /* Liste d'interface History, compose l'historique des requetes utilisateurs */
+	Stats       *StatsUser /* Interface Stats, Statistique de la vie du ballon */
+	/* Les valeurs suivantes sont deprecated */
+	//Device      *list.List /* Value: Device */
+	//Password    string // pas utile car la comparaison sera faite avec la bdd
+	//Login string Not use, not login
 }
 
 type All_users struct {
-	Ulist  *list.List
-	Id_max int64
+	Ulist *list.List
+	//Id_max int64
+	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 }
 
 type userError struct {
@@ -122,12 +122,30 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 
 func CheckValidMail(email string) bool {
-	return true
+	tmp := valid.IsEmail(email)
+	if tmp == true {
+		fmt.Println("Email ok:")
+	} else {
+		fmt.Println("Email KO:")
+	}
+	fmt.Println(email)
+	return tmp
 }
 
 func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Element {
-	// if pass is OK return user
-	// else return NULL
+	var err error
+	passb := []byte(pass)
+	rows, err := Db.Query("SELECT id_user, mail, bpass FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	for rows.Next() {
+		var idUser int64
+		var mailq string
+		var bpass []byte
+		err = rows.Scan(&idUser, &mailq, bpass)
+		checkErr(err)
+		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
+			return nil
+		}
+	}
 	return user
 }
 
@@ -170,9 +188,8 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 			return false, errors.New("Wrong mail format")
 		}
 	}
-	//	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Login, bpass, time.Now(), time.Now(), new_user.Mail)
+	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6);", 1, "particulier", bpass, time.Now(), time.Now(), new_user.Mail)
 
-	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, $7);", 1, "particulier", new_user.Mail, bpass, time.Now(), time.Now(), new_user.Mail)
 	if err != nil {
 		return false, err
 	}
@@ -186,20 +203,22 @@ Insert user default
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
 	if err != nil {
+		fmt.Println("Error crypt")
+		fmt.Println(err)
 		return nil
 	}
 	rows, err := Db.Query(
-		"INSERT INTO \"user\" (id_type_g, groupname, login, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6, make_uid()) RETURNING id_user;", 2, "user_default", "logDefault", bpass, time.Now(), time.Now())
+		"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, time.Now(), time.Now())
 	if err != nil {
+		fmt.Println("Error insert")
+		fmt.Println(err)
 		return nil
 	}
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
-		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault})
-		//Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
+		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault, Followed: list.New(), Possessed: list.New(), HistoricReq: list.New()})
 	}
-
 	return Lst_users.Ulist.Back()
 }
 
@@ -211,15 +230,12 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	var err error
-	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" WHERE id_user=$1;", idUser)
+	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	for rows.Next() {
 		var idUser int64
-		//		var login string
 		var mailq string
-		//		err = rows.Scan(&idUser, &login, &mailq)
 		err = rows.Scan(&idUser, &mailq)
 		checkErr(err)
-		//		return initUser(idUser, login, mailq)
 		return initUser(idUser, mailq)
 	}
 	return nil
@@ -233,7 +249,6 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 func (LstU *All_users) Print_users() {
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		//		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
 		fmt.Printf("%v | %v \n", e.Value.(*User).Id, e.Value.(*User).Mail)
 		i++
 	}
@@ -271,14 +286,10 @@ func (Lusr *All_users) NewUser(mail string) *User {
 	return &User{Mail: mail}
 }
 
-//func (Lusr *All_users) NewUser(login string, mail string, pass string) *User {
-//	return &User{Login: login, Mail: mail, Password: pass}
-//}
-
 /**
 * GetDevicesByIdUser
 * Query function getDevicesUserIdi  with prototype:
-*	FUNCTION getDevicesByUserId(iduser integer) RETURNS TABLE(macaddr varchar(18))
+*	FUNCTION getDevicesByUserId(iduser integer) RETURNS TABLE(idclient  varchar(18))
 * Return a pointer on new Device list created
 **/
 func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
@@ -305,19 +316,14 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 
 	var err error
 	lUser := list.New()
-	rows, err := Db.Query("SELECT id_user, login, mail, password FROM \"user\";")
+	rows, err := Db.Query("SELECT id_user, mail, password FROM \"user\";")
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64
-		//		var login string
 		var mailq string
 		var pass string
-		//		err = rows.Scan(&idUser, &login, &mailq, &pass)
 		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		//		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		//		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
-		//		lUser.PushBack(&User{Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
 		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New()})
 	}
 	Lusr.Ulist.Init()
