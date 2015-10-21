@@ -49,9 +49,11 @@ type Coordinate struct {
 	Lat float64
 }
 
+// MagnetFlag == 1 if take with magnet
 type Checkpoint struct {
-	Coord Coordinate
-	Date  time.Time
+	Coord      Coordinate
+	Date       time.Time
+	MagnetFlag int16
 }
 
 type Wind struct {
@@ -99,8 +101,8 @@ func (ball *Ball) AddStatsDistance(lon_user float64, lat_user float64) float64 {
 	var latdiff float64
 	var londiff float64
 
-	lonBall := ball.Coord.Value.(*Checkpoint).Coord.Lon
-	latBall := ball.Coord.Value.(*Checkpoint).Coord.Lon
+	lonBall := ball.Coord.Value.(Checkpoint).Coord.Lon
+	latBall := ball.Coord.Value.(Checkpoint).Coord.Lon
 	latdiff = (lat_user - latBall) * (math.Pi / 180)
 	londiff = (lon_user - lonBall) * (math.Pi / 180)
 	latBall = latBall * (math.Pi / 180)
@@ -204,7 +206,7 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 		} else {
 			checkpoint.Lon = calc_coord.Lon
 		}
-		eball.Checkpoints.PushBack(Checkpoint{checkpoint, time.Now()})
+		eball.Checkpoints.PushBack(Checkpoint{checkpoint, time.Now(), 0})
 	}
 	eball.Wind.Speed = station.Wind.Speed
 	eball.Wind.Degress = station.Wind.Degress
@@ -276,7 +278,7 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 	for elem != nil {
 		ball := elem.Value.(*Ball)
 		if ball.Coord != nil {
-			statsCoord := ball.Coord.Value.(*Checkpoint).Coord
+			statsCoord := ball.Coord.Value.(Checkpoint).Coord
 			ball.Coord = ball.Coord.Next()
 			if ball.Coord != nil {
 				ball.Checkpoints.Remove(ball.Checkpoints.Front())
@@ -368,6 +370,10 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************************************************************/
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
+
+func (Ball *Ball) GetItinerary() (int32, *list.List) {
+	return 0, nil
+}
 
 func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	var IdMax int32

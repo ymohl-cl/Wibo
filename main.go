@@ -224,6 +224,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball0.Possessed = nil
 	ball0.Followers = list.New()
 	ball0.Creator = nil
+	ball0.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball0)
 
 	ball1 := new(ballon.Ball)
@@ -238,6 +239,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball1.Possessed = nil
 	ball1.Followers = list.New()
 	ball1.Creator = nil
+	ball1.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball1)
 
 	ball2 := new(ballon.Ball)
@@ -252,6 +254,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball2.Possessed = nil
 	ball2.Followers = list.New()
 	ball2.Creator = nil
+	ball2.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball2)
 
 	ball3 := new(ballon.Ball)
@@ -266,6 +269,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball3.Possessed = nil
 	ball3.Followers = list.New()
 	ball3.Creator = nil
+	ball3.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball3)
 
 	ball4 := new(ballon.Ball)
@@ -280,6 +284,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball4.Possessed = nil
 	ball4.Followers = list.New()
 	ball4.Creator = nil
+	ball4.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball4)
 
 	ball5 := new(ballon.Ball)
@@ -294,6 +299,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball5.Possessed = nil
 	ball5.Followers = list.New()
 	ball5.Creator = nil
+	ball5.Stats = new(ballon.StatsBall)
 	Lst_ball.Blist.PushBack(ball5)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 

@@ -57,6 +57,12 @@ const (
 	UNKNOWN     = 1
 	DEFAULTUSER = 2
 	USERLOGGED  = 3
+	// Size Packet
+	SIZE_PACKET        = 1014
+	SIZE_HEADER        = 24
+	SIZE_STATUSER      = 104
+	SIZE_STATBALL      = 56
+	SIZE_COORDSTATBALL = 24
 )
 
 type Posball struct {
@@ -391,6 +397,37 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 	return alist
 }
 
+func (Data *Data) Write_StatUser(year, month, day, houre, minute int16) (buf []byte) {
+	user := Data.User.Value.(*users.User)
+	var answer Packet
+
+	answer.head.octets = SIZE_HEADER + SIZE_STATUSER
+	answer.head.rtype = STATSUSER
+	answer.head.pnbr = 1
+	answer.head.pnum = 0
+	Buffer := Write_header(answer)
+	binary.Write(Buffer, binary.BigEndian, year)
+	binary.Write(Buffer, binary.BigEndian, month)
+	binary.Write(Buffer, binary.BigEndian, day)
+	binary.Write(Buffer, binary.BigEndian, houre)
+	binary.Write(Buffer, binary.BigEndian, minute)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
+	binary.Write(Buffer, binary.BigEndian, user.Stats.NbrBallCreate)
+	binary.Write(Buffer, binary.BigEndian, user.Stats.NbrCatch)
+	binary.Write(Buffer, binary.BigEndian, user.Stats.NbrSend)
+	binary.Write(Buffer, binary.BigEndian, user.Stats.NbrFollow)
+	binary.Write(Buffer, binary.BigEndian, user.Stats.NbrMessage)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.NbrUsers)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.GlobalStat.NbrBallCreate)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.GlobalStat.NbrCatch)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.GlobalStat.NbrSend)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.GlobalStat.NbrFollow)
+	binary.Write(Buffer, binary.BigEndian, Data.Lst_users.GlobalStat.NbrMessage)
+	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-answer.head.octets))
+	buf = Buffer.Bytes()
+	return buf
+}
+
 /* Get all follower ball and create packets list for send the infoballs */
 func (Data *Data) Manage_sync(Req *list.Element) {
 	flwupball := Data.User.Value.(*users.User).Followed.Front()
@@ -598,6 +635,7 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 
 func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	ball := new(ballon.Ball)
+	ball.Stats = new(ballon.StatsBall)
 	rqt := requete.Value.(*protocol.Request)
 	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
@@ -886,8 +924,82 @@ func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
 	return er
 }
 
-func (Data *Data) Manage_itinerary(requete *list.Element, Tab_wd *owm.All_data) {
+func (Data *Data) Manage_StatUser(request *list.Element) {
+	var answer []byte
+	user := Data.User.Value.(*users.User)
+	if user == nil {
+		answer = Manage_ack(STATSUSER, 0, int32(0))
+	} else {
+		year := int16(user.Stats.CreationDate.Year())
+		month := int16(user.Stats.CreationDate.Month())
+		day := int16(user.Stats.CreationDate.Day())
+		houre := int16(user.Stats.CreationDate.Hour())
+		minute := int16(user.Stats.CreationDate.Minute())
+		answer = Data.Write_StatUser(year, month, day, houre, minute)
+	}
+	Data.Lst_asw.PushBack(answer)
+}
 
+func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ball) *list.List {
+	//	var asnwerbuf []byte
+	var answer Packet
+	var NbrItin int32
+	lst_asw := list.New()
+
+	for i := nbrPack; i > 0; i-- {
+		if i == nbrPack {
+			NbrItin := 1
+			answer.head.octets = SIZE_HEADER + (NbrItin * )
+			answer.head.rtype = STATSBALL
+			answer.head.pnbr = int32(nbrPack)
+			answer.head.pnum = 0
+		} else {
+			answer.head.pnum++
+		}
+		Buffer := Write_header(answer)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.CoordCreated.Lon)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.CoordCreated.Lat)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrKm)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrFollow)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrCatch)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrMagnet)
+		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrItin)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+
+		buf = Buffer.Bytes()
+
+	}
+	return nil
+}
+
+func (Data *Data) Manage_StatBall(request *list.Element) {
+	rqt := request.Value.(protocol.Request)
+	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
+	ball := eball.Value.(*ballon.Ball)
+	nbrCheckpoint, LstCheckpoint := ball.GetItinerary()
+
+	sizeStat := (SIZE_PACKET - SIZE_STATBALL - SIZE_HEADER)
+	var tmpPacket float64
+	tmpPacket = (float64(SIZE_COORDSTATBALL) * float64(nbrCheckpoint)) / float64(sizeStat)
+	nbrPacket := int(tmpPacket)
+	if float64(nbrPacket) < tmpPacket {
+		nbrPacket++
+	}
+	lst_asw := Write_StatBall(LstCheckpoint, nbrCheckpoint, nbrPacket, ball)
+	if lst_asw == nil {
+		answer := Manage_ack(STATSBALL, 0, int32(0))
+		Data.Lst_asw.PushBack(answer)
+	} else {
+		Data.Lst_asw.PushBackList(lst_asw)
+	}
+	//	user := Data.User.Value.(*users.User)
+	//	year := int16(user.Stats.CreationDate.Year())
+	//	month := int16(user.Stats.CreationDate.Month())
+	//	day := int16(user.Stats.CreationDate.Day())
+	//	houre := int16(user.Stats.CreationDate.Hour())
+	//	minute := int16(user.Stats.CreationDate.Minute())
+	//	answer := Data.Write_StatUser(year, month, day, houre, minute)
+	//	Data.Lst_asw.PushBack(answer)
 }
 
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
@@ -919,7 +1031,8 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 			case MAGNET:
 				Data.Manage_magnet(request, Tab_wd)
 			case ITINERARY:
-				Data.Manage_itinerary(request, Tab_wd)
+				// Ce type est deprecated
+				//Data.Manage_itinerary(request, Tab_wd)
 			case ACK:
 			case TYPELOG:
 				er = Data.Manage_Login(request, Db, Data.Lst_devices)
@@ -930,9 +1043,9 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 			case DELOG:
 				Data.Manage_Delog(request, Db) // Get device et user on new connection.
 			case STATSUSER:
-				Data.Manage_StatUser(request, Db)
+				Data.Manage_StatUser(request)
 			case STATSBALL:
-				Data.Manage_StatBall(request, Db)
+				Data.Manage_StatBall(request)
 			}
 		}
 	}
