@@ -33,7 +33,7 @@ const (
 	SEND_BALL  = 8
 	MAGNET     = 9
 	// Itinerary is depreacated
-	ITINERARY     = 10
+	WORKBALL      = 10
 	TYPELOG       = 11
 	CREATEACCOUNT = 12
 	SYNCROACCOUNT = 13
@@ -247,9 +247,9 @@ func (token *Request) Get_request(buff []byte) (er error) {
 	switch token.Rtype {
 	case SYNC:
 		return er
-	case MAJ, FOLLOW_ON, FOLLOW_OFF, ITINERARY, STATSBALL:
+	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
 		token.Spec, er = Request_idball(TypBuff)
-	case POS:
+	case POS, WORKBALL:
 	case TAKEN:
 		token.Spec, er = Request_taken(TypBuff)
 	case NEW_BALL:
@@ -283,7 +283,7 @@ func (token *Request) Print_token_debug() {
 		fmt.Println("Data base synchronisation, type 1")
 	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
 		fmt.Println(token.Spec.(Ballid).Id)
-	case POS:
+	case POS, WORKBALL:
 	case TAKEN:
 		fmt.Println(token.Spec.(Taken).Id)
 		fmt.Println(token.Spec.(Taken).FlagMagnet)

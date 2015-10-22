@@ -14,6 +14,7 @@ package answer
 
 import (
 	"Wibo/ballon"
+	"Wibo/ballonwork"
 	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/protocol"
@@ -42,7 +43,7 @@ const (
 	NEW_BALL      = 7
 	SEND_BALL     = 8
 	MAGNET        = 9
-	ITINERARY     = 10
+	WORKBALL      = 10
 	TYPELOG       = 11 // Identification du device et de l'user si pre-enregistre.
 	CREATEACCOUNT = 12 // Creation d'un compte. // Confirmation par email en suspend
 	SYNCROACCOUNT = 13
@@ -66,12 +67,13 @@ const (
 )
 
 type Posball struct {
-	id    int64
-	title string
-	lon   float64
-	lat   float64
-	wins  float64
-	wind  float64
+	id       int64
+	title    string
+	FlagPoss int16
+	lon      float64
+	lat      float64
+	wins     float64
+	wind     float64
 }
 
 type Nearby struct {
@@ -123,6 +125,7 @@ type Data struct {
 	Lst_ball    *ballon.All_ball
 	Lst_users   *users.All_users
 	Lst_devices *devices.All_Devices
+	Lst_work    *ballonwork.All_work
 	Logged      int16
 	Device      *list.Element /* *list.Element.Value.(*device.device) */
 	User        *list.Element /* Value: (*users.User) */
@@ -307,6 +310,8 @@ func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16) (buf []byt
 		binary.Write(Buffer, binary.BigEndian, ifb.id)
 		Buffer.WriteString(ifb.title)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(ifb.title)))
+		binary.Write(Buffer, binary.BigEndian, ifb.FlagPoss)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
 		binary.Write(Buffer, binary.BigEndian, ifb.lon)
 		binary.Write(Buffer, binary.BigEndian, ifb.lat)
 		binary.Write(Buffer, binary.BigEndian, ifb.wins)
@@ -379,6 +384,17 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		tpack := epck.Value.(Packet)
 		Buffer := Write_header(tpack)
 		binary.Write(Buffer, binary.BigEndian, Ball.Id_ball)
+		year := int16(Ball.Stats.CreationDate.Year())
+		month := int16(Ball.Stats.CreationDate.Month())
+		day := int16(Ball.Stats.CreationDate.Day())
+		houre := int16(Ball.Stats.CreationDate.Hour())
+		minute := int16(Ball.Stats.CreationDate.Minute())
+		binary.Write(Buffer, binary.BigEndian, year)
+		binary.Write(Buffer, binary.BigEndian, month)
+		binary.Write(Buffer, binary.BigEndian, day)
+		binary.Write(Buffer, binary.BigEndian, houre)
+		binary.Write(Buffer, binary.BigEndian, minute)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
 		tmess := tpack.ptype.(Contentball).messages.Front()
@@ -510,10 +526,15 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 	eball := Data.Lst_ball.Blist.Front()
 	for eball != nil {
 		ball := eball.Value.(*ballon.Ball)
-		if ball.Check_userCreated(Data.User) == false && ball.Check_nearbycoord(Req) == true {
+		if ball.Check_nearbycoord(Req) == true {
 			ball := eball.Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
 			ifball.title = ball.Title
+			if ball.Check_userCreated(Data.User) == false {
+				ifball.FlagPoss = 0
+			} else {
+				ifball.FlagPoss = 1
+			}
 			ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
 			ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
 			ifball.wins = ball.Wind.Speed
@@ -542,7 +563,7 @@ func (Data *Data) Manage_taken(request *list.Element) {
 	rqt := request.Value.(*protocol.Request)
 	user := Data.User.Value.(*users.User)
 
-	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(*protocol.Request).Spec.(protocol.Ballid).Id {
+	for eball != nil && eball.Value.(*ballon.Ball).Id_ball != request.Value.(*protocol.Request).Spec.(protocol.Taken).Id {
 		eball = eball.Next()
 	}
 	if eball != nil && user.Possessed.Len() < 3 {
@@ -553,9 +574,6 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			ball.Followers.PushFront(Data.User)
 			user.Followed.PushBack(eball)
 			user.Possessed.PushFront(eball)
-			Lst_answer := Write_contentball(ball, TAKEN)
-			Data.Lst_asw.PushBackList(Lst_answer)
-			ball.Clearcheckpoint()
 			/* Begin Stats */
 			user.Stats.NbrCatch++
 			user.Stats.NbrFollow++
@@ -566,9 +584,12 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			ball.Stats.NbrCatch++
 			ball.Stats.NbrFollow++
 			ball.Stats.NbrKm += ball.AddStatsDistance(rqt.Coord.Lon, rqt.Coord.Lat)
+			ball.Clearcheckpoint()
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
 				ball.Stats.NbrMagnet++
 			}
+			Lst_answer := Write_contentball(ball, TAKEN)
+			Data.Lst_asw.PushBackList(Lst_answer)
 			/* End Stats */
 		} else {
 			answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
@@ -732,6 +753,7 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 		ifball.id = ball.Id_ball
 		ifball.title = ball.Title
+		ifball.FlagPoss = 0
 		ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
 		ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
 		ifball.wins = ball.Wind.Speed
@@ -941,19 +963,31 @@ func (Data *Data) Manage_StatUser(request *list.Element) {
 }
 
 func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ball) *list.List {
-	//	var asnwerbuf []byte
 	var answer Packet
 	var NbrItin int32
 	lst_asw := list.New()
+	eCheck := lst.Front()
 
 	for i := nbrPack; i > 0; i-- {
 		if i == nbrPack {
-			NbrItin := 1
-			answer.head.octets = SIZE_HEADER + (NbrItin * )
+			NbrItin := int32((SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL)
+			if nbrCheck > NbrItin {
+				nbrCheck -= NbrItin
+			} else {
+				NbrItin = nbrCheck
+			}
+			answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
 			answer.head.rtype = STATSBALL
 			answer.head.pnbr = int32(nbrPack)
 			answer.head.pnum = 0
 		} else {
+			NbrItin = (SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL
+			if nbrCheck > NbrItin {
+				nbrCheck -= NbrItin
+			} else {
+				NbrItin = nbrCheck
+			}
+			answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
 			answer.head.pnum++
 		}
 		Buffer := Write_header(answer)
@@ -963,13 +997,20 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrFollow)
 		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrCatch)
 		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrMagnet)
-		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrItin)
+		binary.Write(Buffer, binary.BigEndian, NbrItin)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-
-		buf = Buffer.Bytes()
-
+		for i := int32(1); i <= NbrItin; i++ {
+			check := eCheck.Value.(*ballon.Checkpoint)
+			binary.Write(Buffer, binary.BigEndian, int64(i))
+			binary.Write(Buffer, binary.BigEndian, check.MagnetFlag)
+			binary.Write(Buffer, binary.BigEndian, check.Coord.Lon)
+			binary.Write(Buffer, binary.BigEndian, check.Coord.Lat)
+			eCheck = eCheck.Next()
+		}
+		buf := Buffer.Bytes()
+		lst_asw.PushBack(buf)
 	}
-	return nil
+	return lst_asw
 }
 
 func (Data *Data) Manage_StatBall(request *list.Element) {
@@ -1002,6 +1043,47 @@ func (Data *Data) Manage_StatBall(request *list.Element) {
 	//	Data.Lst_asw.PushBack(answer)
 }
 
+func Write_workball(lst_work *list.List) *list.List {
+	lst_asw := list.New()
+	var answer Packet
+
+	answer.head.octets = SIZE_PACKET
+	answer.head.rtype = WORKBALL
+	answer.head.pnbr = int32(lst_work.Len())
+	answer.head.pnum = 0
+	for e := lst_work.Front(); e != nil; e = e.Next() {
+		workball := e.Value.(*list.Element).Value.(*ballonwork.WorkBall)
+		Buffer := Write_header(answer)
+		answer.head.pnum++
+		binary.Write(Buffer, binary.BigEndian, workball.Title)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(workball.Title)))
+		binary.Write(Buffer, binary.BigEndian, workball.Message)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 664-len(workball.Message)))
+		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lon)
+		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lat)
+		binary.Write(Buffer, binary.BigEndian, workball.Link)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 320-len(workball.Title)))
+		lst_asw.PushBack(Buffer.Bytes())
+	}
+	return lst_asw
+}
+
+func (Data *Data) Manage_WorkBall(request *list.Element) {
+	lst_work := list.New()
+	for e := Data.Lst_work.Wlist.Front(); e != nil; e = e.Next() {
+		workBall := e.Value.(*ballonwork.WorkBall)
+		if workBall.Check_neirbycoord(request) == true {
+			lst_work.PushBack(workBall)
+		}
+	}
+	if lst_work.Len() == 0 {
+		answer := Manage_ack(WORKBALL, 0, int32(0))
+		Data.Lst_asw.PushBack(answer)
+	} else {
+		Data.Lst_asw.PushBackList(Write_workball(lst_work))
+	}
+}
+
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	request := Data.Lst_req.Front()
 	er = nil
@@ -1030,9 +1112,8 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 				Data.Manage_sendball(request, Tab_wd)
 			case MAGNET:
 				Data.Manage_magnet(request, Tab_wd)
-			case ITINERARY:
-				// Ce type est deprecated
-				//Data.Manage_itinerary(request, Tab_wd)
+			case WORKBALL:
+				Data.Manage_WorkBall(request)
 			case ACK:
 			case TYPELOG:
 				er = Data.Manage_Login(request, Db, Data.Lst_devices)
