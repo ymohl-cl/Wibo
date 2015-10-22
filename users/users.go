@@ -190,8 +190,6 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 		}
 	}
 	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6);", 1, "particulier", bpass, time.Now(), time.Now(), new_user.Mail)
-
-	//	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, creationdate, mail) VALUES ($1, $2, $3, $4, $5);", 1, "particulier", new_user.Mail, bpass, time.Now(), time.Now(), new_user.Mail)
 	if err != nil {
 		return false, err
 	}

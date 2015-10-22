@@ -19,12 +19,12 @@ import (
 	"Wibo/db"
 	"Wibo/devices"
 	"Wibo/owm"
-	"Wibo/request"
+	//	"Wibo/request"
 	"Wibo/sock"
 	"Wibo/users"
 	"container/list"
 	"fmt"
-	"net/http"
+	//	"net/http"
 	"time"
 )
 
@@ -234,6 +234,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball0.Followers = list.New()
 	ball0.Creator = nil
 	ball0.Stats = new(ballon.StatsBall)
+	ball0.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball0)
 
 	ball1 := new(ballon.Ball)
@@ -249,6 +250,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball1.Followers = list.New()
 	ball1.Creator = nil
 	ball1.Stats = new(ballon.StatsBall)
+	ball1.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball1)
 
 	ball2 := new(ballon.Ball)
@@ -264,6 +266,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball2.Followers = list.New()
 	ball2.Creator = nil
 	ball2.Stats = new(ballon.StatsBall)
+	ball2.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball2)
 
 	ball3 := new(ballon.Ball)
@@ -279,6 +282,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball3.Followers = list.New()
 	ball3.Creator = nil
 	ball3.Stats = new(ballon.StatsBall)
+	ball3.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball3)
 
 	ball4 := new(ballon.Ball)
@@ -294,6 +298,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball4.Followers = list.New()
 	ball4.Creator = nil
 	ball4.Stats = new(ballon.StatsBall)
+	ball4.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball4)
 
 	ball5 := new(ballon.Ball)
@@ -309,6 +314,7 @@ func Init_all(Tab_wd *owm.All_data, Lst_users *users.All_users, Lst_ball *ballon
 	ball5.Followers = list.New()
 	ball5.Creator = nil
 	ball5.Stats = new(ballon.StatsBall)
+	ball5.Stats.CreationDate = time.Now()
 	Lst_ball.Blist.PushBack(ball5)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 
@@ -348,16 +354,19 @@ func main() {
 	Lst_workBall := new(ballonwork.All_work)
 	myDb := new(db.Env)
 
+	defer fmt.Println("COUCOU")
 	Db, err := myDb.OpenCo(err)
 	checkErr(err)
 	err = Init_all(Tab_wd, Lst_users, Lst_ball, myDb, Lst_Devices, Lst_workBall)
 	if err != nil {
+		fmt.Println("Error on Init_all")
+		fmt.Println(err)
 		return
 	}
 	go Manage_goroutines(Tab_wd, Lst_ball, myDb, Lst_users)
 
-	request.Init_handle_request()
-	go http.ListenAndServe(":8080", nil)
+	//	request.Init_handle_request()
+	//	go http.ListenAndServe(":8080", nil)
 	go sock.Listen(Lst_users, Lst_ball, Tab_wd, Db, Lst_Devices, Lst_workBall)
 
 	for {

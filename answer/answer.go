@@ -298,7 +298,7 @@ func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16) (buf []byt
 	answer.ptype = typesp
 	elem := list_tmp.Front()
 	for elem != nil {
-		answer.head.octets += 56
+		answer.head.octets += 64
 		elem = elem.Next()
 	}
 	Buffer := Write_header(answer)
@@ -329,7 +329,7 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 
 	alist = list.New()
 	plist := list.New()
-	pack.head.octets = 32
+	pack.head.octets = 32 + 16
 	pack.head.pnum = 0
 	contball.messages = list.New()
 	pack.ptype = contball
@@ -784,7 +784,7 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 				Data.Logged = DEFAULTUSER
 				Data.User = device.UserDefault
 			} else {
-				//				Data.User = Data.Lst_users.SearchUserToDevice(request, Db, device.Historic)
+				Data.User = Data.Lst_users.Check_user(request, Db, device.Historic)
 				if Data.User == nil {
 					flag = false
 					Data.Logged = DEFAULTUSER
@@ -803,7 +803,6 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			answer = Manage_ack(TYPELOG, 0, int32(1))
 		}
 	}
-	// block ?
 	fmt.Println("Fin de manage Login")
 	Data.Lst_asw.PushBack(answer)
 	return er
