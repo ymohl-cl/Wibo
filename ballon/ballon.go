@@ -403,21 +403,22 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	$7 title text,
 	$8 idx integer)
 */
+
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
 	fmt.Printf("Insert  Id User %v | IdBall %v | \n", newBall.Creator.Value.(*users.User).Id, newBall.Id_ball)
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6, $7 , $8)")
+		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		checkErr(err)
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
-			3, //newBall.Creator.Value.(*users.User).Device.Front().Value.(users.Device).IdMobile,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
-			newBall.Id_ball)
+			newBall.Id_ball,
+			newBall.Date)
 		for rs.Next() {
 			var idC int
 			err = rs.Scan(&idC)
@@ -434,12 +435,11 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 	i := 0
+
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
 	fmt.Printf("%v Id Max", ABalls.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
-
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)
 			j := 0
@@ -458,7 +458,6 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 				}
 			}
 		} else {
-
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++
@@ -558,8 +557,15 @@ func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Elemen
 /**
 * GetListBallsByUser
 * getContainersByUserId is a native psql function with
-* RETURNS TABLE(idballon integer, titlename varchar(255), idtype integer, direction numeric, speedcont integer, creationdate date, deviceid integer, locationcont text)
- */
+* RETURNS TABLE(
+			idballon integer,
+			titlename varchar(255),
+			idtype integer, direction numeric,
+			speedcont integer,
+			creationdate date,
+			deviceid integer,
+			locationcont text)
+*/
 
 func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist *list.List) *list.List {
 	lBallon := list.New()
@@ -637,7 +643,6 @@ func GetIdBall(idB string) int {
 * create and new Cooridantes element and return it
 **/
 func GetCord(position string) *list.List {
-
 	// Return true if 'value' char.
 	f := func(c rune) bool {
 		return c == '(' || c == '(' || c == ')' || c == '"' ||
@@ -694,7 +699,6 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 }
 
 func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List, base *db.Env) {
-
 	for u := Ulist.Front(); u != nil; u = u.Next() {
 		for b := Blist.Front(); b != nil; b = b.Next() {
 			for f := b.Value.(*Ball).Followers.Front(); f != nil; f = f.Next() {

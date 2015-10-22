@@ -236,12 +236,9 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	for rows.Next() {
 		var idUser int64
-		//		var login string
 		var mailq string
-		//		err = rows.Scan(&idUser, &login, &mailq)
 		err = rows.Scan(&idUser, &mailq)
 		checkErr(err)
-		//		return initUser(idUser, login, mailq)
 		return initUser(idUser, mailq)
 	}
 	return nil
@@ -255,7 +252,6 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 func (LstU *All_users) Print_users() {
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		//		fmt.Printf("%v | %v | %v \n", e.Value.(*User).Id, e.Value.(*User).Login, e.Value.(*User).Mail)
 		fmt.Printf("%v | %v \n", e.Value.(*User).Id, e.Value.(*User).Mail)
 		i++
 	}
@@ -279,7 +275,6 @@ func checkErr(err error) {
 //func initUser(uid int64, login string, mail string) *User {
 func initUser(uid int64, mail string) *User {
 	t := new(User)
-	//t.Login = login
 	t.Id = uid
 	t.Mail = mail
 	return (t)
@@ -292,10 +287,6 @@ func initUser(uid int64, mail string) *User {
 func (Lusr *All_users) NewUser(mail string) *User {
 	return &User{Mail: mail}
 }
-
-//func (Lusr *All_users) NewUser(login string, mail string, pass string) *User {
-//	return &User{Login: login, Mail: mail, Password: pass}
-//}
 
 /**
 * GetDevicesByIdUser
@@ -322,26 +313,18 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 * Get_users
 * Query the user table join device and create new *listList Pointer
 **/
-
 func (Lusr *All_users) Get_users(Db *sql.DB) error {
-
 	var err error
 	lUser := list.New()
-	//	rows, err := Db.Query("SELECT id_user, login, mail, password FROM \"user\";")
 	rows, err := Db.Query("SELECT id_user, mail, password FROM \"user\";")
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64
-		//		var login string
 		var mailq string
 		var pass string
-		//		err = rows.Scan(&idUser, &login, &mailq, &pass)
 		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		//		lDevice := Lusr.GetDevicesByIdUser(idUser, Db)
-		//		lUser.PushBack(&User{Login: login, Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
-		//		lUser.PushBack(&User{Id: idUser, Mail: mailq, Device: lDevice, Followed: list.New()})
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New()})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
