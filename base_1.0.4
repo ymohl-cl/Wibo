@@ -164,17 +164,6 @@ $$;
 ALTER FUNCTION public.make_uid() OWNER TO jbernabe;
 
 --
--- Name: insertcontainer(integer, integer, integer, double precision, double precision, text, integer, date); Type: FUNCTION; Schema: public; Owner: jbernabe
---
-
-CREATE FUNCTION insertcontainer(idcreatorc integer, latitudec integer, longitudec integer, directionc double precision, speedc double precision, title text, idx integer, creation date) RETURNS SETOF integer
-    LANGUAGE plpgsql
-    AS $$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $$;
-
-
-ALTER FUNCTION public.insertcontainer(idcreatorc integer, latitudec integer, longitudec integer, directionc double precision, speedc double precision, title text, idx integer, creation date) OWNER TO jbernabe;
-
---
 -- Name: pseudo_encrypt(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
 --
 
@@ -203,6 +192,33 @@ $$;
 
 
 ALTER FUNCTION public.pseudo_encrypt(value integer) OWNER TO jbernabe;
+
+--
+-- Name: setstatballon(integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+--
+
+CREATE FUNCTION setstatballon(n_km integer, n_cath integer, n_follow integer, n_message integer, n_send integer, idball integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+done boolean:= false;
+BEGIN
+ done :=  NOT exists(SELECT idball_stats FROM stats_container WHERE idball_stats=idball);
+IF done = false THEN
+    UPDATE stats_container SET(num_km, num_cath, num_follow, num_message, num_send) = ($1, $2, $3, $4, $5) WHERE idball_stats=idball;
+    RETURN TRUE;
+END IF;
+PERFORM 1 FROM stats_container WHERE idball_stats=idball LIMIT 1;
+IF NOT FOUND THEN 
+INSERT INTO stats_container(num_km, num_cath, num_follow, num_message, num_send, idball_stats) VALUES(n_km, n_cath, n_follow, n_message, n_send, idball);
+RETURN TRUE;
+END IF;
+RETURN FALSE;
+END;
+$_$;
+
+
+ALTER FUNCTION public.setstatballon(n_km integer, n_cath integer, n_follow integer, n_message integer, n_send integer, idball integer) OWNER TO jbernabe;
 
 --
 -- Name: setstatsuser(date, integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: jbernabe
@@ -564,6 +580,37 @@ ALTER SEQUENCE shared_id_seq OWNED BY shared.id;
 
 
 --
+-- Name: stats_container_id_seq; Type: SEQUENCE; Schema: public; Owner: jbernabe
+--
+
+CREATE SEQUENCE stats_container_id_seq
+    START WITH 21
+    INCREMENT BY 3
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE stats_container_id_seq OWNER TO jbernabe;
+
+--
+-- Name: stats_container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE stats_container (
+    idball_stats integer NOT NULL,
+    num_km integer,
+    num_cath integer,
+    num_follow integer,
+    num_message integer,
+    num_send integer,
+    id_st integer DEFAULT nextval('stats_container_id_seq'::regclass) NOT NULL
+);
+
+
+ALTER TABLE stats_container OWNER TO wibo;
+
+--
 -- Name: stats_users; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
 --
 
@@ -729,13 +776,6 @@ ALTER TABLE ONLY shared ALTER COLUMN id SET DEFAULT nextval('shared_id_seq'::reg
 
 
 --
--- Name: id_st; Type: DEFAULT; Schema: public; Owner: wibo
---
-
-ALTER TABLE ONLY stats_container ALTER COLUMN id_st SET DEFAULT nextval('stats_container_id_seq'::regclass);
-
-
---
 -- Name: id_stats; Type: DEFAULT; Schema: public; Owner: wibo
 --
 
@@ -868,11 +908,26 @@ SELECT pg_catalog.setval('shared_id_seq', 1, false);
 
 
 --
--- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: wibo
+-- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: jbernabe
 --
 
 COPY spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
 \.
+
+
+--
+-- Data for Name: stats_container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY stats_container (idball_stats, num_km, num_cath, num_follow, num_message, num_send, id_st) FROM stdin;
+\.
+
+
+--
+-- Name: stats_container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: jbernabe
+--
+
+SELECT pg_catalog.setval('stats_container_id_seq', 24, true);
 
 
 --
@@ -883,8 +938,8 @@ COPY stats_users (creation_time, num_owner, num_cath, num_follow, num_message, i
 2015-10-22	1	2	3	4	28	101	2
 2015-10-22	1	2	3	4	29	137	2
 \N	\N	\N	\N	\N	31	185	\N
-2015-10-02	1	2	5	5	34	209	4
 2015-10-02	1	2	5	5	35	221	4
+2015-10-02	1	2	5	5	34	209	4
 \.
 
 
@@ -981,7 +1036,7 @@ SELECT pg_catalog.setval('user_id_user_seq', 58, true);
 SET search_path = topology, pg_catalog;
 
 --
--- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: wibo
+-- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: jbernabe
 --
 
 COPY topology (id, name, srid, "precision", hasz) FROM stdin;
@@ -989,7 +1044,7 @@ COPY topology (id, name, srid, "precision", hasz) FROM stdin;
 
 
 --
--- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: wibo
+-- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: jbernabe
 --
 
 COPY layer (topology_id, layer_id, schema_name, table_name, feature_column, feature_type, level, child_id) FROM stdin;
@@ -1068,6 +1123,22 @@ ALTER TABLE ONLY shared
 
 ALTER TABLE ONLY stats_users
     ADD CONSTRAINT st_user_id PRIMARY KEY (id_stats);
+
+
+--
+-- Name: stats_container_idball_stats_key; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_container
+    ADD CONSTRAINT stats_container_idball_stats_key UNIQUE (idball_stats);
+
+
+--
+-- Name: stats_container_pkey; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_container
+    ADD CONSTRAINT stats_container_pkey PRIMARY KEY (id_st);
 
 
 --
@@ -1212,27 +1283,11 @@ ALTER TABLE ONLY shared
 
 
 --
--- Name: stats_container_idball_stats_key; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
---
-
-ALTER TABLE ONLY stats_container
-    ADD CONSTRAINT stats_container_idball_stats_key UNIQUE (idball_stats);
-
-
---
--- Name: stats_container_pkey; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
---
-
-ALTER TABLE ONLY stats_container
-    ADD CONSTRAINT stats_container_pkey PRIMARY KEY (id_st);
-
---
 -- Name: stats_id_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
 --
 
 ALTER TABLE ONLY stats_container
     ADD CONSTRAINT stats_id_container FOREIGN KEY (idball_stats) REFERENCES container(id);
-
 
 
 --
