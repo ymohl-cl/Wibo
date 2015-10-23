@@ -59,6 +59,14 @@ type Wind struct {
 	Degress float64
 }
 
+type StatsBall struct {
+	NbrKm			int64
+	NbrFollowers	int64
+	NbrMessage		int64
+	NbrCatch		int64
+	NbrSend			int64
+}
+
 type Ball struct {
 	Id_ball     int64
 	Title       string
@@ -72,6 +80,7 @@ type Ball struct {
 	Possessed   *list.Element /* Value: (*users.User) */
 	Followers   *list.List    /* Value: *list.Element.Value.(*users.User) */
 	Creator     *list.Element /* Value: (*users.User) */
+	Stats 		*StatsBall
 }
 
 type All_ball struct {
@@ -406,12 +415,11 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 			idMessageMax := getIdMessageMax(idBall, base)
 			j := 0
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
-				fmt.Printf(" %v id ballon update", f.Value.(Message).Id)
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
-						stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
 						checkErr(err)
-						_, err = stm.Query(f.Value.(Message).Content, idBall, 2)
+						_, err = stm.Query(f.Value.(Message).Content, idBall)
 						j++
 						checkErr(err)
 						return err
@@ -420,7 +428,6 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 				}
 			}
 		} else {
-
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++
@@ -431,9 +438,9 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 	i := 0
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
-			stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+			stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
 			checkErr(err)
-			_, err = stm.Query(e.Value.(Message).Content, idBall, 2)
+			_, err = stm.Query(e.Value.(Message).Content, idBall)
 			i++
 			checkErr(err)
 			return err
@@ -526,7 +533,6 @@ func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Elemen
 			idtype integer, direction numeric,
 			speedcont integer,
 			creationdate date,
-			deviceid integer,
 			locationcont text)
  */
 
@@ -557,7 +563,8 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					Messages:    Lb.GetMessagesBall(idBall, base.Db),
 					Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
 					Possessed:   <-possessed,
-					Creator:     userE})
+					Creator:     userE,
+					Stats:		Lb.GetStatsBallon(int64(idBall), base.Db) })
 			checkErr(err)
 		}
 		return err

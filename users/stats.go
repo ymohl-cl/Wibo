@@ -52,7 +52,7 @@ func (Lusr *All_users) SetStatsByUser(c_idUser int64, u_stats *StatsUser, Db *sq
     return true
 }   
 
-func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) { 
+func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) {
 	rows, err := Db.Query("SELECT creation_time, num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users  WHERE iduser_stats = $1;", idUser)
 	checkErr(err)
 	for rows.Next(){
@@ -64,4 +64,3 @@ func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) {
 	}
 	return nil
 }
-

@@ -27,6 +27,15 @@ import (
 	"time"
 )
 
+
+type StatsWibo struct {
+	NbrBallCreate int64     
+	NbrCatch      int64     
+	NbrSend       int64     
+	NbrFollow     int64    
+	NbrMessage    int64
+}
+
 // Struct to define interval time in updateTicker()
 const (
 	INTERVAL_PERIOD time.Duration = 24 * time.Hour
