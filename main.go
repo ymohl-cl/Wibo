@@ -126,10 +126,6 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 				if er != nil {
 					Serv.Logger.Println("Update_users error: ", er)
 				}
-				er = Serv.Lst_Devices.Update_Device(base)
-				if er != nil {
-					Serv.Logger.Println("Update_Device error: ", er)
-				}
 			}
 		}
 	}

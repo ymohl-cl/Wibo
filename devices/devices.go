@@ -74,10 +74,6 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	return nil
 }
 
-func (Lb *All_Devices) Update_Device(base *db.Env) (er error) {
-	return er
-}
-
 func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db *sql.DB) (*list.Element, error) {
 	var err error
 	newDevice := new(Device)

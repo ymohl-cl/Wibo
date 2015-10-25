@@ -40,6 +40,7 @@ func (workBall *WorkBall) Check_neirbycoord(request *list.Element) bool {
 /******************************************************************************/
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
+
 func (wlist *All_work) Get_workBall(base *db.Env) error {
 	return nil
 }
