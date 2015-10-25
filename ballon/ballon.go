@@ -699,10 +699,18 @@ func (Lb *All_ball) GetCheckpointsFromBase(base *db.Env){
 	set checkpoints to base
 **/
 
+CREATE OR REPLACE FUNCTION public.insertcheckpoint(ck_date date, idcont integer, magnet bool, latitudec integer, longitudec integer)
+ RETURNS SETOF integer
+ LANGUAGE plpgsql
+AS $function$  BEGIN RETURN QUERY INSERT INTO checkpoints (date, containerid, attrackbymagnet, location_ckp) VALUES(ck_date, idcont, magnet, ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326)) RETURNING id;
+END; $function$
 func (Lb *All_ball) SetCheckpointsToBase(base *db.Env){
 	for b := Lb.Blist.Front(); b != nil; b = b.Next() {
 		for c := b.Checkpoints.Front(); c != nil; c = c.Next();{
-			
+			tcheck := c.Value.(Checkpoint)
+			fmt.Println(tcheck.Coord.Lon)
+			fmt.Println(tcheck.Coord.Lat)
+			fmt.Println(tcheck.Date)
 		}
 	}
 }
