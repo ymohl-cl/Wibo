@@ -260,7 +260,6 @@ func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 	station = Lst_wd.Get_Paris()
 	Lst_ball.Lock()
 	defer Lst_ball.Unlock()
-	fmt.Println(station)
 	eball := Lst_ball.Blist.Front()
 	for eball != nil {
 		eball.Value.(*Ball).Get_checkpointList(station)
@@ -270,7 +269,7 @@ func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 }
 
 /* Give a next checkpoint ball and removes the previous */
-func (Lst_ball *All_ball) Move_ball() (err error) {
+func (Lst_ball *All_ball) Move_ball() (er error) {
 	Lst_ball.Lock()
 	defer Lst_ball.Unlock()
 	elem := Lst_ball.Blist.Front()
@@ -285,8 +284,8 @@ func (Lst_ball *All_ball) Move_ball() (err error) {
 			} else {
 				ball.Coord = ball.Checkpoints.Front()
 				if ball.Coord == nil {
-					err = errors.New("next coord not found")
-					return err
+					er = errors.New("next coord not found")
+					return er
 				}
 			}
 			ball.Stats.NbrKm += ball.AddStatsDistance(statsCoord.Lon, statsCoord.Lat)
@@ -433,7 +432,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	return executed, err
 }
 
-func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
+func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	i := 0
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
 	fmt.Printf("%v Id Max", ABalls.Id_max)
@@ -462,6 +461,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 		}
 		i++
 	}
+	return er
 }
 
 func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *db.Env) (err error) {

@@ -2,12 +2,13 @@ package crontask
 
 import (
 	"Wibo/ballon"
-	"Wibo/owm"
+	"Wibo/server"
 	"Wibo/users"
 )
 
-func Send_AllBall(lBall *ballon.All_ball, lUser *users.All_users, Tab_wd *owm.All_data) {
+func Send_AllBall(Serv *server.Server) {
 	var checkpoint ballon.Checkpoint
+	lUser := Serv.Lst_users
 
 	for el := lUser.Ulist.Front(); el != nil; el = el.Next() {
 		user := el.Value.(*users.User)
@@ -17,7 +18,7 @@ func Send_AllBall(lBall *ballon.All_ball, lUser *users.All_users, Tab_wd *owm.Al
 			checkpoint.Coord.Lon = user.Coord.Lon
 			checkpoint.Coord.Lat = user.Coord.Lat
 			ball.Coord = ball.Checkpoints.PushBack(checkpoint)
-			ball.Get_checkpointList(Tab_wd.Get_Paris())
+			ball.Get_checkpointList(Serv.Tab_wd.Get_Paris())
 			user.Possessed.Remove(eb)
 		}
 		user.NbrBallSend = 0

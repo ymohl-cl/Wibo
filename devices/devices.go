@@ -1,9 +1,9 @@
 package devices
 
 import (
+	"Wibo/db"
 	"Wibo/protocol"
 	"Wibo/users"
-	//	"bytes"
 	"container/list"
 	"database/sql"
 	"errors"
@@ -69,6 +69,14 @@ func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
+
+func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error {
+	return nil
+}
+
+func (Lb *All_Devices) Update_Device(base *db.Env) (er error) {
+	return er
+}
 
 func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db *sql.DB) (*list.Element, error) {
 	var err error

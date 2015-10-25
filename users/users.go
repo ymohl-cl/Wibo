@@ -1,6 +1,7 @@
 package users
 
 import (
+	"Wibo/db"
 	"Wibo/protocol"
 	"container/list"
 	"database/sql"
@@ -121,6 +122,15 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
+
+func (lUser *All_users) Get_GlobalStat(base *db.Env) (er error) {
+	er = nil
+	return
+}
+
+func (Lb *All_users) Update_users(base *db.Env) (er error) {
+	return er
+}
 
 func CheckValidMail(email string) bool {
 	tmp := valid.IsEmail(email)

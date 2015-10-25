@@ -55,16 +55,14 @@ func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
 
 /* Update_weather_data with api openWeatherMap */
 func (Tab_wd *All_data) Update_weather_data() error {
-	resp, err := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-90,-180,90,180,10&cluster=yes&APPID=7b7c6c485a78ba0ceaacb887692a88ce`)
-	if err != nil {
-		fmt.Println(err)
+	resp, er := http.Get(`http://api.openweathermap.org/data/2.5/box/city?bbox=-90,-180,90,180,10&cluster=yes&APPID=7b7c6c485a78ba0ceaacb887692a88ce`)
+	if er != nil {
+		return er
 	}
 	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&Tab_wd)
-	if err != nil {
-		return err
-	} else {
-		return nil
+	er = json.NewDecoder(resp.Body).Decode(&Tab_wd)
+	if er != nil {
+		return er
 	}
 	return nil
 }

@@ -25,6 +25,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -129,6 +130,7 @@ type Data struct {
 	Logged      int16
 	Device      *list.Element /* *list.Element.Value.(*device.device) */
 	User        *list.Element /* Value: (*users.User) */
+	Logger      *log.Logger
 }
 
 /* Cut one string in two news strings */
@@ -938,6 +940,7 @@ func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
 		Data.User = device.UserDefault
 		device.UserSpec = nil
 		answer = Manage_ack(DELOG, 0, int32(1))
+		Data.Logged = DEFAULTUSER
 	} else {
 		answer = Manage_ack(DELOG, 0, int32(0))
 	}
@@ -1083,56 +1086,61 @@ func (Data *Data) Manage_WorkBall(request *list.Element) {
 	}
 }
 
+/*
+**
+ */
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	request := Data.Lst_req.Front()
 	er = nil
-	if request == nil {
-		er = errors.New("Get answer, but no request.")
-	} else if Data.Logged == UNKNOWN {
-		er = Data.Manage_Login(request, Db, Data.Lst_devices) // Get device et user
+
+	if Data.Logged == UNKNOWN {
+		er = Data.Manage_Login(request, Db, Data.Lst_devices)
 	} else {
-		if er == nil {
-			switch request.Value.(*protocol.Request).Rtype {
-			case SYNC:
-				Data.Manage_sync(request)
-			case UPDATE:
-				Data.Manage_update(request)
-			case POS:
-				Data.Manage_pos(request)
-			case TAKEN:
-				Data.Manage_taken(request)
-			case FOLLOW_ON:
-				Data.Manage_followon(request)
-			case FOLLOW_OFF:
-				Data.Manage_followoff(request)
-			case NEW_BALL:
-				Data.Manage_newball(request, Tab_wd)
-			case SEND_BALL:
-				Data.Manage_sendball(request, Tab_wd)
-			case MAGNET:
-				Data.Manage_magnet(request, Tab_wd)
-			case WORKBALL:
-				Data.Manage_WorkBall(request)
-			case ACK:
-			case TYPELOG:
-				er = Data.Manage_Login(request, Db, Data.Lst_devices)
-			case CREATEACCOUNT:
-				er = Data.Manage_CreateAccount(request, Db) // Get device et user on new connection.
-			case SYNCROACCOUNT:
-				er = Data.Manage_SyncAccount(request, Db) // Get device et user on new connection.
-			case DELOG:
-				Data.Manage_Delog(request, Db) // Get device et user on new connection.
-			case STATSUSER:
-				Data.Manage_StatUser(request)
-			case STATSBALL:
-				Data.Manage_StatBall(request)
-			}
+		switch request.Value.(*protocol.Request).Rtype {
+		default:
+			er = errors.New("Get_answer detect invalid type")
+		case SYNC:
+			Data.Manage_sync(request)
+		case UPDATE:
+			Data.Manage_update(request)
+		case POS:
+			Data.Manage_pos(request)
+		case TAKEN:
+			Data.Manage_taken(request)
+		case FOLLOW_ON:
+			Data.Manage_followon(request)
+		case FOLLOW_OFF:
+			Data.Manage_followoff(request)
+		case NEW_BALL:
+			Data.Manage_newball(request, Tab_wd)
+		case SEND_BALL:
+			Data.Manage_sendball(request, Tab_wd)
+		case MAGNET:
+			Data.Manage_magnet(request, Tab_wd)
+		case WORKBALL:
+			Data.Manage_WorkBall(request)
+		case ACK:
+		case TYPELOG:
+			er = Data.Manage_Login(request, Db, Data.Lst_devices)
+		case CREATEACCOUNT:
+			er = Data.Manage_CreateAccount(request, Db)
+		case SYNCROACCOUNT:
+			er = Data.Manage_SyncAccount(request, Db)
+		case DELOG:
+			er = Data.Manage_Delog(request, Db)
+		case STATSUSER:
+			Data.Manage_StatUser(request)
+		case STATSBALL:
+			Data.Manage_StatBall(request)
 		}
 	}
 	Del_request_done(Data.Lst_req)
 	return er
 }
 
+/*
+** To perform exchange's multiple. Call from sock.go "handleConnection"
+ */
 func (Data *Data) Get_aknowledgement(Lst_usr *users.All_users) (answer []byte) {
 	elem := Data.Lst_req.Back()
 	treq := elem.Value.(*protocol.Request)
