@@ -508,6 +508,7 @@ func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 **/
 func checkErr(err error) {
 	if err != nil {
+		//		fmt.Println(err)
 		panic(err)
 	}
 }
@@ -576,6 +577,12 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
+<<<<<<< HEAD
+		checkErr(err)
+		for rows.Next() {
+			var infoCont string
+			fmt.Println("Scan row et infoCont: ", infoCont)
+=======
 		switch {
     			case err == sql.ErrNoRows:
         	    	log.Printf("No containers.")
@@ -587,7 +594,9 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		for rows.Next() {
 			var infoCont string
 			fmt.Printf("info cont %v \n", infoCont)
+>>>>>>> 324b27c8ff8e4b15d98a315c61fc00f9ed072d23
 			err = rows.Scan(&infoCont)
+			fmt.Println(err)
 			checkErr(err)
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
