@@ -323,7 +323,7 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	var err error
 	lUser := list.New()
-	rows, err := Db.Query("SELECT id_user, mail, password FROM \"user\";")
+	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\";")
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64
