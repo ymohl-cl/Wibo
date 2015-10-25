@@ -54,6 +54,9 @@ func updateTicker() *time.Ticker {
 		nextTick = nextTick.Add(INTERVAL_PERIOD)
 	}
 	diff := nextTick.Sub(time.Now())
+	if diff <= 0 {
+		diff = diff * -1
+	}
 	return time.NewTicker(diff)
 }
 

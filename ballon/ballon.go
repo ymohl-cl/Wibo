@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"log"
 )
 
 /* Type is message type. Only type 1 is use now and described a text */
@@ -572,18 +573,27 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 	var err error
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
-		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
+		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
-		checkErr(errT)
+		switch {
+    			case err == sql.ErrNoRows:
+        	    	log.Printf("No containers.")
+    			case err != nil:
+        	  	 	log.Fatal(err)
+    			default:
+    	    	    fmt.Printf("get containers id user %v | %v \n", userE.Value.(*users.User).Id, rows)
+   		 		}
 		for rows.Next() {
 			var infoCont string
+			fmt.Printf("info cont %v \n", infoCont)
 			err = rows.Scan(&infoCont)
 			checkErr(err)
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
 			tempCord := GetCord(result[7])
 			possessed := GetWhomGotBall(idBall, Ulist, base.Db)
+			fmt.Printf("result %v, idBall %v, tempCord %v, possessed %v \n", result, idBall, tempCord, possessed)
 			lBallon.PushBack(
 				&Ball{
 					Title:       result[1],
@@ -595,11 +605,27 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
 					Possessed:   <-possessed,
 					Creator:     userE})
-			checkErr(err)
+			// checkErr(err)
+			switch {
+    			case err == sql.ErrNoRows:
+        	    	log.Printf("No containers.")
+    			case err != nil:
+        	  	 	log.Fatal(err)
+    			default:
+    	    	    fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
+   		 		}
 		}
 		return err
 	})
-	checkErr(err)
+	// checkErr(err)
+	switch {
+    			case err == sql.ErrNoRows:
+        	    	log.Printf("No containers.")
+    			case err != nil:
+        	  	 	log.Fatal(err)
+    			default:
+    	    	    fmt.Printf("get containers%v", lBallon)
+   		 		}
 	return lBallon
 }
 

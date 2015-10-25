@@ -190,7 +190,6 @@ func TestBallon(t *testing.T) {
 
 }
 
-
 func BenchmarkAddNewDefaultUser(b *testing.B){
 		var err error
 		Lst_users := new(users.All_users)
