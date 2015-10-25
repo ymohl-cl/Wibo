@@ -3,13 +3,18 @@ package debug
 import (
 	"Wibo/ballon"
 	"Wibo/owm"
+	"Wibo/users"
 	"container/list"
 	"time"
 )
 
 /* CREER UN BALLON POUR FAIRE DES TESTS */
-func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
-	/* CREATE CHECKPOINT */
+func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *owm.All_data) error {
+	/* CREATE USER */
+
+	euser := luser.Ulist.Front()
+
+	/* END CREATE USER -- CREATE CHECKPOINT */
 
 	tmp_lst := list.New()
 	var check_test0 ballon.Checkpoint
@@ -97,7 +102,7 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball0.Checkpoints = list.New()
 	ball0.Possessed = nil
 	ball0.Followers = list.New()
-	ball0.Creator = nil
+	ball0.Creator = euser
 	ball0.Stats = new(ballon.StatsBall)
 	ball0.Stats.CreationDate = time.Now()
 
@@ -111,7 +116,7 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball1.Checkpoints = list.New()
 	ball1.Possessed = nil
 	ball1.Followers = list.New()
-	ball1.Creator = nil
+	ball1.Creator = euser
 	ball1.Stats = new(ballon.StatsBall)
 	ball1.Stats.CreationDate = time.Now()
 
@@ -125,7 +130,7 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball2.Checkpoints = list.New()
 	ball2.Possessed = nil
 	ball2.Followers = list.New()
-	ball2.Creator = nil
+	ball2.Creator = euser
 	ball2.Stats = new(ballon.StatsBall)
 	ball2.Stats.CreationDate = time.Now()
 
@@ -139,7 +144,7 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball3.Checkpoints = list.New()
 	ball3.Possessed = nil
 	ball3.Followers = list.New()
-	ball3.Creator = nil
+	ball3.Creator = euser
 	ball3.Stats = new(ballon.StatsBall)
 	ball3.Stats.CreationDate = time.Now()
 
@@ -153,7 +158,7 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball4.Checkpoints = list.New()
 	ball4.Possessed = nil
 	ball4.Followers = list.New()
-	ball4.Creator = nil
+	ball4.Creator = euser
 	ball4.Stats = new(ballon.StatsBall)
 	ball4.Stats.CreationDate = time.Now()
 
@@ -167,20 +172,23 @@ func CreateDataToDebug(Lst_ball *ballon.All_ball, Tab_wd *owm.All_data) error {
 	ball5.Checkpoints = list.New()
 	ball5.Possessed = nil
 	ball5.Followers = list.New()
-	ball5.Creator = nil
+	ball5.Creator = euser
 	ball5.Stats = new(ballon.StatsBall)
 	ball5.Stats.CreationDate = time.Now()
 	// Add balls to list
-	Lst_ball.Blist.PushBack(ball0)
-	Lst_ball.Blist.PushBack(ball1)
-	Lst_ball.Blist.PushBack(ball2)
-	Lst_ball.Blist.PushBack(ball3)
-	Lst_ball.Blist.PushBack(ball4)
-	Lst_ball.Blist.PushBack(ball5)
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball0))
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball1))
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball2))
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball3))
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball4))
+	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball5))
+	euser.Value.(*users.User).Stats.NbrBallCreate = 5
+	euser.Value.(*users.User).Stats.NbrSend = 5
+	euser.Value.(*users.User).Stats.NbrMessage = 5
 
 	/* END BALL -- BEGIN CREATE_CHECKPOINT */
 
-	er := Lst_ball.Create_checkpoint(Tab_wd)
+	er := lball.Create_checkpoint(tabwd)
 	// If possible print ball List with Serv.Lst_ball.Print_all_balls()
 	return er
 }
