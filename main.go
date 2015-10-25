@@ -23,7 +23,6 @@ import (
 	"Wibo/sock"
 	"Wibo/users"
 	//	"container/list"
-	//	"fmt"
 	"log"
 	"time"
 )
@@ -54,6 +53,9 @@ func updateTicker() *time.Ticker {
 		nextTick = nextTick.Add(INTERVAL_PERIOD)
 	}
 	diff := nextTick.Sub(time.Now())
+	if diff <= 0 {
+		diff = diff * -1
+	}
 	return time.NewTicker(diff)
 }
 
