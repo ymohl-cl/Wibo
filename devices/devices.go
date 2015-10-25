@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 )
 
 /* *list.Element.Value.(*users.User) */
@@ -80,8 +79,6 @@ func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db
 	newDevice.Historic = list.New()
 	newDevice.Id = Id
 	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db)
-	newDevice.UserDefault.Value.(*users.User).Stats = new(users.StatsUser)
-	newDevice.UserDefault.Value.(*users.User).Stats.CreationDate = time.Now()
 	if newDevice.UserDefault == nil {
 		return nil, errors.New("Add new default user not permission")
 	}

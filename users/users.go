@@ -199,9 +199,15 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 			return false, errors.New("Wrong mail format")
 		}
 	}
-	_, err = Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6);", 1, "particulier", bpass, time.Now(), time.Now(), new_user.Mail)
+	/* set id*/
+	rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
 	if err != nil {
 		return false, err
+	}
+	for rows.Next() {
+		var IdUser int64
+		err = rows.Scan(&IdUser)
+		new_user.Id = IdUser
 	}
 	return true, nil
 }
@@ -224,10 +230,27 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 		fmt.Println(err)
 		return nil
 	}
+	/*
+	··User.NbrBallSend = 0
+»···»···User.Coord.Lon = req.Coord.Lon
+»···»···User.Coord.Lat = req.Coord.Lat
+»···»···User.Log = time.Now()
+»···»···User.Followed = list.New()
+»···»···User.Possessed = list.New()
+»···»···User.HistoricReq = list.New()
+»···»···User.Stats = new(users.StatsUser) 
+»···»···User.Stats.CreationDate = time.Now()
+*/
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
-		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault, Followed: list.New(), Possessed: list.New(), HistoricReq: list.New()})
+		Lst_users.Ulist.PushBack(
+			&User{
+				Id: IdUserDefault,
+				Followed: list.New(),
+				Possessed: list.New(),
+				HistoricReq: list.New(),
+				})
 	}
 	return Lst_users.Ulist.Back()
 }

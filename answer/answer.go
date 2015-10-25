@@ -820,10 +820,13 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 		User.Mail = req.Spec.(protocol.Log).Email
 		User.NbrBallSend = 0
 		User.Coord.Lon = req.Coord.Lon
+		User.Log = time.Now()
 		User.Coord.Lat = req.Coord.Lat
 		User.Followed = list.New()
 		User.Possessed = list.New()
 		User.HistoricReq = list.New()
+		User.Stats = new(users.StatsUser)
+		User.Stats.CreationDate = time.Now()
 		flag, err := Data.Lst_users.Add_new_user(User, Db, req.Spec.(protocol.Log).Pswd)
 		er = err
 		if err != nil {
