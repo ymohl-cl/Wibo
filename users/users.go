@@ -218,7 +218,6 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
 		Lst_users.Ulist.PushBack(&User{Id: IdUserDefault, Followed: list.New(), Possessed: list.New(), HistoricReq: list.New()})
-		//Lst_users.Ulist.PushBack(&User{Login: "user_default", Id: IdUserDefault})
 	}
 	return Lst_users.Ulist.Back()
 }

@@ -435,21 +435,21 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) {
 	i := 0
-
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
 	fmt.Printf("%v Id Max", ABalls.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
+
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)
 			j := 0
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
-				fmt.Printf(" %v id ballon update", f.Value.(Message).Id)
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
-						stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
 						checkErr(err)
-						_, err = stm.Query(f.Value.(Message).Content, idBall, 2)
+						_, err = stm.Query(f.Value.(Message).Content, idBall)
 						j++
 						checkErr(err)
 						return err
@@ -468,9 +468,9 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 	i := 0
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
-			stm, err := tx.Prepare("INSERT INTO message(content, containerid, device_id) VALUES ($1, $2, $3)")
+			stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
 			checkErr(err)
-			_, err = stm.Query(e.Value.(Message).Content, idBall, 2)
+			_, err = stm.Query(e.Value.(Message).Content, idBall)
 			i++
 			checkErr(err)
 			return err
