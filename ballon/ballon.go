@@ -378,7 +378,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	fmt.Printf("Insert  Id User %v | IdBall %v | \n", newBall.Creator.Value.(*users.User).Id, newBall.Id_ball)
 	var err error
 	var executed bool
-	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+	err = base.Transact(base.Db, func(tx *sql.Tx) error { 
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		checkErr(err)
 		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
@@ -669,6 +669,10 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	return Mlist
 }
 
+/*
+	InsertListBallsFollow
+	Insert Balls list to every user by his id relationship
+*/
 func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List, base *db.Env) {
 
 	for u := Ulist.Front(); u != nil; u = u.Next() {
@@ -682,6 +686,26 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 	}
 }
 
+/**
+	get checkpoints and associate with every checkpoints
+**/
+
+func (Lb *All_ball) GetCheckpointsFromBase(base *db.Env){
+
+}
+
+
+/**
+	set checkpoints to base
+**/
+
+func (Lb *All_ball) SetCheckpointsToBase(base *db.Env){
+	for b := Lb.Blist.Front(); b != nil; b = b.Next() {
+		for c := b.Checkpoints.Front(); c != nil; c = c.Next();{
+			
+		}
+	}
+}
 /**
 * get all ball from database and associeted
 * the creator, possessord and followers.
