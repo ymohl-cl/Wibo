@@ -85,6 +85,7 @@ type Ball struct {
 	Followers   *list.List    /* List d'insterface *list.Element.Value.(*users.User), Constitue la liste des utilisateurs qui suivents le ballon */
 	Creator     *list.Element /* Value: (*users.User), user qui a creer le ballon */
 	Stats       *StatsBall    /* Interface Stats: Statistiques de la vie du ballon */
+	Itenerary 	*list.List
 }
 
 type All_ball struct {
@@ -371,7 +372,31 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
 
-func (Ball *Ball) GetItinerary() (int32, *list.List) {
+func (Ball *Ball) GetItinerary(base *db.Env) (int32, *list.List) {
+	var err error
+	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		stm, err := tx.Prepare("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) from checkpoints where containerid = $1")
+		if err != nil {
+			fmt.Println(err)
+		}
+		rows, err := stm.Query(Ball.Id_ball)
+		if err != nil {
+			fmt.Println(err)
+		}
+		Ball.Itenerary = list.New()
+		for rows.Next() {
+			var tdate time.Time
+			var attm bool
+			var point string
+			rows.Scan(&tdate, &attm, &point)
+			fmt.Println(tdate, attm, point)
+			// Ball.Itenerary.PushBack(&Checkpoint{Coord:  , Date: tdate, MagnetFlag: attm})
+		}
+		return err
+	})
+	if err != nil{
+		fmt.Println(err)
+	}
 	return 0, list.New()
 }
 
@@ -409,7 +434,6 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		fmt.Println("cocoucouoiafa")
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		if err != nil {
 			log.Fatal(err)
@@ -424,7 +448,6 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 			newBall.Title,
 			newBall.Id_ball,
 			newBall.Date).Scan(&IdC)
-		fmt.Printf("stament %v | \n", IdC)
 
 		checkErr(err)
 		return err
@@ -591,43 +614,39 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
 		checkErr(err)
 		switch {
-		case err == sql.ErrNoRows:
-			log.Printf("No containers.")
-		case err != nil:
-			log.Fatal(err)
-		default:
-			fmt.Printf("get containers id user %v | %v \n", userE.Value.(*users.User).Id, rows)
-		}
-		for rows.Next() {
-			var infoCont string
-			fmt.Printf("info cont %v \n", infoCont)
-			err = rows.Scan(&infoCont)
-			checkErr(err)
-			result := strings.Split(infoCont, ",")
-			idBall := GetIdBall(result[0])
-			tempCord := GetCord(result[7])
-			possessed := GetWhomGotBall(idBall, Ulist, base.Db)
-			fmt.Printf("result %v, idBall %v, tempCord %v, possessed %v \n", result, idBall, tempCord, possessed)
-			lBallon.PushBack(
-				&Ball{
-					Title:       result[1],
-					Date:        GetDateFormat(result[5]),
-					Checkpoints: tempCord,
-					Coord:       tempCord.Front(),
-					Wind:        GetWin(result[3], result[4]),
-					Messages:    Lb.GetMessagesBall(idBall, base.Db),
-					Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
-					Possessed:   <-possessed,
-					Creator:     userE})
-			// checkErr(err)
-			switch {
 			case err == sql.ErrNoRows:
 				log.Printf("No containers.")
 			case err != nil:
 				log.Fatal(err)
 			default:
-				fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
-			}
+				for rows.Next() {
+					var infoCont string
+					err = rows.Scan(&infoCont)
+					checkErr(err)
+					result := strings.Split(infoCont, ",")
+					idBall := GetIdBall(result[0])
+					tempCord := GetCord(result[7])
+					possessed := GetWhomGotBall(idBall, Ulist, base.Db)
+					lBallon.PushBack(
+						&Ball{
+							Title:       result[1],
+							Date:        GetDateFormat(result[5]),
+							Checkpoints: tempCord,
+							Coord:       tempCord.Front(),
+							Wind:        GetWin(result[3], result[4]),
+							Messages:    Lb.GetMessagesBall(idBall, base.Db),
+							Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
+							Possessed:   <-possessed,
+							Creator:     userE})
+					switch {
+						case err == sql.ErrNoRows:
+							log.Printf("No containers.")
+						case err != nil:
+							log.Fatal(err)
+						default:
+							fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
+					}
+				}
 		}
 		return err
 	})
