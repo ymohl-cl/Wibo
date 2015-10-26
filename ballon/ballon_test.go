@@ -48,21 +48,21 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	
-	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-	fmt.Println(bool)
-	fmt.Println(err)
+	// bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	// fmt.Println(bool)
+	// fmt.Println(err)
 
-	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
-	for rows.Next() {
-		var idUser int64
-		var login string
-		var mailq string
-		var passbyte []byte
-		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
-		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
-			t.Errorf("%v should hash %s correctly", bpass, passbyte)
-		}
-	}
+	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
+	// for rows.Next() {
+	// 	var idUser int64
+	// 	var login string
+	// 	var mailq string
+	// 	var passbyte []byte
+	// 	err = rows.Scan(&idUser, &login, &mailq, &passbyte)
+	// 	if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
+	// 		t.Errorf("%v should hash %s correctly", bpass, passbyte)
+	// 	}
+	// }
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()

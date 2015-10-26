@@ -397,7 +397,6 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	$1 idcreatorc integer,
 	$2 latitudec integer,
 	$3 longitudec integer,
-	$4 device integer,
 	$5 directionc float,
 	$6 speedc float,
 	$7 title text,
