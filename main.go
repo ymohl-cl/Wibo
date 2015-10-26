@@ -85,7 +85,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 	}()
 	go func() {
 		for {
-			time.Sleep(1 * time.Minute)
+			time.Sleep(10 * time.Minute)
 			channelfuncupdatedata <- true
 		}
 	}()
