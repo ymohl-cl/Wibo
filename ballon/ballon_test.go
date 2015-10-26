@@ -33,7 +33,7 @@ func TestBallon(t *testing.T) {
 	fmt.Println(Db)
 
 	user1 := new(users.User)
-	user1.Id = 1
+	user1.Id = 59
 	user1.Mail = "mailtest@test.com"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
@@ -47,7 +47,7 @@ func TestBallon(t *testing.T) {
 	if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
-	
+	Lst_users.Ulist.PushBack(user1)
 	// bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
 	// fmt.Println(bool)
 	// fmt.Println(err)
@@ -91,6 +91,10 @@ func TestBallon(t *testing.T) {
 	check_test4.Coord.Lat = 2.316045
 	check_test4.Date = time.Now()
 
+	var check_test5 ballon.Coordinate
+	check_test5.Lon = 48.833986
+	check_test5.Lat = 2.316045
+
 	lmessages := list.New()
 	listMessage1 := list.New()
 	var message0 ballon.Message
@@ -115,7 +119,7 @@ func TestBallon(t *testing.T) {
 	lmessages.PushBack(message2)
 
 	ball0 := new(ballon.Ball)
-	ball0.Id_ball = 0
+	ball0.Id_ball = 45
 	ball0.Title = "toto"
 	ball0.Coord = tmp_lst.PushBack(check_test0)
 	ball0.Wind = ballon.Wind{}
@@ -167,18 +171,19 @@ func TestBallon(t *testing.T) {
 	Lst_ball.Blist.PushBack(ball3)
 
 	ball4 := new(ballon.Ball)
-	ball4.Id_ball = 4
+	ball4.Id_ball = 54
 	ball4.Title = "tyty"
 	ball4.Edited = true
-	ball4.Coord = tmp_lst.PushBack(check_test4)
-	ball4.Wind = ballon.Wind{}
+	ball4.Coord = tmp_lst.PushBack(check_test5)
+	ball4.Wind = ballon.Wind{Speed: 32, Degress: 2}
 	ball4.Messages = listMessage1
 	ball4.Date = time.Now()
-	ball4.Checkpoints = list.New()
-	ball4.Possessed = nil
+	ball4.Checkpoints = tmp_lst
+	ball4.Possessed = Lst_users.Ulist.Front()
 	ball3.Followers = list.New()
-	ball4.Creator = nil
+	ball4.Creator = Lst_users.Ulist.Front()
 	Lst_ball.Blist.PushBack(ball4)
+	Lst_ball.InsertBallon(ball4, myDb)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 	//Lst_ball.Update_balls(Lst_ball, myDb)
 	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
@@ -187,23 +192,23 @@ func TestBallon(t *testing.T) {
 
 }
 
-// func BenchmarkAddNewDefaultUser(b *testing.B){
-// 		var err error
-// 		Lst_users := new(users.All_users)
-// 		myDb := new(db.Env)
-// 		Lst_users.Ulist = list.New()
-// 		Db, err := myDb.OpenCo(err)
-// 		if err != nil {
-// 			b.Fatalf("benchmarkConnection: %s", err)
-// 		}
-// 		  for n := 0; n < b.N; n++ {
-// 				defU := Lst_users.AddNewDefaultUser(Db)
-// 				// if err != nil {
-// 				// b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
-// 				// }
-// 			fmt.Println(defU)
-//         }
-// }
+func BenchmarkAddNewDefaultUser(b *testing.B){
+		var err error
+		Lst_users := new(users.All_users)
+		myDb := new(db.Env)
+		Lst_users.Ulist = list.New()
+		Db, err := myDb.OpenCo(err)
+		if err != nil {
+			b.Fatalf("benchmarkConnection: %s", err)
+		}
+		  for n := 0; n < b.N; n++ {
+				defU := Lst_users.AddNewDefaultUser(Db)
+				// if err != nil {
+				// b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
+				// }S
+			fmt.Println(defU)
+        }
+}
 
 // func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){
 // 		LBall.Update_balls(LBall, base)

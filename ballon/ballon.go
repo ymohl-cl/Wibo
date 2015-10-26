@@ -404,34 +404,41 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 */
 
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
-	fmt.Printf("Insert  Id User %v | IdBall %v | \n", newBall.Creator.Value.(*users.User).Id, newBall.Id_ball)
+	fmt.Printf("Insert  ballon id %v | \n", newBall.Creator.Value.(*users.User).Id)
+		var IdC int
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
+		fmt.Println("cocoucouoiafa")
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
-		checkErr(err)
-		rs, err := stm.Query(newBall.Creator.Value.(*users.User).Id,
+		if err != nil {
+			log.Fatal(err)
+		}
+		
+		 checkErr(err)
+		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
 			newBall.Id_ball,
-			newBall.Date)
-		for rs.Next() {
-			var idC int
-			err = rs.Scan(&idC)
-			checkErr(err)
-			err = Lst_ball.InsertMessages(newBall.Messages, idC, base)
-			checkErr(err)
-		}
+			newBall.Date).Scan(&IdC)
+			fmt.Printf("stament %v | \n", IdC)
+	
 		checkErr(err)
 		return err
 	})
+	err = Lst_ball.InsertMessages(newBall.Messages, IdC, base)
 	executed = true
 	return executed, err
 }
-
+/*
+CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date)
+ RETURNS SETOF integer
+ LANGUAGE plpgsql
+AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
+\*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	i := 0
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
