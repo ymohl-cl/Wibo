@@ -76,6 +76,7 @@ type Ball struct {
 	Title   string        /* Titre du ballon */
 	Coord   *list.Element /* Interface coordonnee, stocke les coordonnees */
 	//	Idball      int64         /** Idball -- deprecated a supprimer */
+	Itinerary   *list.List    /* List des itineraire non enregistre par le serveur */
 	Edited      bool          /** Edited, Flag de modification (ne tiens pas compte des changement dans Coord et Checkpoints) */
 	Wind        Wind          /* Interface Wind, stocke les donnees des vents */
 	Messages    *list.List    /* Liste d'interface Message: Contenu du message, l'id 0 est le message de creation du ballon */

@@ -672,6 +672,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Edited = true
 		ball.Title = newball.Title
 		ball.Messages = list.New()
+		ball.Itinerary = list.New()
 		ball.Followers = list.New()
 		ball.Checkpoints = list.New()
 		mess.Id = 0
@@ -1019,7 +1020,7 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 	return lst_asw
 }
 
-func (Data *Data) Manage_StatBall(request *list.Element) {
+func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
@@ -1128,7 +1129,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 		case STATSUSER:
 			Data.Manage_StatUser(request)
 		case STATSBALL:
-			Data.Manage_StatBall(request)
+			Data.Manage_StatBall(request, Db)
 		}
 	}
 	Del_request_done(Data.Lst_req)
