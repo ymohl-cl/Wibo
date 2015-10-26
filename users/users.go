@@ -216,17 +216,29 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 Insert user default
 	insert a user with default data
 */
-func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
+func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request) *list.Element {
 	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
 	if err != nil {
-		fmt.Println("Error crypt")
 		fmt.Println(err)
 		return nil
 	}
+	tmpUser := new(User)
+	tmpUser.Log = time.Now()
+	tmpUser.Followed =list.New()
+	tmpUser.Possessed = list.New()
+	tmpUser.HistoricReq = list.New()
+	tmpUser.Coord.Lon = req.Coord.Lon
+	tmpUser.Coord.Lat = req.Coord.Lat
+	tmpUser.Stats = new(StatsUser)
+	tmpUser.Stats.CreationDate = time.Now()
+	tmpUser.Stats.NbrBallCreate = 0
+	tmpUser.Stats.NbrCatch = 0
+	tmpUser.Stats.NbrSend = 0
+	tmpUser.Stats.NbrFollow = 0
+	tmpUser.Stats.NbrMessage = 0
 	rows, err := Db.Query(
-		"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, time.Now(), time.Now())
+		"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, tmpUser.Log, tmpUser.Stats.CreationDate)
 	if err != nil {
-		fmt.Println("Error insert")
 		fmt.Println(err)
 		return nil
 	}
@@ -244,16 +256,9 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
-		Lst_users.Ulist.PushBack(
-			&User{
-				Id:          IdUserDefault,
-				Followed:    list.New(),
-				Possessed:   list.New(),
-				HistoricReq: list.New(),
-				//				Stats: &StatsUser{
-				//					CreationDate: time.Now(),
-				//				},
-			})
+		tmpUser.Id = IdUserDefault
+		Lst_users.Ulist.PushBack(tmpUser)
+			
 	}
 	return Lst_users.Ulist.Back()
 }
