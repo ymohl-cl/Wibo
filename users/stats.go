@@ -70,28 +70,20 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 }
 
 func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) {
-    var creation time.Time
+    // var creation|t time.Time
     var ncontainers, ncath, nsend, nfollow, nmessage int
-    rows, err := Db.Query("SELECT \"user\".creationdate, num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users INNER JOIN \"user\" ON  (stats_users.iduser_stats = \"user\".id_user) WHERE iduser_stats=$1;", int(idUser))
+    rows, _ := Db.Query("SELECT num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users INNER JOIN \"user\" ON  (stats_users.iduser_stats = \"user\".id_user) WHERE iduser_stats=$1;", int(idUser))
     
-    switch {
-    case err == sql.ErrNoRows:
-        fmt.Println(err)
-        return nil // make an error here
-    case err != nil:
-        fmt.Println(err)
-    default:
-        rows.Scan(&creation, &ncontainers, &ncath, &nfollow, &nmessage, &nsend)
-        fmt.Printf("%T | %v \n", creation, creation)
+        rows.Scan(&ncontainers, &ncath, &nfollow, &nmessage, &nsend)
+        // fmt.Printf("%T | %v \n", creation, creation)
         fmt.Printf("%T | %v \n", ncontainers, ncontainers)
         fmt.Printf("%T | %v\n", ncath, ncath)
         fmt.Printf("%T | %v \n", nsend, nsend)
         fmt.Printf("%T | %v \n", nfollow, nfollow)
         fmt.Printf("%T | %v\n", nmessage, nmessage)
-         return &StatsUser{ CreationDate: creation, NbrBallCreate: int64(ncontainers),
+         return &StatsUser{NbrBallCreate: int64(ncontainers),
                  NbrCatch: int64(ncath), NbrSend: int64(nsend), NbrFollow: int64(nfollow),
                  NbrMessage: int64(nmessage)}
-    }
     return nil
     
 }

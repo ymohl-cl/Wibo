@@ -573,6 +573,10 @@ func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Elemen
 			speedcont integer,
 			creationdate date,
 			deviceid integer,
+ CREATE OR REPLACE FUNCTION public.getcontainersbyuserid(iduser integer)
+  RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction float, speedcont float, creationdate timestamp without time zone, locationcont text)
+  LANGUAGE plpgsql
+ AS $function$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS    TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, date(container.creationdate) + interval '1 hour',   ST_AsText(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $function$
 			locationcont text)
 */
 

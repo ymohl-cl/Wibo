@@ -264,7 +264,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	var err error
-	rows, err := Db.Query("SELECT id_user, login, mail FROM \"user\" WHERE id_user=$1;", idUser)
+	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	for rows.Next() {
 		var idUser int64
 		var mailq string
@@ -355,7 +355,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var pass string
 		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: nil})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
