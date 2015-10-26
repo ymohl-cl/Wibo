@@ -110,15 +110,15 @@ CREATE FUNCTION getcontainers() RETURNS TABLE(idballon integer, idtype integer, 
 ALTER FUNCTION public.getcontainers() OWNER TO wibo;
 
 --
--- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+-- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
 --
 
-CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction numeric, speedcont integer, creationdate timestamp without time zone, locationcont text)
+CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction double precision, speedcont double precision, creationdate timestamp without time zone, locationcont text)
     LANGUAGE plpgsql
     AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS     TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, date(container.creationdate) + interval '1 hour',   ST_AsText(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $$;
 
 
-ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO wibo;
+ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO jbernabe;
 
 --
 -- Name: getcontainersbyuseridjson(integer); Type: FUNCTION; Schema: public; Owner: wibo
