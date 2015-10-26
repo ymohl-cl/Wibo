@@ -21,12 +21,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"log"
 )
 
 /* Type is message type. Only type 1 is use now and described a text */
@@ -509,6 +509,7 @@ func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 **/
 func checkErr(err error) {
 	if err != nil {
+		//		fmt.Println(err)
 		panic(err)
 	}
 }
@@ -577,14 +578,15 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
+		checkErr(err)
 		switch {
-    			case err == sql.ErrNoRows:
-        	    	log.Printf("No containers.")
-    			case err != nil:
-        	  	 	log.Fatal(err)
-    			default:
-    	    	    fmt.Printf("get containers id user %v | %v \n", userE.Value.(*users.User).Id, rows)
-   		 		}
+		case err == sql.ErrNoRows:
+			log.Printf("No containers.")
+		case err != nil:
+			log.Fatal(err)
+		default:
+			fmt.Printf("get containers id user %v | %v \n", userE.Value.(*users.User).Id, rows)
+		}
 		for rows.Next() {
 			var infoCont string
 			fmt.Printf("info cont %v \n", infoCont)
@@ -608,25 +610,25 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					Creator:     userE})
 			// checkErr(err)
 			switch {
-    			case err == sql.ErrNoRows:
-        	    	log.Printf("No containers.")
-    			case err != nil:
-        	  	 	log.Fatal(err)
-    			default:
-    	    	    fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
-   		 		}
+			case err == sql.ErrNoRows:
+				log.Printf("No containers.")
+			case err != nil:
+				log.Fatal(err)
+			default:
+				fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
+			}
 		}
 		return err
 	})
 	// checkErr(err)
 	switch {
-    			case err == sql.ErrNoRows:
-        	    	log.Printf("No containers.")
-    			case err != nil:
-        	  	 	log.Fatal(err)
-    			default:
-    	    	    fmt.Printf("get containers%v", lBallon)
-   		 		}
+	case err == sql.ErrNoRows:
+		log.Printf("No containers.")
+	case err != nil:
+		log.Fatal(err)
+	default:
+		fmt.Printf("get containers%v", lBallon)
+	}
 	return lBallon
 }
 
