@@ -5,7 +5,7 @@ import (
 "time"
 "strings"
 "fmt"
-"log"
+// "log"
 )
 
 /*
@@ -70,19 +70,26 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 }
 
 func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) {
-    var creation time.Time
-    var ncontainers, ncath, nsend, nfollow, nmessage int64
-	err := Db.QueryRow("SELECT \"user\".creationdate, num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users INNER JOIN \"user\" ON  (stats_users.iduser_stats = \"user\".id_user) WHERE iduser_stats=$1;", idUser).Scan(&creation, &ncontainers, &ncath, &nfollow, &nmessage, &nsend)
+    // var creation time.Time
+    var ncontainers, ncath, nsend, nfollow, nmessage int
+	err := Db.QueryRow("SELECT num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users  WHERE iduser_stats=$1;", int(idUser)).Scan(&ncontainers, &ncath, &nfollow, &nmessage, &nsend)
     switch {
     case err == sql.ErrNoRows:
         fmt.Println(err)
         return nil // make an error here
-		      // return &StatsUser{NbrBallCreate: 0, NbrCatch:0, NbrSend: 0, NbrFollow: 0, NbrMessage: 0}
     case err != nil:
-            log.Fatal(err)
+        fmt.Println(err)
     default:
-            fmt.Printf("Username is %s | %s | %s | %s | %s | %v \n", creation, ncontainers,ncath, nsend, nfollow, nmessage)
-        return &StatsUser{CreationDate: creation, NbrBallCreate: ncontainers, NbrCatch: ncath, NbrSend: nsend, NbrFollow: nfollow, NbrMessage: nmessage}
+        // fmt.Printf("%T \n", creation)
+        fmt.Printf("%T \n", ncontainers)
+        fmt.Printf("%T \n", ncath)
+        fmt.Printf("%T \n", nsend)
+        fmt.Printf("%T \n", nfollow)
+        fmt.Printf("%T \n", nmessage)
+        // return &StatsUser{ NbrBallCreate: int64(ncontainers),
+        //         NbrCatch: int64(ncath), NbrSend: int64(nsend), NbrFollow: int64(nfollow),
+        //         NbrMessage: int64(nmessage)}
+        return nil
     }
     return nil
     
