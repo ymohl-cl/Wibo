@@ -48,7 +48,34 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	check_test5.Coord.Lat = 48.910242
 	check_test5.Date = time.Now()
 
-	/* END CHECKPOINT -- BEGIN MESSAGE */
+	/* END CHECKPOINT -- BEGIN COORDINATE */
+
+	var Coord0 ballon.Coordinate
+	var Coord1 ballon.Coordinate
+	var Coord2 ballon.Coordinate
+	var Coord3 ballon.Coordinate
+	var Coord4 ballon.Coordinate
+	var Coord5 ballon.Coordinate
+
+	Coord0.Lon = 2.3080535
+	Coord0.Lat = 48.910242
+
+	Coord1.Lon = 2.316055
+	Coord1.Lat = 48.833086
+
+	Coord2.Lon = 2.316065
+	Coord2.Lat = 48.833586
+
+	Coord3.Lon = 2.30810777
+	Coord3.Lat = 48.919253
+
+	Coord4.Lon = 2.3088211
+	Coord4.Lat = 48.918361
+
+	Coord5.Lon = 2.316045
+	Coord5.Lat = 48.833986
+
+	/* END COORDINATE -- BEGIN MESSAGE */
 
 	mmp2 := list.New()
 	mmp := list.New()
@@ -105,6 +132,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball0.Creator = euser
 	ball0.Stats = new(ballon.StatsBall)
 	ball0.Stats.CreationDate = time.Now()
+	ball0.Stats.CoordCreated = &Coord0
 
 	ball1.Id_ball = 1
 	ball1.Edited = false
@@ -119,6 +147,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball1.Creator = euser
 	ball1.Stats = new(ballon.StatsBall)
 	ball1.Stats.CreationDate = time.Now()
+	ball1.Stats.CoordCreated = &Coord1
 
 	ball2.Id_ball = 2
 	ball2.Edited = false
@@ -133,6 +162,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball2.Creator = euser
 	ball2.Stats = new(ballon.StatsBall)
 	ball2.Stats.CreationDate = time.Now()
+	ball2.Stats.CoordCreated = &Coord2
 
 	ball3.Id_ball = 3
 	ball3.Edited = false
@@ -147,6 +177,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball3.Creator = euser
 	ball3.Stats = new(ballon.StatsBall)
 	ball3.Stats.CreationDate = time.Now()
+	ball3.Stats.CoordCreated = &Coord3
 
 	ball4.Id_ball = 4
 	ball4.Edited = false
@@ -161,6 +192,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball4.Creator = euser
 	ball4.Stats = new(ballon.StatsBall)
 	ball4.Stats.CreationDate = time.Now()
+	ball4.Stats.CoordCreated = &Coord4
 
 	ball5.Id_ball = 5
 	ball5.Edited = false
@@ -175,6 +207,8 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball5.Creator = euser
 	ball5.Stats = new(ballon.StatsBall)
 	ball5.Stats.CreationDate = time.Now()
+	ball5.Stats.CoordCreated = &Coord5
+
 	// Add balls to list
 	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball0))
 	euser.Value.(*users.User).Followed.PushBack(lball.Blist.PushBack(ball1))

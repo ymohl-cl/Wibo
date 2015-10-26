@@ -4,7 +4,7 @@ _vendor/**/*
 pkg/**/*
 LogsSys.txt
 Logsfile.txt
-
+*.txt
 # Vim extensions
 *.swp
 *.swo
