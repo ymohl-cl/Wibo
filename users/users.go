@@ -224,7 +224,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	}
 	tmpUser := new(User)
 	tmpUser.Log = time.Now()
-	tmpUser.Followed =list.New()
+	tmpUser.Followed = list.New()
 	tmpUser.Possessed = list.New()
 	tmpUser.HistoricReq = list.New()
 	tmpUser.Coord.Lon = req.Coord.Lon
@@ -258,7 +258,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 		err = rows.Scan(&IdUserDefault)
 		tmpUser.Id = IdUserDefault
 		Lst_users.Ulist.PushBack(tmpUser)
-			
+
 	}
 	return Lst_users.Ulist.Back()
 }

@@ -40,7 +40,7 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *
 		ed = ed.Next()
 	}
 	if ed == nil {
-		ed, er = Devices.AddDeviceOnBdd(req.IdMobile, Ulist, Db)
+		ed, er = Devices.AddDeviceOnBdd(req, Ulist, Db)
 		if er != nil {
 			fmt.Println("Echec add device on bdd")
 		}
@@ -73,12 +73,12 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	return nil
 }
 
-func (Devices *All_Devices) AddDeviceOnBdd(Id string, Ulist *users.All_users, Db *sql.DB) (*list.Element, error) {
+func (Devices *All_Devices) AddDeviceOnBdd(req *protocol.Request, Ulist *users.All_users, Db *sql.DB) (*list.Element, error) {
 	var err error
 	newDevice := new(Device)
 	newDevice.Historic = list.New()
-	newDevice.Id = Id
-	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db)
+	newDevice.Id = req.IdMobile
+	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db, req)
 	if newDevice.UserDefault == nil {
 		return nil, errors.New("Add new default user not permission")
 	}
