@@ -34,7 +34,7 @@ func TestBallon(t *testing.T) {
 
 	user1 := new(users.User)
 	user1.Id = 59
-	user1.Mail = "mailtest@test.com"
+	user1.Mail = "mailtest2@test.com"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
 	pass := []byte("Pass1Test")
@@ -48,9 +48,9 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	Lst_users.Ulist.PushBack(user1)
-	// bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-	// fmt.Println(bool)
-	// fmt.Println(err)
+	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	fmt.Println(bool)
+	fmt.Println(err)
 
 	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
 	// for rows.Next() {
@@ -183,7 +183,7 @@ func TestBallon(t *testing.T) {
 	ball3.Followers = list.New()
 	ball4.Creator = Lst_users.Ulist.Front()
 	Lst_ball.Blist.PushBack(ball4)
-	Lst_ball.InsertBallon(ball4, myDb)
+	// Lst_ball.InsertBallon(ball4, myDb)
 	/* FIN DE LA CREATION DEBALLON POUR TEST */
 	//Lst_ball.Update_balls(Lst_ball, myDb)
 	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")

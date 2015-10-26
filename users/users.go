@@ -123,13 +123,14 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 
-func (lUser *All_users) Get_GlobalStat(base *db.Env) (er error) {
-	er = nil
-	return
+
+func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
+    er = nil
+    return
 }
 
-func (Lb *All_users) Update_users(base *db.Env) (er error) {
-	return er
+func (lu *All_users) Update_users(base *db.Env) (er error) {
+    return er
 }
 
 func CheckValidMail(email string) bool {
@@ -185,7 +186,7 @@ func (e *userError) Error() string {
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string) (bool, error) {
 	var err error
 
-	if len(Pass) > 1 {
+	if len(Pass) == 0 {
 		/* really danger below */
 		Pass = "ThisIsAPasswordDefault2015OP"
 	}
