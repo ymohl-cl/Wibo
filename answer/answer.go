@@ -1012,6 +1012,7 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lat)
 			eCheck = eCheck.Next()
 		}
+		binary.Write(Buffer, binary.BigEndian, make([]byte, SIZE_PACKET-answer.head.octets))
 		buf := Buffer.Bytes()
 		lst_asw.PushBack(buf)
 	}
@@ -1028,9 +1029,10 @@ func (Data *Data) Manage_StatBall(request *list.Element) {
 	var tmpPacket float64
 	tmpPacket = (float64(SIZE_COORDSTATBALL) * float64(nbrCheckpoint)) / float64(sizeStat)
 	nbrPacket := int(tmpPacket)
-	if float64(nbrPacket) < tmpPacket {
+	if float64(nbrPacket) < tmpPacket || nbrPacket == 0 {
 		nbrPacket++
 	}
+	fmt.Println("NbrPacket: ", nbrPacket)
 	lst_asw := Write_StatBall(LstCheckpoint, nbrCheckpoint, nbrPacket, ball)
 	if lst_asw == nil {
 		answer := Manage_ack(STATSBALL, 0, int32(0))
