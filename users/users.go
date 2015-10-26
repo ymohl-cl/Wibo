@@ -124,7 +124,7 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 
 func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
-	er = nil
+	rows, err := Db.Query("SELECT id_userg, mail, bpass FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
 	return
 }
 
