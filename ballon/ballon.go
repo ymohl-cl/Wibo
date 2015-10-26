@@ -457,7 +457,8 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					checkErr(err)
 				}
 			}
-		} else {
+		} else if (ABalls.Blist.Len() > 0){
+				fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m", ABalls.Blist.Len())
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++

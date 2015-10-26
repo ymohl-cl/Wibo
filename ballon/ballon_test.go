@@ -34,13 +34,10 @@ func TestBallon(t *testing.T) {
 
 	user1 := new(users.User)
 	user1.Id = 1
-	user1.Login = "user3"
-	user1.Mail = ""
-	user1.Password = "pass1"
-	user1.Device = list.New()
+	user1.Mail = "mailtest@test.com"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
-	pass := []byte(user1.Password)
+	pass := []byte("Pass1Test")
 	fmt.Println("password test")
 	bpass, err := bcrypt.GenerateFromPassword(pass, 10)
 	fmt.Println(len(bpass))
@@ -51,21 +48,21 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	
-	// bool, err := Lst_users.Add_new_user(user1, Db)
-	// fmt.Println(bool)
-	// fmt.Println(err)
+	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	fmt.Println(bool)
+	fmt.Println(err)
 
-	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
-	// for rows.Next() {
-	// 	var idUser int64
-	// 	var login string
-	// 	var mailq string
-	// 	var passbyte []byte
-	// 	err = rows.Scan(&idUser, &login, &mailq, &passbyte)
-	// 	if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
-	// 		t.Errorf("%v should hash %s correctly", bpass, passbyte)
-	// 	}
-	// }
+	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
+	for rows.Next() {
+		var idUser int64
+		var login string
+		var mailq string
+		var passbyte []byte
+		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
+		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
+			t.Errorf("%v should hash %s correctly", bpass, passbyte)
+		}
+	}
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	tmp_lst := list.New()
@@ -190,23 +187,23 @@ func TestBallon(t *testing.T) {
 
 }
 
-func BenchmarkAddNewDefaultUser(b *testing.B){
-		var err error
-		Lst_users := new(users.All_users)
-		myDb := new(db.Env)
-		Lst_users.Ulist = list.New()
-		Db, err := myDb.OpenCo(err)
-		if err != nil {
-			b.Fatalf("benchmarkConnection: %s", err)
-		}
-		  for n := 0; n < b.N; n++ {
-				defU, err := Lst_users.AddNewDefaultUser(Db)
-				if err != nil {
-				b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
-			}
-			fmt.Println(defU)
-        }
-}
+// func BenchmarkAddNewDefaultUser(b *testing.B){
+// 		var err error
+// 		Lst_users := new(users.All_users)
+// 		myDb := new(db.Env)
+// 		Lst_users.Ulist = list.New()
+// 		Db, err := myDb.OpenCo(err)
+// 		if err != nil {
+// 			b.Fatalf("benchmarkConnection: %s", err)
+// 		}
+// 		  for n := 0; n < b.N; n++ {
+// 				defU := Lst_users.AddNewDefaultUser(Db)
+// 				// if err != nil {
+// 				// b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
+// 				// }
+// 			fmt.Println(defU)
+//         }
+// }
 
 // func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){
 // 		LBall.Update_balls(LBall, base)
