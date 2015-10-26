@@ -121,6 +121,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball0.Id_ball = 0
 	ball0.Edited = false
+	ball0.Itinerary = list.New()
 	ball0.Title = "toto"
 	ball0.Coord = tmp_lst.PushBack(check_test0)
 	ball0.Wind = ballon.Wind{}
@@ -136,6 +137,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball1.Id_ball = 1
 	ball1.Edited = false
+	ball1.Itinerary = list.New()
 	ball1.Title = "tata"
 	ball1.Coord = tmp_lst.PushBack(check_test1)
 	ball1.Wind = ballon.Wind{}
@@ -151,6 +153,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball2.Id_ball = 2
 	ball2.Edited = false
+	ball2.Itinerary = list.New()
 	ball2.Title = "tutu"
 	ball2.Coord = tmp_lst.PushBack(check_test2)
 	ball2.Wind = ballon.Wind{}
@@ -166,6 +169,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball3.Id_ball = 3
 	ball3.Edited = false
+	ball3.Itinerary = list.New()
 	ball3.Title = "tete"
 	ball3.Coord = tmp_lst.PushBack(check_test3)
 	ball3.Wind = ballon.Wind{}
@@ -181,6 +185,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball4.Id_ball = 4
 	ball4.Edited = false
+	ball4.Itinerary = list.New()
 	ball4.Title = "tyty"
 	ball4.Coord = tmp_lst.PushBack(check_test4)
 	ball4.Wind = ballon.Wind{}
@@ -196,6 +201,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	ball5.Id_ball = 5
 	ball5.Edited = false
+	ball5.Itinerary = list.New()
 	ball5.Title = "PROUT"
 	ball5.Coord = tmp_lst.PushBack(check_test5)
 	ball5.Wind = ballon.Wind{}
