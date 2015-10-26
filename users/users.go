@@ -355,7 +355,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var pass string
 		err = rows.Scan(&idUser, &mailq, &pass)
 		checkErr(err)
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: nil})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
