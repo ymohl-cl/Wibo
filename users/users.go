@@ -123,14 +123,13 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 
-
 func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
-    er = nil
-    return
+	er = nil
+	return
 }
 
 func (lu *All_users) Update_users(base *db.Env) (er error) {
-    return er
+	return er
 }
 
 func CheckValidMail(email string) bool {
@@ -232,26 +231,29 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB) *list.Element {
 		return nil
 	}
 	/*
-	··User.NbrBallSend = 0
-»···»···User.Coord.Lon = req.Coord.Lon
-»···»···User.Coord.Lat = req.Coord.Lat
-»···»···User.Log = time.Now()
-»···»···User.Followed = list.New()
-»···»···User.Possessed = list.New()
-»···»···User.HistoricReq = list.New()
-»···»···User.Stats = new(users.StatsUser) 
-»···»···User.Stats.CreationDate = time.Now()
-*/
+			··User.NbrBallSend = 0
+		»···»···User.Coord.Lon = req.Coord.Lon
+		»···»···User.Coord.Lat = req.Coord.Lat
+		»···»···User.Log = time.Now()
+		»···»···User.Followed = list.New()
+		»···»···User.Possessed = list.New()
+		»···»···User.HistoricReq = list.New()
+		»···»···User.Stats = new(users.StatsUser)
+		»···»···User.Stats.CreationDate = time.Now()
+	*/
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
 		Lst_users.Ulist.PushBack(
 			&User{
-				Id: IdUserDefault,
-				Followed: list.New(),
-				Possessed: list.New(),
+				Id:          IdUserDefault,
+				Followed:    list.New(),
+				Possessed:   list.New(),
 				HistoricReq: list.New(),
-				})
+				//				Stats: &StatsUser{
+				//					CreationDate: time.Now(),
+				//				},
+			})
 	}
 	return Lst_users.Ulist.Back()
 }

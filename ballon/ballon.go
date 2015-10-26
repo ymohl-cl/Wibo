@@ -372,7 +372,7 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************************************************************/
 
 func (Ball *Ball) GetItinerary() (int32, *list.List) {
-	return 0, nil
+	return 0, list.New()
 }
 
 func getIdMessageMax(idBall int64, base *db.Env) int32 {
@@ -405,7 +405,7 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
 	fmt.Printf("Insert  ballon id %v | \n", newBall.Creator.Value.(*users.User).Id)
-		var IdC int
+	var IdC int
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
@@ -414,8 +414,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 		if err != nil {
 			log.Fatal(err)
 		}
-		
-		 checkErr(err)
+
+		checkErr(err)
 		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
@@ -424,8 +424,8 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 			newBall.Title,
 			newBall.Id_ball,
 			newBall.Date).Scan(&IdC)
-			fmt.Printf("stament %v | \n", IdC)
-	
+		fmt.Printf("stament %v | \n", IdC)
+
 		checkErr(err)
 		return err
 	})
@@ -433,6 +433,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 	executed = true
 	return executed, err
 }
+
 /*
 CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date)
  RETURNS SETOF integer
@@ -463,8 +464,8 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					checkErr(err)
 				}
 			}
-		} else if (ABalls.Blist.Len() > 0){
-				fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m", ABalls.Blist.Len())
+		} else if ABalls.Blist.Len() > 0 {
+			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m", ABalls.Blist.Len())
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++

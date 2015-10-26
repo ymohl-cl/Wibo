@@ -1019,7 +1019,7 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 }
 
 func (Data *Data) Manage_StatBall(request *list.Element) {
-	rqt := request.Value.(protocol.Request)
+	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
 	nbrCheckpoint, LstCheckpoint := ball.GetItinerary()
@@ -1038,14 +1038,6 @@ func (Data *Data) Manage_StatBall(request *list.Element) {
 	} else {
 		Data.Lst_asw.PushBackList(lst_asw)
 	}
-	//	user := Data.User.Value.(*users.User)
-	//	year := int16(user.Stats.CreationDate.Year())
-	//	month := int16(user.Stats.CreationDate.Month())
-	//	day := int16(user.Stats.CreationDate.Day())
-	//	houre := int16(user.Stats.CreationDate.Hour())
-	//	minute := int16(user.Stats.CreationDate.Minute())
-	//	answer := Data.Write_StatUser(year, month, day, houre, minute)
-	//	Data.Lst_asw.PushBack(answer)
 }
 
 func Write_workball(lst_work *list.List) *list.List {
