@@ -1024,7 +1024,7 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
-	nbrCheckpoint, LstCheckpoint := ball.GetItinerary()
+	nbrCheckpoint, LstCheckpoint := ball.GetItinerary(Db)
 
 	sizeStat := (SIZE_PACKET - SIZE_STATBALL - SIZE_HEADER)
 	var tmpPacket float64

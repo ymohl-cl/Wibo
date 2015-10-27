@@ -7,8 +7,8 @@ import (
 	"time"
 	"Wibo/ballon"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
-	//	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"	
+//	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -33,7 +33,7 @@ func TestBallon(t *testing.T) {
 	fmt.Println(Db)
 
 	user1 := new(users.User)
-	user1.Id = 59
+	user1.Id = 68
 	user1.Mail = "mailtest2@test.com"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
@@ -48,9 +48,9 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	Lst_users.Ulist.PushBack(user1)
-	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-	fmt.Println(bool)
-	fmt.Println(err)
+	// bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	// fmt.Println(bool)
+	// fmt.Println(err)
 
 	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
 	// for rows.Next() {
@@ -183,32 +183,36 @@ func TestBallon(t *testing.T) {
 	ball3.Followers = list.New()
 	ball4.Creator = Lst_users.Ulist.Front()
 	Lst_ball.Blist.PushBack(ball4)
-	// Lst_ball.InsertBallon(ball4, myDb)
-	/* FIN DE LA CREATION DEBALLON POUR TEST */
+	// if _, err := Lst_ball.InsertBallon(ball4, myDb); err != nil {
+	// 	t.Fatalf("Fail insert ball:%s", err)
+	// }
+
+	if _, err :=	ball4.GetItinerary(myDb.Db); err != nil {
+		t.Fatalf("Fail get GetItinerary error: %s", err)
+	}
 	//Lst_ball.Update_balls(Lst_ball, myDb)
 	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
 	// Lst_ball.Print_all_balls()
-	checkErr(err)
 
 }
 
-func BenchmarkAddNewDefaultUser(b *testing.B){
-		var err error
-		Lst_users := new(users.All_users)
-		myDb := new(db.Env)
-		Lst_users.Ulist = list.New()
-		Db, err := myDb.OpenCo(err)
-		if err != nil {
-			b.Fatalf("benchmarkConnection: %s", err)
-		}
-		  for n := 0; n < b.N; n++ {
-				defU := Lst_users.AddNewDefaultUser(Db)
-				// if err != nil {
-				// b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
-				// }S
-			fmt.Println(defU)
-        }
-}
+// func BenchmarkAddNewDefaultUser(b *testing.B){
+// 		var err error
+// 		Lst_users := new(users.All_users)
+// 		myDb := new(db.Env)
+// 		Lst_users.Ulist = list.New()
+// 		Db, err := myDb.OpenCo(err)
+// 		if err != nil {
+// 			b.Fatalf("benchmarkConnection: %s", err)
+// 		}
+// 		  for n := 0; n < b.N; n++ {
+// 				defU := Lst_users.AddNewDefaultUser(Db)
+// 				// if err != nil {
+// 				// b.Fatalf("benchmarkAddNewDefaultUser: %s", err)
+// 				// }S
+// 			fmt.Println(defU)
+//         }
+// }
 
 // func checkUpdate_balls(t *testing.T, LBall *ballon.All_ball, base *db.Env){
 // 		LBall.Update_balls(LBall, base)

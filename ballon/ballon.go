@@ -372,33 +372,53 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************************************************************/
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
+/*
+insert checkpoints(
+       cdate date,
+       latitudec double precision,
+       longitudec double precision,
+       idcont integer,
+       magnet boolean)
+*/
+func (Lb *All_ball) SetItinerary(Db *sql.DB) {
+	for b := Lb.Blist.Front(); b != nil; b = b.Next(){
+		var Idb int64 
+		row, err := Db.Query("SELECT id from container WHERE ianix = $1", $b.Id_ball)
+		if row.Next() != false {
+			row.Scan(&Idb)
+			for i := b.Itenerary.Front(); i != nil; i = i.Next() {
+				_, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Date, i.Coord.Lon, i.Coord.Lat, Idb, i.magnet)
+					if err != nil {
+						fmt.Println(err)
+				}
+			}
+		}
+	}
+	Lb.Blist.Itenerary = list.New()
+}
 
-func (Ball *Ball) GetItinerary(base *db.Env) (int32, *list.List) {
+func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
-	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) from checkpoints where containerid = $1")
-		if err != nil {
-			fmt.Println(err)
-		}
-		rows, err := stm.Query(Ball.Id_ball)
-		if err != nil {
-			fmt.Println(err)
-		}
-		Ball.Itenerary = list.New()
+	Ball.Itenerary = list.New()
+	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1", Ball.Id_ball)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if rows.Next() != false {
 		for rows.Next() {
 			var tdate time.Time
 			var attm bool
 			var point string
 			rows.Scan(&tdate, &attm, &point)
 			fmt.Println(tdate, attm, point)
-			// Ball.Itenerary.PushBack(&Checkpoint{Coord:  , Date: tdate, MagnetFlag: attm})
+			fmt.Printf("%T | %v ", point, point)
+			Ball.Itenerary.PushBack(&Checkpoint{Date: tdate})
 		}
-		return err
-	})
-	if err != nil{
-		fmt.Println(err)
+		if err != nil{
+			fmt.Println(err)
+		}
 	}
-	return 0, list.New()
+	return 0, nil
 }
 
 func getIdMessageMax(idBall int64, base *db.Env) int32 {
@@ -509,7 +529,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 			return err
 		})
 	}
-	return err
+	return nil
 }
 
 /**

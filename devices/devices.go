@@ -69,7 +69,36 @@ func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 
+/* 
+Idbdd         int64         
+	Id            string        
+	IdUserDefault int64         
+	UserDefault   *list.Element 
+	UserSpec      *list.Element 
+	Historic      *list.List   
+*/
 func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error {
+	for u := LstU.Ulist.Front(); u != nil; u = u.Next() {
+		rows, err := Db.Query("SELECT id, user_id_user FROM device WHERE user_id_user=$1", u.Id)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if rows.Next() != false {
+			for rows.Next() {
+				var tdate time.Time
+				var attm bool
+				var point string
+				rows.Scan(&tdate, &attm, &point)
+				fmt.Println(tdate, attm, point)
+				fmt.Printf("%T | %v ", point, point)
+				Ball.Itenerary.PushBack(&Checkpoint{Date: tdate})
+			}
+			if err != nil{
+				fmt.Println(err)
+			}
+		}
+	}
+
 	return nil
 }
 
