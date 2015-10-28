@@ -383,18 +383,20 @@ insert checkpoints(
 func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 	for b := Lb.Blist.Front(); b != nil; b = b.Next(){
 		var Idb int64 
-		row, err := Db.Query("SELECT id from container WHERE ianix = $1", $b.Id_ball)
+		row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
 		if row.Next() != false {
 			row.Scan(&Idb)
-			for i := b.Itenerary.Front(); i != nil; i = i.Next() {
-				_, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Date, i.Coord.Lon, i.Coord.Lat, Idb, i.magnet)
+			for i := b.Value.(*Ball).Itenerary.Front(); i != nil; i = i.Next() {
+				_, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Value.(*Checkpoint).Date, i.Value.(*Checkpoint).Coord.Lon, i.Value.(*Checkpoint).Coord.Lat, Idb, i.Value.(*Checkpoint).MagnetFlag)
 					if err != nil {
 						fmt.Println(err)
 				}
 			}
+		} else {
+			fmt.Println(err)
 		}
+		b.Value.(*Ball).Itenerary = list.New()
 	}
-	Lb.Blist.Itenerary = list.New()
 }
 
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
