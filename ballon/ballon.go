@@ -19,6 +19,7 @@ import (
 	"Wibo/users"
 	"container/list"
 	"database/sql"
+	_"github.com/lib/pq"
 	"errors"
 	"fmt"
 	"log"
@@ -404,7 +405,7 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	Ball.Itenerary = list.New()
 	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1", Ball.Id_ball)
 	if err != nil {
-		fmt.Println(err)
+		log.Print(err)
 	}
 	if rows.Next() != false {
 		for rows.Next() {
@@ -412,15 +413,16 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 			var attm bool
 			var point string
 			rows.Scan(&tdate, &attm, &point)
+			tempCoord := GetCord(point)
 			fmt.Println(tdate, attm, point)
-			fmt.Printf("%T | %v ", point, point)
-			Ball.Itenerary.PushBack(&Checkpoint{Date: tdate})
+			fmt.Printf("GetItinerary %T | %v ", point, point)
+			Ball.Itenerary.PushBack(&Checkpoint{Date: tdate, Coord: tempCoord.Front().Value.(Coordinate)})
 		}
 		if err != nil{
 			fmt.Println(err)
 		}
 	}
-	return 0, nil
+	return 0, Ball.Itenerary
 }
 
 func getIdMessageMax(idBall int64, base *db.Env) int32 {
@@ -452,17 +454,22 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 */
 
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
-	fmt.Printf("Insert  ballon id %v | \n", newBall.Creator.Value.(*users.User).Id)
 	var IdC int
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		if err != nil {
-			log.Fatal(err)
+			return (err)
 		}
 
-		checkErr(err)
+		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n",newBall.Coord.Value.(Coordinate).Lat )
+		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n",newBall.Coord.Value.(Coordinate).Lon )
+		fmt.Printf("insert ballon degress : type: %T | value: %v\n",newBall.Wind.Degress)
+		fmt.Printf("insert ballon Speed : type: %T | value: %v\n",newBall.Wind.Speed )
+		fmt.Printf("insert ballon title : type: %T | value: %v\n",newBall.Title )
+		fmt.Printf("insert ballon idball : type: %T | value: %v\n",newBall.Id_ball )
+		fmt.Printf("insert ballon date : type: %T | value: %v\n",newBall.Date )
 		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
 			newBall.Coord.Value.(Coordinate).Lat,
 			newBall.Coord.Value.(Coordinate).Lon,
@@ -475,6 +482,7 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 		checkErr(err)
 		return err
 	})
+	log.Println(err)
 	err = Lst_ball.InsertMessages(newBall.Messages, IdC, base)
 	executed = true
 	return executed, err
@@ -510,8 +518,8 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					checkErr(err)
 				}
 			}
-		} else if ABalls.Blist.Len() > 0 {
-			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m", ABalls.Blist.Len())
+		} else if e.Value.(*Ball).Id_ball > ABalls.Id_max {
+			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", ABalls.Blist.Len())
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++
@@ -634,13 +642,18 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		var errT error
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
+		fmt.Printf("getlistballsbyuser type %T, value: %v\n", userE.Value.(*users.User).Id, userE.Value.(*users.User).Id)
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
-		checkErr(err)
+		if rows.Next() == false {
+			return nil
+		}
 		switch {
 			case err == sql.ErrNoRows:
 				log.Printf("No containers.")
 			case err != nil:
-				log.Fatal(err)
+				log.Print("Error: get containersbyuserid")
+				log.Print(rows)
+				log.Print(err)
 			default:
 				for rows.Next() {
 					var infoCont string
@@ -665,22 +678,22 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 						case err == sql.ErrNoRows:
 							log.Printf("No containers.")
 						case err != nil:
-							log.Fatal(err)
+							log.Print(err)
 						default:
-							fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
+							fmt.Printf("get containers%v | %v | %v \n\n", result[1], result[3], result[4])
 					}
 				}
 		}
 		return err
 	})
-	// checkErr(err)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Printf("No containers.")
 	case err != nil:
-		log.Fatal(err)
+		log.Print("Here some error")
+		log.Print(err)
 	default:
-		fmt.Printf("get containers%v", lBallon)
+		fmt.Printf("get containers 2 %v\n", lBallon)
 	}
 	return lBallon
 }

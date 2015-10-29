@@ -2,8 +2,9 @@ package users
 
 import (
 "database/sql"
-"time"
-"strings"
+_ "github.com/go-sql-driver/mysql"
+ "github.com/lib/pq"
+_ "time"
 "fmt"
 // "log"
 )
@@ -53,35 +54,38 @@ func (Lusr *All_users) SetStatsByUser(c_idUser int64, u_stats *StatsUser, Db *sq
         return false
     }
     return true
-}   
-
-
-func GetDateFormat(qdate string) (fdate time.Time) {
-    f := func(c rune) bool {
-        return c == '"'
-    }
-    fields := strings.FieldsFunc(qdate, f)
-    for _, value := range fields {
-        qdate = string(value)
-    }
-    fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
-    checkErr(err)
-    return fdate
 }
 
+// CREATE FUNCTION create_statsballon() RETURNS trigger
+//     LANGUAGE plpgsql
+//     AS $$
+//     BEGIN
+//         --
+//         -- Create a row in stats_container to reflect the operation performed on container,
+//         -- make use of the special variable TG_OP to work out the operation.
+//         --
+       
+//         IF (TG_OP = 'INSERT') THEN
+//             INSERT INTO stats_container VAlUES (NEW.id, 0, 0, 0,false);
+//             RETURN NEW;
+//         END IF;
+//         RETURN NULL; -- result is ignored since this is an AFTER trigger
+//     END;
+// $$;
+
+
 func (Lusr *All_users) GetStatsByUser(idUser int64, Db *sql.DB) ( *StatsUser) {
-    // var creation|t time.Time
+    var creation pq.NullTime
     var ncontainers, ncath, nsend, nfollow, nmessage int
-    rows, _ := Db.Query("SELECT num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users INNER JOIN \"user\" ON  (stats_users.iduser_stats = \"user\".id_user) WHERE iduser_stats=$1;", int(idUser))
-    
-        rows.Scan(&ncontainers, &ncath, &nfollow, &nmessage, &nsend)
-        // fmt.Printf("%T | %v \n", creation, creation)
-        fmt.Printf("%T | %v \n", ncontainers, ncontainers)
-        fmt.Printf("%T | %v\n", ncath, ncath)
-        fmt.Printf("%T | %v \n", nsend, nsend)
-        fmt.Printf("%T | %v \n", nfollow, nfollow)
-        fmt.Printf("%T | %v\n", nmessage, nmessage)
-         return &StatsUser{NbrBallCreate: int64(ncontainers),
+     _ = Db.QueryRow("SELECT  pg_catalog.date(\"user\".creationdate), num_owner, num_catch, num_follow, num_message, num_send  FROM stats_users INNER JOIN \"user\" ON  (stats_users.iduser_stats = \"user\".id_user) WHERE iduser_stats=$1;", int(idUser)).Scan(&creation, &ncontainers, &ncath, &nfollow, &nmessage, &nsend)
+        fmt.Printf("\x1b[31;1m User: %v \x1b[0m\n", idUser)
+        fmt.Printf("creationdate type: %T | Value:%v \n", creation, creation.Time)
+        fmt.Printf("ncontainer type: %T | Value:%v \n", ncontainers, ncontainers)
+        fmt.Printf("ncath type: %T | value: %v\n", ncath, ncath)
+        fmt.Printf("nsend type: %T | value: %v \n", nsend, nsend)
+        fmt.Printf("nfollow type: %T |  value: %v \n", nfollow, nfollow)
+        fmt.Printf("nmeesage: type: %T | value: %v\n", nmessage, nmessage)
+         return &StatsUser{CreationDate: creation.Time, NbrBallCreate: int64(ncontainers),
                  NbrCatch: int64(ncath), NbrSend: int64(nsend), NbrFollow: int64(nfollow),
                  NbrMessage: int64(nmessage)}
     return nil

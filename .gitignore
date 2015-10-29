@@ -4,6 +4,7 @@ _vendor/**/*
 pkg/**/*
 LogsSys.txt
 Logsfile.txt
+Logsfile.*
 *.txt
 # Vim extensions
 *.swp
@@ -43,6 +44,8 @@ tramp
 # elpa packages
 /elpa/
 
+#postgres conf
+restart/
 # reftex files
 *.rel
 
