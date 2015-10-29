@@ -63,7 +63,7 @@ COMMENT ON EXTENSION postgis_topology IS 'PostGIS topology spatial types and fun
 SET search_path = public, pg_catalog;
 
 --
--- Name: create_statsballon(); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: create_statsballon(); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION create_statsballon() RETURNS trigger
@@ -84,10 +84,10 @@ CREATE FUNCTION create_statsballon() RETURNS trigger
 $$;
 
 
-ALTER FUNCTION public.create_statsballon() OWNER TO jbernabe;
+ALTER FUNCTION public.create_statsballon() OWNER TO wibo;
 
 --
--- Name: create_statsuser(); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: create_statsuser(); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION create_statsuser() RETURNS trigger
@@ -108,7 +108,7 @@ CREATE FUNCTION create_statsuser() RETURNS trigger
 $$;
 
 
-ALTER FUNCTION public.create_statsuser() OWNER TO jbernabe;
+ALTER FUNCTION public.create_statsuser() OWNER TO wibo;
 
 --
 -- Name: getalldevices(); Type: FUNCTION; Schema: public; Owner: wibo
@@ -134,7 +134,7 @@ CREATE FUNCTION getcontainers() RETURNS TABLE(idballon integer, idtype integer, 
 ALTER FUNCTION public.getcontainers() OWNER TO wibo;
 
 --
--- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction double precision, speedcont double precision, creationdate timestamp without time zone, locationcont text)
@@ -142,7 +142,7 @@ CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon int
     AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS     TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, date(container.creationdate) + interval '1 hour',   ST_AsText(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $$;
 
 
-ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO jbernabe;
+ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO wibo;
 
 --
 -- Name: getcontainersbyuseridjson(integer); Type: FUNCTION; Schema: public; Owner: wibo
@@ -168,7 +168,7 @@ CREATE FUNCTION getcontainersjson() RETURNS TABLE(idballon integer, idtype integ
 ALTER FUNCTION public.getcontainersjson() OWNER TO wibo;
 
 --
--- Name: getdevicesbyuserid(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: getdevicesbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION getdevicesbyuserid(iduser integer) RETURNS TABLE(idclientdevice character varying)
@@ -176,10 +176,10 @@ CREATE FUNCTION getdevicesbyuserid(iduser integer) RETURNS TABLE(idclientdevice 
     AS $$  BEGIN RETURN QUERY SELECT  device.idclient AS IdClientDevice FROM device WHERE user_id_user = iduser; END  $$;
 
 
-ALTER FUNCTION public.getdevicesbyuserid(iduser integer) OWNER TO jbernabe;
+ALTER FUNCTION public.getdevicesbyuserid(iduser integer) OWNER TO wibo;
 
 --
--- Name: insertcheckpoints(date, double precision, double precision, integer, boolean); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: insertcheckpoints(date, double precision, double precision, integer, boolean); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION insertcheckpoints(cdate date, latitudec double precision, longitudec double precision, idcont integer, magnet boolean) RETURNS SETOF integer
@@ -187,10 +187,10 @@ CREATE FUNCTION insertcheckpoints(cdate date, latitudec double precision, longit
     AS $$  BEGIN RETURN QUERY INSERT INTO checkpoints (date, containerid, attractbymagnet, location_ckp) VALUES(cdte, idcont, magnet, ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326)) RETURNING id;  END; $$;
 
 
-ALTER FUNCTION public.insertcheckpoints(cdate date, latitudec double precision, longitudec double precision, idcont integer, magnet boolean) OWNER TO jbernabe;
+ALTER FUNCTION public.insertcheckpoints(cdate date, latitudec double precision, longitudec double precision, idcont integer, magnet boolean) OWNER TO wibo;
 
 --
--- Name: insertcontainer(integer, double precision, double precision, double precision, double precision, text, integer, date); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: insertcontainer(integer, double precision, double precision, double precision, double precision, text, integer, date); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date) RETURNS SETOF integer
@@ -198,10 +198,10 @@ CREATE FUNCTION insertcontainer(idcreatorc integer, latitudec double precision, 
     AS $$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $$;
 
 
-ALTER FUNCTION public.insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date) OWNER TO jbernabe;
+ALTER FUNCTION public.insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date) OWNER TO wibo;
 
 --
--- Name: make_uid(); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: make_uid(); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION make_uid() RETURNS text
@@ -220,10 +220,10 @@ END;
 $$;
 
 
-ALTER FUNCTION public.make_uid() OWNER TO jbernabe;
+ALTER FUNCTION public.make_uid() OWNER TO wibo;
 
 --
--- Name: pseudo_encrypt(integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: pseudo_encrypt(integer); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION pseudo_encrypt(value integer) RETURNS integer
@@ -250,10 +250,10 @@ END;
 $$;
 
 
-ALTER FUNCTION public.pseudo_encrypt(value integer) OWNER TO jbernabe;
+ALTER FUNCTION public.pseudo_encrypt(value integer) OWNER TO wibo;
 
 --
--- Name: setstatballon(double precision, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: setstatballon(double precision, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION setstatballon(n_km double precision, n_cath integer, n_follow integer, n_magnet integer, idball integer) RETURNS boolean
@@ -277,10 +277,10 @@ END;
 $_$;
 
 
-ALTER FUNCTION public.setstatballon(n_km double precision, n_cath integer, n_follow integer, n_magnet integer, idball integer) OWNER TO jbernabe;
+ALTER FUNCTION public.setstatballon(n_km double precision, n_cath integer, n_follow integer, n_magnet integer, idball integer) OWNER TO wibo;
 
 --
--- Name: setstatsuser(integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: setstatsuser(integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION setstatsuser(n_cont integer, n_catch integer, n_follow integer, n_message integer, n_send integer, iduser integer) RETURNS boolean
@@ -304,10 +304,10 @@ END;
 $_$;
 
 
-ALTER FUNCTION public.setstatsuser(n_cont integer, n_catch integer, n_follow integer, n_message integer, n_send integer, iduser integer) OWNER TO jbernabe;
+ALTER FUNCTION public.setstatsuser(n_cont integer, n_catch integer, n_follow integer, n_message integer, n_send integer, iduser integer) OWNER TO wibo;
 
 --
--- Name: stringify_bigint(bigint); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: stringify_bigint(bigint); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION stringify_bigint(n bigint) RETURNS text
@@ -328,10 +328,10 @@ BEGIN
 END $$;
 
 
-ALTER FUNCTION public.stringify_bigint(n bigint) OWNER TO jbernabe;
+ALTER FUNCTION public.stringify_bigint(n bigint) OWNER TO wibo;
 
 --
--- Name: updatelocationuser(integer, double precision, double precision); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: updatelocationuser(integer, double precision, double precision); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION updatelocationuser(iduser integer, latitudec double precision, longitudec double precision) RETURNS SETOF integer
@@ -339,10 +339,10 @@ CREATE FUNCTION updatelocationuser(iduser integer, latitudec double precision, l
     AS $$  BEGIN RETURN QUERY UPDATE "user" SET location_user = ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326) WHERE id_user = iduser RETURNING id_user;  END; $$;
 
 
-ALTER FUNCTION public.updatelocationuser(iduser integer, latitudec double precision, longitudec double precision) OWNER TO jbernabe;
+ALTER FUNCTION public.updatelocationuser(iduser integer, latitudec double precision, longitudec double precision) OWNER TO wibo;
 
 --
--- Name: updateuser(integer, double precision, double precision, date); Type: FUNCTION; Schema: public; Owner: jbernabe
+-- Name: updateuser(integer, double precision, double precision, date); Type: FUNCTION; Schema: public; Owner: wibo
 --
 
 CREATE FUNCTION updateuser(iduser integer, latitudec double precision, longitudec double precision, log date) RETURNS SETOF integer
@@ -350,7 +350,7 @@ CREATE FUNCTION updateuser(iduser integer, latitudec double precision, longitude
     AS $$  BEGIN RETURN QUERY UPDATE "user" SET location_user = ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), lastlogin = log WHERE id_user = iduser RETURNING id_user;  END; $$;
 
 
-ALTER FUNCTION public.updateuser(iduser integer, latitudec double precision, longitudec double precision, log date) OWNER TO jbernabe;
+ALTER FUNCTION public.updateuser(iduser integer, latitudec double precision, longitudec double precision, log date) OWNER TO wibo;
 
 SET default_tablespace = '';
 
@@ -529,7 +529,7 @@ ALTER SEQUENCE followed_id_seq OWNED BY followed.id;
 
 
 --
--- Name: globalstats; Type: TABLE; Schema: public; Owner: jbernabe; Tablespace: 
+-- Name: globalstats; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
 --
 
 CREATE TABLE globalstats (
@@ -541,7 +541,7 @@ CREATE TABLE globalstats (
 );
 
 
-ALTER TABLE globalstats OWNER TO jbernabe;
+ALTER TABLE globalstats OWNER TO wibo;
 
 --
 -- Name: type_message; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
@@ -676,7 +676,7 @@ ALTER SEQUENCE shared_id_seq OWNED BY shared.id;
 
 
 --
--- Name: stats_container_id_seq; Type: SEQUENCE; Schema: public; Owner: jbernabe
+-- Name: stats_container_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
 --
 
 CREATE SEQUENCE stats_container_id_seq
@@ -687,7 +687,7 @@ CREATE SEQUENCE stats_container_id_seq
     CACHE 1;
 
 
-ALTER TABLE stats_container_id_seq OWNER TO jbernabe;
+ALTER TABLE stats_container_id_seq OWNER TO wibo;
 
 --
 -- Name: stats_container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
@@ -955,7 +955,7 @@ SELECT pg_catalog.setval('followed_id_seq', 1, true);
 
 
 --
--- Data for Name: globalstats; Type: TABLE DATA; Schema: public; Owner: jbernabe
+-- Data for Name: globalstats; Type: TABLE DATA; Schema: public; Owner: wibo
 --
 
 COPY globalstats (num_users, num_follow, num_message, num_send, num_cont) FROM stdin;
@@ -1008,7 +1008,7 @@ SELECT pg_catalog.setval('shared_id_seq', 1, false);
 
 
 --
--- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: jbernabe
+-- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: wibo
 --
 
 COPY spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
@@ -1024,7 +1024,7 @@ COPY stats_container (idball_stats, num_km, num_cath, num_follow, num_magnet, id
 
 
 --
--- Name: stats_container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: jbernabe
+-- Name: stats_container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
 --
 
 SELECT pg_catalog.setval('stats_container_id_seq', 24, true);
@@ -1121,7 +1121,7 @@ SELECT pg_catalog.setval('user_id_user_seq', 76, true);
 SET search_path = topology, pg_catalog;
 
 --
--- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: jbernabe
+-- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: wibo
 --
 
 COPY topology (id, name, srid, "precision", hasz) FROM stdin;
@@ -1129,7 +1129,7 @@ COPY topology (id, name, srid, "precision", hasz) FROM stdin;
 
 
 --
--- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: jbernabe
+-- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: wibo
 --
 
 COPY layer (topology_id, layer_id, schema_name, table_name, feature_column, feature_type, level, child_id) FROM stdin;
