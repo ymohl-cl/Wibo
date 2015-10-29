@@ -122,14 +122,41 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
-
 func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
-	er = nil
-	return
+	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
+	rows.Scan(&lu.NbrUsers, &lu.GlobalStat.NbrFollow, &lu.GlobalStat.NbrMessage, &lu.GlobalStat.NbrSend, &lu.GlobalStat.NbrBallCreate)
+	return err
 }
 
-func (lu *All_users) Update_users(base *db.Env) (er error) {
-	return er
+// FUNCTION updatelocationuser(iduser integer, latitudec double precision, longitudec double precision)
+// FUNCTION public.updateuser(iduser integer, latitudec double precision, longitudec double precision, log date)
+
+func (lu *All_users) Update_users(base *db.Env) (err error) {
+	u := lu.Ulist.Front()
+	for u != nil {
+		cu := u.Value.(*User)
+		_, err = base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
+		// _, err = base.Db.Query("UPDATE stats_users SET num_owner = $1, num_catch =  $2 , num_follow = $3, num_message =  $4, num_send = $5 WHERE iduser_stats = $6;",
+		// 		u.Value.(*StatsUser).NbrBallCreate,
+		// 		u.Value.(*StatsUser).NbrCatch,
+		// 		u.Value.(*StatsUser).NbrFollow,
+		// 		u.Value.(*StatsUser).NbrMessage,
+		// 		u.Value.(*StatsUser).NbrSend,
+		// 		u.Value.(*User).Id)
+		ex := lu.SetStatsByUser(cu.Id, cu.Stats, base.Db)
+		if ex != true {
+			fmt.Println("Fail to update user stats")
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+		// _ = base.Db.QueryRow("SELECT count(*) from container WHERE idcreator = $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrBallCreate)
+		// _ = base.Db.QueryRow("SELECT count(*) from container WHERE idcreator = $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrBallCreate)
+		// _ = base.Db.QueryRow("SELECT count(*) from message INNER JOIN container ON (container.id = message.containerid) WHERE idcreator= $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrMessage)
+		// _ = base.Db.QueryRow("SELECT count(*) from followed INNER JOIN container ON (container.id = followed.container_id) WHERE idcreator=$1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrFollow)
+		u = u.Next()
+	}
+	return err
 }
 
 func CheckValidMail(email string) bool {
@@ -242,17 +269,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 		fmt.Println(err)
 		return nil
 	}
-	/*
-			··User.NbrBallSend = 0
-		»···»···User.Coord.Lon = req.Coord.Lon
-		»···»···User.Coord.Lat = req.Coord.Lat
-		»···»···User.Log = time.Now()
-		»···»···User.Followed = list.New()
-		»···»···User.Possessed = list.New()
-		»···»···User.HistoricReq = list.New()
-		»···»···User.Stats = new(users.StatsUser)
-		»···»···User.Stats.CreationDate = time.Now()
-	*/
+
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
@@ -354,13 +371,12 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	var err error
 	lUser := list.New()
-	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\";")
+	rows, err := Db.Query("SELECT id_user, mail FROM \"user\";")
 	checkErr(err)
 	for rows.Next() {
 		var idUser int64
 		var mailq string
-		var pass string
-		err = rows.Scan(&idUser, &mailq, &pass)
+		err = rows.Scan(&idUser, &mailq)
 		checkErr(err)
 		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
 	}

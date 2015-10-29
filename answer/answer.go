@@ -331,7 +331,7 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 
 	alist = list.New()
 	plist := list.New()
-	pack.head.octets = 32 + 16
+	pack.head.octets = 32 + 16 + 16
 	pack.head.pnum = 0
 	contball.messages = list.New()
 	pack.ptype = contball
@@ -397,6 +397,8 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		binary.Write(Buffer, binary.BigEndian, houre)
 		binary.Write(Buffer, binary.BigEndian, minute)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
+		binary.Write(Buffer, binary.BigEndian, Ball.Title)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, len(Ball.Title)-16))
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
 		tmess := tpack.ptype.(Contentball).messages.Front()
@@ -1024,7 +1026,7 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
-	nbrCheckpoint, LstCheckpoint := ball.GetItinerary()
+	nbrCheckpoint, LstCheckpoint := ball.GetItinerary(Db)
 
 	sizeStat := (SIZE_PACKET - SIZE_STATBALL - SIZE_HEADER)
 	var tmpPacket float64

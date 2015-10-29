@@ -1,0 +1,7 @@
+logger: 2015/10/29 09:28:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 09:38:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 09:48:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 09:58:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 10:08:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 10:18:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already
+logger: 2015/10/29 10:28:27 /home/Yannick/Documents/wibo/server/src/Wibo/main.go:129: Update_users error:  pq: sorry, too many clients already

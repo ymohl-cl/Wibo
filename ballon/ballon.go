@@ -371,9 +371,56 @@ func (Lst_ball *All_ball) Print_all_balls() {
 /******************************************************************************/
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
+/*
+insert checkpoints(
+       cdate date,
+       latitudec double precision,
+       longitudec double precision,
+       idcont integer,
+       magnet boolean)
+*/
+func (Lb *All_ball) SetItinerary(Db *sql.DB) {
+	for b := Lb.Blist.Front(); b != nil; b = b.Next() {
+		var Idb int64
+		row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
+		if row.Next() != false {
+			row.Scan(&Idb)
+			for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
+				_, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Value.(*Checkpoint).Date, i.Value.(*Checkpoint).Coord.Lon, i.Value.(*Checkpoint).Coord.Lat, Idb, i.Value.(*Checkpoint).MagnetFlag)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		} else {
+			fmt.Println(err)
+		}
+		b.Value.(*Ball).Itinerary = list.New()
+	}
+}
 
-func (Ball *Ball) GetItinerary() (int32, *list.List) {
-	return 0, list.New()
+func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
+	var err error
+	Ball.Itinerary = list.New()
+	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1", Ball.Id_ball)
+	if err != nil {
+		log.Print(err)
+	}
+	if rows.Next() != false {
+		for rows.Next() {
+			var tdate time.Time
+			var attm bool
+			var point string
+			rows.Scan(&tdate, &attm, &point)
+			tempCoord := GetCord(point)
+			fmt.Println(tdate, attm, point)
+			fmt.Printf("GetItinerary %T | %v ", point, point)
+			Ball.Itinerary.PushBack(&Checkpoint{Date: tdate, Coord: tempCoord.Front().Value.(Coordinate)})
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	return 0, Ball.Itinerary
 }
 
 func getIdMessageMax(idBall int64, base *db.Env) int32 {
@@ -405,31 +452,35 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 */
 
 func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
-	fmt.Printf("Insert  ballon id %v | \n", newBall.Creator.Value.(*users.User).Id)
 	var IdC int
 	var err error
 	var executed bool
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		fmt.Println("cocoucouoiafa")
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		if err != nil {
-			log.Fatal(err)
+			return (err)
 		}
 
-		checkErr(err)
+		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", newBall.Coord.Value.(Checkpoint).Coord.Lat)
+		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n", newBall.Coord.Value.(Checkpoint).Coord.Lon)
+		fmt.Printf("insert ballon degress : type: %T | value: %v\n", newBall.Wind.Degress)
+		fmt.Printf("insert ballon Speed : type: %T | value: %v\n", newBall.Wind.Speed)
+		fmt.Printf("insert ballon title : type: %T | value: %v\n", newBall.Title)
+		fmt.Printf("insert ballon idball : type: %T | value: %v\n", newBall.Id_ball)
+		fmt.Printf("insert ballon date : type: %T | value: %v\n", newBall.Date)
 		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
-			newBall.Coord.Value.(Coordinate).Lat,
-			newBall.Coord.Value.(Coordinate).Lon,
+			newBall.Coord.Value.(Checkpoint).Coord.Lat,
+			newBall.Coord.Value.(Checkpoint).Coord.Lon,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
 			newBall.Id_ball,
 			newBall.Date).Scan(&IdC)
-		fmt.Printf("stament %v | \n", IdC)
 
 		checkErr(err)
 		return err
 	})
+	log.Println(err)
 	err = Lst_ball.InsertMessages(newBall.Messages, IdC, base)
 	executed = true
 	return executed, err
@@ -465,8 +516,8 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					checkErr(err)
 				}
 			}
-		} else if ABalls.Blist.Len() > 0 {
-			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m", ABalls.Blist.Len())
+		} else if e.Value.(*Ball).Id_ball > ABalls.Id_max {
+			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", ABalls.Blist.Len())
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++
@@ -486,7 +537,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *
 			return err
 		})
 	}
-	return err
+	return nil
 }
 
 /**
@@ -589,57 +640,58 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		var errT error
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
+		fmt.Printf("getlistballsbyuser type %T, value: %v\n", userE.Value.(*users.User).Id, userE.Value.(*users.User).Id)
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
-		checkErr(err)
+		if rows.Next() == false {
+			return nil
+		}
 		switch {
 		case err == sql.ErrNoRows:
 			log.Printf("No containers.")
 		case err != nil:
-			log.Fatal(err)
+			log.Print("Error: get containersbyuserid")
+			log.Print(rows)
+			log.Print(err)
 		default:
-			fmt.Printf("get containers id user %v | %v \n", userE.Value.(*users.User).Id, rows)
-		}
-		for rows.Next() {
-			var infoCont string
-			fmt.Printf("info cont %v \n", infoCont)
-			err = rows.Scan(&infoCont)
-			checkErr(err)
-			result := strings.Split(infoCont, ",")
-			idBall := GetIdBall(result[0])
-			tempCord := GetCord(result[7])
-			possessed := GetWhomGotBall(idBall, Ulist, base.Db)
-			fmt.Printf("result %v, idBall %v, tempCord %v, possessed %v \n", result, idBall, tempCord, possessed)
-			lBallon.PushBack(
-				&Ball{
-					Title:       result[1],
-					Date:        GetDateFormat(result[5]),
-					Checkpoints: tempCord,
-					Coord:       tempCord.Front(),
-					Wind:        GetWin(result[3], result[4]),
-					Messages:    Lb.GetMessagesBall(idBall, base.Db),
-					Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
-					Possessed:   <-possessed,
-					Creator:     userE})
-			// checkErr(err)
-			switch {
-			case err == sql.ErrNoRows:
-				log.Printf("No containers.")
-			case err != nil:
-				log.Fatal(err)
-			default:
-				fmt.Printf("get containers%s | %s | %s \n", result[1], result[3], result[4])
+			for rows.Next() {
+				var infoCont string
+				err = rows.Scan(&infoCont)
+				checkErr(err)
+				result := strings.Split(infoCont, ",")
+				idBall := GetIdBall(result[0])
+				tempCord := GetCord(result[7])
+				possessed := GetWhomGotBall(idBall, Ulist, base.Db)
+				lBallon.PushBack(
+					&Ball{
+						Title:       result[1],
+						Date:        GetDateFormat(result[5]),
+						Checkpoints: tempCord,
+						Coord:       tempCord.Front(),
+						Wind:        GetWin(result[3], result[4]),
+						Messages:    Lb.GetMessagesBall(idBall, base.Db),
+						Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
+						Possessed:   <-possessed,
+						Creator:     userE})
+				switch {
+				case err == sql.ErrNoRows:
+					log.Printf("No containers.")
+				case err != nil:
+					log.Print(err)
+				default:
+					fmt.Printf("get containers%v | %v | %v \n\n", result[1], result[3], result[4])
+				}
 			}
 		}
 		return err
 	})
-	// checkErr(err)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Printf("No containers.")
 	case err != nil:
-		log.Fatal(err)
+		log.Print("Here some error")
+		log.Print(err)
 	default:
-		fmt.Printf("get containers%v", lBallon)
+		fmt.Printf("get containers 2 %v\n", lBallon)
 	}
 	return lBallon
 }
