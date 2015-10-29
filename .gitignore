@@ -5,6 +5,7 @@ pkg/**/*
 LogsSys.txt
 Logsfile.txt
 *.txt
+restart/
 # Vim extensions
 *.swp
 *.swo

@@ -377,8 +377,10 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var idUser int64
 		var mailq string
 		err = rows.Scan(&idUser, &mailq)
-		checkErr(err)
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db)})
+		if (err != nil){
+			fmt.Println(err)
+		}
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New()})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
