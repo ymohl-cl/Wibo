@@ -61,7 +61,7 @@ const (
 	USERLOGGED  = 3
 	// Size Packet
 	SIZE_PACKET        = 1014
-	SIZE_HEADER        = 24
+	SIZE_HEADER        = 16
 	SIZE_STATUSER      = 104
 	SIZE_STATBALL      = 56
 	SIZE_COORDSTATBALL = 24
