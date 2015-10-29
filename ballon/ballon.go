@@ -463,16 +463,16 @@ func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error
 			return (err)
 		}
 
-		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n",newBall.Coord.Value.(Coordinate).Lat )
-		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n",newBall.Coord.Value.(Coordinate).Lon )
+		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n",newBall.Coord.Value.(Checkpoint).Coord.Lat )
+		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n",newBall.Coord.Value.(Checkpoint).Coord.Lon )
 		fmt.Printf("insert ballon degress : type: %T | value: %v\n",newBall.Wind.Degress)
 		fmt.Printf("insert ballon Speed : type: %T | value: %v\n",newBall.Wind.Speed )
 		fmt.Printf("insert ballon title : type: %T | value: %v\n",newBall.Title )
 		fmt.Printf("insert ballon idball : type: %T | value: %v\n",newBall.Id_ball )
 		fmt.Printf("insert ballon date : type: %T | value: %v\n",newBall.Date )
 		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
-			newBall.Coord.Value.(Coordinate).Lat,
-			newBall.Coord.Value.(Coordinate).Lon,
+			newBall.Coord.Value.(Checkpoint).Coord.Lat ,
+			newBall.Coord.Value.(Checkpoint).Coord.Lon ,
 			newBall.Wind.Degress,
 			newBall.Wind.Speed,
 			newBall.Title,
