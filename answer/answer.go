@@ -398,7 +398,7 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		binary.Write(Buffer, binary.BigEndian, minute)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
 		binary.Write(Buffer, binary.BigEndian, Ball.Title)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, len(Ball.Title)-16))
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(Ball.Title)))
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
 		tmess := tpack.ptype.(Contentball).messages.Front()
