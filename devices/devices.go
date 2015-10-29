@@ -69,7 +69,6 @@ func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 
-
 func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error {
 	dlist.Dlist = list.New()
 	allUsers := map[int64]*list.Element{}
@@ -77,19 +76,19 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	for u := LstU.Ulist.Front(); u != nil; u = u.Next() {
 		allUsers[u.Value.(*users.User).Id] = u
 	}
-		rows, err := base.Db.Query("SELECT id, idclient, user_id_user FROM device;")
-		if err != nil {
-			fmt.Println(err)
+	rows, err := base.Db.Query("SELECT id, idclient, user_id_user FROM device;")
+	if err != nil {
+		fmt.Println(err)
+	}
+	if rows.Next() != false {
+		var idclient string
+		var idBase, idUserDefault int64
+		for rows.Next() {
+			rows.Scan(&idBase, &idclient, &idUserDefault)
+			dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New()})
+			fmt.Printf("%v\n", allUsers[idUserDefault])
 		}
-		if rows.Next() != false {
-			 var idclient string
-			 var idBase, idUserDefault int64
-			 for rows.Next() {
-				rows.Scan(&idBase, &idclient, &idUserDefault)
-				dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New()})
-				fmt.Printf("%v\n", allUsers[idUserDefault])
-			 }
-		}
+	}
 	return nil
 }
 
