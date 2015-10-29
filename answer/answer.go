@@ -1060,7 +1060,7 @@ func Write_workball(lst_work *list.List) *list.List {
 		binary.Write(Buffer, binary.BigEndian, workball.Title)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(workball.Title)))
 		binary.Write(Buffer, binary.BigEndian, workball.Message)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 664-len(workball.Message)))
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 656-len(workball.Message)))
 		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lon)
 		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lat)
 		binary.Write(Buffer, binary.BigEndian, workball.Link)
