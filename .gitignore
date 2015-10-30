@@ -8,7 +8,8 @@ Logsfile.*
 *.txt
 restart/
 Wibo
-db/
+db/*
+db/db.go
 # Vim extensions
 *.swp
 *.swo
