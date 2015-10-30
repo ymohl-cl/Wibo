@@ -91,9 +91,11 @@ func TestBallon(t *testing.T) {
 	check_test4.Coord.Lat = 2.316045
 	check_test4.Date = time.Now()
 
-	var check_test5 ballon.Coordinate
-	check_test5.Lon = 48.833986
-	check_test5.Lat = 2.316045
+	// var check_test5 ballon.Checkpoint
+	// check_test4.Coord.Lon = 48.833986
+	// check_test4.Coord.Lat = 2.316045
+	// check_test4.Date = time.Now()
+
 
 	lmessages := list.New()
 	listMessage1 := list.New()
@@ -170,29 +172,29 @@ func TestBallon(t *testing.T) {
 	ball3.Creator = nil
 	Lst_ball.Blist.PushBack(ball3)
 
-	ball4 := new(ballon.Ball)
-	ball4.Id_ball = 54
-	ball4.Title = "tyty"
-	ball4.Edited = true
-	ball4.Coord = tmp_lst.PushBack(check_test5)
-	ball4.Wind = ballon.Wind{Speed: 32, Degress: 2}
-	ball4.Messages = listMessage1
-	ball4.Date = time.Now()
-	ball4.Checkpoints = tmp_lst
-	ball4.Possessed = Lst_users.Ulist.Front()
-	ball3.Followers = list.New()
-	ball4.Creator = Lst_users.Ulist.Front()
-	Lst_ball.Blist.PushBack(ball4)
-	// if _, err := Lst_ball.InsertBallon(ball4, myDb); err != nil {
+	Ball4 := new(ballon.Ball)
+	Ball4.Id_ball = 63
+	Ball4.Title = "tyty"
+	Ball4.Edited = true
+	Ball4.Coord = tmp_lst.PushBack(check_test4)
+	Ball4.Wind = ballon.Wind{Speed: 32, Degress: 2}
+	Ball4.Messages = listMessage1
+	Ball4.Date = time.Now()
+	Ball4.Checkpoints = tmp_lst
+	Ball4.Possessed = Lst_users.Ulist.Front()
+	Ball4.Followers = list.New()
+	Ball4.Creator = Lst_users.Ulist.Front()
+	Lst_ball.Blist.PushBack(Ball4)
+	// if _, err := Lst_ball.InsertBallon(Ball4, myDb); err != nil {
 	// 	t.Fatalf("Fail insert ball:%s", err)
 	// }
 
-	if _, err :=	ball4.GetItinerary(myDb.Db); err != nil {
-		t.Fatalf("Fail get GetItinerary error: %s", err)
-	}
-	//Lst_ball.Update_balls(Lst_ball, myDb)
-	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
-	// Lst_ball.Print_all_balls()
+	// if _, err :=	ball4.GetItinerary(myDb.Db); err != nil {
+	// 	t.Fatalf("Fail get GetItinerary error: %s", err)
+	// }
+	Lst_ball.Update_balls(Lst_ball, myDb)
+	fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
+	//Lst_ball.Print_all_balls()
 
 }
 
