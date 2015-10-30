@@ -650,8 +650,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			log.Printf("No containers.")
 		case err != nil:
 			log.Print("Error: get containersbyuserid")
-			log.Print(rows)
-			log.Print(err)
+			return (err)
 		default:
 			for rows.Next() {
 				var infoCont string
@@ -676,7 +675,8 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				case err == sql.ErrNoRows:
 					log.Printf("No containers.")
 				case err != nil:
-					log.Print(err)
+					checkErr(err)
+					return err
 				default:
 					fmt.Printf("get containers%v | %v | %v \n\n", result[1], result[3], result[4])
 				}

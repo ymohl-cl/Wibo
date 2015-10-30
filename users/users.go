@@ -178,7 +178,7 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 		var idUser int64
 		var mailq string
 		var bpass []byte
-		err = rows.Scan(&idUser, &mailq, bpass)
+		err = rows.Scan(&idUser, &mailq, &bpass)
 		checkErr(err)
 		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
 			return nil

@@ -6,6 +6,8 @@ LogsSys.txt
 Logsfile.txt
 *.txt
 restart/
+db/*
+db/
 Wibo
 # Vim extensions
 *.swp
