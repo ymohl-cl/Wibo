@@ -179,7 +179,10 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 		var mailq string
 		var bpass []byte
 		err = rows.Scan(&idUser, &mailq, &bpass)
-		checkErr(err)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
 			return nil
 		}
@@ -377,7 +380,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var idUser int64
 		var mailq string
 		err = rows.Scan(&idUser, &mailq)
-		if (err != nil){
+		if err != nil {
 			fmt.Println(err)
 		}
 		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New()})
