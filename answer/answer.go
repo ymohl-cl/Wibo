@@ -61,7 +61,7 @@ const (
 	USERLOGGED  = 3
 	// Size Packet
 	SIZE_PACKET        = 1014
-	SIZE_HEADER        = 24
+	SIZE_HEADER        = 16
 	SIZE_STATUSER      = 104
 	SIZE_STATBALL      = 56
 	SIZE_COORDSTATBALL = 24
@@ -377,6 +377,8 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		tmp.messages = tp.ptype.(Contentball).messages
 		tmp.nbruser = (int32)(follow - 1) // - l'ajout qui viens d'etre fait.
 		tmp.nbrmess = (int32)(tmp.messages.Len())
+		fmt.Println("tmp nbr mess:")
+		fmt.Println(tmp.nbrmess)
 		tp.ptype = tmp
 		epck.Value = tp
 		epck = epck.Next()
@@ -400,6 +402,8 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		binary.Write(Buffer, binary.BigEndian, Ball.Title)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(Ball.Title)))
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
+		fmt.Println("WARNING:")
+		fmt.Println(tpack.ptype.(Contentball).nbrmess)
 		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
 		tmess := tpack.ptype.(Contentball).messages.Front()
 		for tmess != nil {
