@@ -39,7 +39,7 @@ func TestBallon(t *testing.T) {
 	user1.Followed = list.New()
 	pass := []byte("Pass1Test")
 	fmt.Println("password test")
-	bpass, err := bcrypt.GenerateFromPassword(pass, 10)
+	bpass, err := bcrypt.GenerateFromPassword(pass, 15)
 	fmt.Println(len(bpass))
 	if err != nil {
 		t.Fatalf("GenerateFromPassword error: %s", err)
@@ -48,7 +48,7 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	Lst_users.Ulist.PushBack(user1)
-	// bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
 	// fmt.Println(bool)
 	// fmt.Println(err)
 
@@ -90,11 +90,6 @@ func TestBallon(t *testing.T) {
 	check_test4.Coord.Lon = 48.833986
 	check_test4.Coord.Lat = 2.316045
 	check_test4.Date = time.Now()
-
-	// var check_test5 ballon.Checkpoint
-	// check_test4.Coord.Lon = 48.833986
-	// check_test4.Coord.Lat = 2.316045
-	// check_test4.Date = time.Now()
 
 
 	lmessages := list.New()
@@ -192,8 +187,8 @@ func TestBallon(t *testing.T) {
 	// if _, err :=	ball4.GetItinerary(myDb.Db); err != nil {
 	// 	t.Fatalf("Fail get GetItinerary error: %s", err)
 	// }
-	Lst_ball.Update_balls(Lst_ball, myDb)
-	fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
+	// Lst_ball.Update_balls(Lst_ball, myDb)
+	// fmt.Println("\x1b[31;1m SECOND PRINT ALL BALLS\x1b[0m")
 	//Lst_ball.Print_all_balls()
 
 }
