@@ -8,6 +8,7 @@ Logsfile.*
 *.txt
 restart/
 Wibo
+# Data base local config
 db/*
 db/db.go
 # Vim extensions
