@@ -4,9 +4,11 @@ _vendor/**/*
 pkg/**/*
 LogsSys.txt
 Logsfile.txt
+Logsfile.*
 *.txt
 restart/
 Wibo
+db/
 # Vim extensions
 *.swp
 *.swo
@@ -45,6 +47,8 @@ tramp
 # elpa packages
 /elpa/
 
+#postgres conf
+restart/
 # reftex files
 *.rel
 

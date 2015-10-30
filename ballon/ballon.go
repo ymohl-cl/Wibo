@@ -1,15 +1,3 @@
-//# ************************************************************************** #
-//#                                                                            #
-//#                                                       :::      ::::::::    #
-//#  ballon.go                                          :+:      :+:    :+:    #
-//#                                                   +:+ +:+         +:+      #
-//#  By: ymohl-cl <ymohl-cl@student.42.fr>          +#+  +:+       +#+         #
-//#                                               +#+#+#+#+#+   +#+            #
-//#  Created: 2015/06/30 16:00:08 by ymohl-cl          #+#    #+#              #
-//#  Updated: 2015/06/30 16:00:08 by ymohl-cl         ###   ########.fr        #
-//#                                                                            #
-//# ************************************************************************** #
-
 package ballon
 
 import (
@@ -449,39 +437,44 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 	$6 speedc float,
 	$7 title text,
 	$8 idx integer)
+
+	public.insertcontainer(idcreatorc integer,
+	$1 latitudec double precision,
+	$2 longitudec double precision,
+	$3 directionc double precision,
+	$4 speedc double precision,
+	$5 title text,
+	$6 idx integer,
+	$7 creation date)
 */
 
-func (Lst_ball *All_ball) InsertBallon(newBall *Ball, base *db.Env) (bool, error) {
-	var IdC int
-	var err error
-	var executed bool
+func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bool, err error) {
+	var IdC int64
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		if err != nil {
 			return (err)
 		}
-
-		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", newBall.Coord.Value.(Checkpoint).Coord.Lat)
-		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n", newBall.Coord.Value.(Checkpoint).Coord.Lon)
-		fmt.Printf("insert ballon degress : type: %T | value: %v\n", newBall.Wind.Degress)
-		fmt.Printf("insert ballon Speed : type: %T | value: %v\n", newBall.Wind.Speed)
-		fmt.Printf("insert ballon title : type: %T | value: %v\n", newBall.Title)
-		fmt.Printf("insert ballon idball : type: %T | value: %v\n", newBall.Id_ball)
-		fmt.Printf("insert ballon date : type: %T | value: %v\n", newBall.Date)
-		_ = stm.QueryRow(newBall.Creator.Value.(*users.User).Id,
-			newBall.Coord.Value.(Checkpoint).Coord.Lat,
-			newBall.Coord.Value.(Checkpoint).Coord.Lon,
-			newBall.Wind.Degress,
-			newBall.Wind.Speed,
-			newBall.Title,
-			newBall.Id_ball,
-			newBall.Date).Scan(&IdC)
-
-		checkErr(err)
+		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall, NewBall.Id_ball)
+		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lat, NewBall.Coord.Value.(Checkpoint).Coord.Lat)
+		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lon, NewBall.Coord.Value.(Checkpoint).Coord.Lon)
+		fmt.Printf("insert ballon degress : type: %T | value: %v\n", NewBall.Wind.Degress, NewBall.Wind.Degress )
+		fmt.Printf("insert ballon Speed : type: %T | value: %v\n", NewBall.Wind.Speed, NewBall.Wind.Speed)
+		fmt.Printf("insert ballon title : type: %T | value: %v\n", NewBall.Title, NewBall.Title)
+		fmt.Printf("insert ballon idball : type: %T | value: %v\n", NewBall.Id_ball, NewBall.Id_ball)
+		fmt.Printf("insert ballon date : type: %T | value: %v\n", NewBall.Date, NewBall.Date)
+		err = stm.QueryRow(NewBall.Creator.Value.(*users.User).Id,
+			NewBall.Coord.Value.(Checkpoint).Coord.Lat,
+			NewBall.Coord.Value.(Checkpoint).Coord.Lon,
+			NewBall.Wind.Degress,
+			NewBall.Wind.Speed,
+			NewBall.Title,
+			NewBall.Id_ball,
+			NewBall.Date).Scan(&IdC)
 		return err
 	})
 	log.Println(err)
-	err = Lst_ball.InsertMessages(newBall.Messages, IdC, base)
+	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
 	executed = true
 	return executed, err
 }
@@ -495,7 +488,7 @@ AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, locat
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	i := 0
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
-	fmt.Printf("%v Id Max", ABalls.Id_max)
+	fmt.Printf("%v Id Max\n", ABalls.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
@@ -506,9 +499,12 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
-						stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid) values($1, (SELECT id from container where ianix = $2))")
 						checkErr(err)
-						_, err = stm.Query(f.Value.(Message).Content, idBall)
+						res, err := stm.Exec(f.Value.(Message).Content, idBall)
+						var rowsAffect int64
+						rowsAffect, err = res.RowsAffected()
+						fmt.Println("\x1b[31;1m update %d \x1b[0m",rowsAffect)
 						j++
 						checkErr(err)
 						return err
@@ -517,7 +513,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				}
 			}
 		} else if e.Value.(*Ball).Id_ball > ABalls.Id_max {
-			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", ABalls.Blist.Len())
+			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", e.Value.(*Ball).Id_ball)
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 		i++
@@ -525,7 +521,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	return er
 }
 
-func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int, base *db.Env) (err error) {
+func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base *db.Env) (err error) {
 	i := 0
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
