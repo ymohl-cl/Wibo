@@ -135,6 +135,9 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 	u := lu.Ulist.Front()
 	for u != nil {
 		cu := u.Value.(*User)
+		fmt.Printf("Update user %v \n", cu.Id)
+		fmt.Printf("Update user %v \n", cu.Coord.Lon)
+		fmt.Printf("Update user %v \n", cu.Coord.Lat)
 		_, err = base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
 		// _, err = base.Db.Query("UPDATE stats_users SET num_owner = $1, num_catch =  $2 , num_follow = $3, num_message =  $4, num_send = $5 WHERE iduser_stats = $6;",
 		// 		u.Value.(*StatsUser).NbrBallCreate,
