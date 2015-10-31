@@ -211,36 +211,37 @@ func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {
 	return eball
 }
 
-func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64) *list.List {
+func EballAlreadyExist(blst *list.List, eball *list.Element) bool {
+	ball := eball.Value.(*Ball)
+	for e := blst.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element).Value.(*Ball).Id_ball == ball.Id_ball {
+			return true
+		}
+	}
+	return false
+}
+
+func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *list.List {
 	list_tmp := list.New()
-	var eb1 *list.Element
-	var eb2 *list.Element
-	var eb3 *list.Element
-	//			if ball.Check_userCreated(Data.User) == false {
+	flag := false
 
 	for i := 0; i < 3; i++ {
 		eball := balls.Blist.Front()
 		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
 			eball = eball.Next()
 		}
-		for eball.Value.(*Ball).Possessed != nil || (eball == eb1 || eball == eb2 || eball == eb3) {
+		for eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true {
 			eball = eball.Next()
-			if eball == nil {
+			if eball == nil && flag == false {
+				flag = true
 				eball = balls.Blist.Front()
 			}
 		}
-		switch i {
-		case 0:
-			eb1 = eball
-		case 1:
-			eb2 = eball
-		case 2:
-			eb3 = eball
+		if eball != nil {
+			list_tmp.PushBack(eball)
 		}
+		flag = false
 	}
-	list_tmp.PushBack(eb1)
-	list_tmp.PushBack(eb2)
-	list_tmp.PushBack(eb3)
 	return list_tmp
 }
 

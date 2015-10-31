@@ -4,7 +4,7 @@ import (
 	"Wibo/ballon"
 	"Wibo/ballonwork"
 	"Wibo/db"
-	_ "Wibo/debug"
+	"Wibo/debug"
 	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/users"
@@ -56,10 +56,10 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	if er != nil {
 		return er
 	} // If possible print workball List with Serv.Lst_Work.Print_all_workball()
-	//	er = debug.CreateDataToDebug(Serv.Lst_ball, Serv.Lst_users, Serv.Tab_wd)
-	//	if er != nil {
-	//		return er
-	//	} // If possible comment this section. Data filled to debug.
+	er = debug.CreateDataToDebug(Serv.Lst_ball, Serv.Lst_users, Serv.Tab_wd)
+	if er != nil {
+		return er
+	} // If possible comment this section. Data filled to debug.
 	return nil
 }
 

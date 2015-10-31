@@ -723,6 +723,8 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	var answer []byte
 
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
+		user := Data.User.Value.(*users.User)
+		user.Possessed.Remove(eball)
 		eball.Value.(*ballon.Ball).Possessed = nil
 		eball.Value.(*ballon.Ball).Edited = true
 		checkpoint.Coord.Lon = rqt.Coord.Lon
@@ -730,7 +732,6 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
 		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		/* Begin stats ---- */
-		user := Data.User.Value.(*users.User)
 		user.Stats.NbrMessage++
 		user.Stats.NbrSend++
 		Data.Lst_users.GlobalStat.NbrSend++
@@ -749,10 +750,16 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	list_tmp := list.New()
 	var ifball Posball
 
+	fmt.Println("Magnet | ID_MAX: ", Data.Lst_ball.Id_max)
 	for i := 0; i < 3; i++ {
 		tab[i] = rand.Int63n(5) // Temporaire le temps que Id_nax != 0
 	}
-	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab)
+	if Data.User != nil {
+		fmt.Println("User exist et c'est normal !")
+	} else {
+		fmt.Println("User existe pas putain ca pue !")
+	}
+	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
 	eball := list_tmp_2.Front()
 	for eball != nil {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
@@ -787,8 +794,10 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			device := Data.Device.Value.(*devices.Device)
 			if len(req.Spec.(protocol.Log).Email) <= 1 {
 				Data.Logged = DEFAULTUSER
+				fmt.Println("COUCOU !!!")
 				Data.User = device.UserDefault
 			} else {
+				fmt.Println("SNIFF !!")
 				Data.User = Data.Lst_users.Check_user(request, Db, device.Historic)
 				if Data.User == nil {
 					flag = false

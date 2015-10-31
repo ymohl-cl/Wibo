@@ -263,7 +263,7 @@ func (token *Request) Get_request(buff []byte) (err error, er error) {
 		return err, er
 	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
 		err, er = token.Request_idball(TypBuff)
-	case POS, WORKBALL:
+	case POS, WORKBALL, MAGNET:
 	case TAKEN:
 		err, er = token.Request_taken(TypBuff)
 	case NEW_BALL:
@@ -297,7 +297,7 @@ func (token *Request) Print_token_debug() {
 		fmt.Println("Data base synchronisation, type 1")
 	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
 		fmt.Println(token.Spec.(Ballid).Id)
-	case POS, WORKBALL:
+	case POS, WORKBALL, MAGNET:
 	case TAKEN:
 		fmt.Println(token.Spec.(Taken).Id)
 		fmt.Println(token.Spec.(Taken).FlagMagnet)
