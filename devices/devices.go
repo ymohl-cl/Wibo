@@ -72,7 +72,6 @@ func (Device *Device) AddUserSpecOnHistory(euser *list.Element) {
 func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error {
 	dlist.Dlist = list.New()
 	allUsers := map[int64]*list.Element{}
-
 	for u := LstU.Ulist.Front(); u != nil; u = u.Next() {
 		allUsers[u.Value.(*users.User).Id] = u
 	}
