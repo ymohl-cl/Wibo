@@ -110,7 +110,7 @@ func FoundUserOnListLvl1(lst *list.List, email string) *list.Element {
 ** If Password is OK return user else return nil
  */
 func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *list.List) *list.Element {
-	req := request.Value.(protocol.Request)
+	req := request.Value.(*protocol.Request)
 	user := FoundUserOnListLvl2(History, req.Spec.(protocol.Log).Email)
 	if user == nil {
 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
