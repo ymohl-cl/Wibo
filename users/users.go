@@ -10,6 +10,7 @@ import (
 	valid "github.com/asaskevich/govalidator"
 	"golang.org/x/crypto/bcrypt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -283,20 +284,14 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	tmpUser.Stats.NbrSend = 0
 	tmpUser.Stats.NbrFollow = 0
 	tmpUser.Stats.NbrMessage = 0
-	rows, err := Db.Query(
-		"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, tmpUser.Log, tmpUser.Stats.CreationDate)
+	//rows, err := Db.Query(
+	//	"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, tmpUser.Log, tmpUser.Stats.CreationDate)
+	err = Db.QueryRow("SELECT setsdefaultuserdata($1, $2, $3, $4, $5);", tmpUser.Coord.Lat, tmpUser.Coord.Lon, tmpUser.Log, tmpUser.Stats.CreationDate, bpass).Scan(&tmpUser.Id)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var IdUserDefault int64
-		err = rows.Scan(&IdUserDefault)
-		tmpUser.Id = IdUserDefault
-		Lst_users.Ulist.PushBack(tmpUser)
-
-	}
+	Lst_users.Ulist.PushBack(tmpUser)
 	return Lst_users.Ulist.Back()
 }
 
@@ -390,6 +385,22 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 	return lDevice
 }
 
+func GetCoord(position string) Coordinate {
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"' ||
+			c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
+			c == 'T'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(position, f)
+	// Separate into cordinates  with Fields.
+	point := strings.Fields(fields[0])
+	long, _ := strconv.ParseFloat(point[0], 6)
+	lat, _ := strconv.ParseFloat(point[1], 6)
+	return Coordinate{Lon: long, Lat: lat}
+}
+
 /**
 * Get_users
 * Query the user table join device and create new *listList Pointer
@@ -397,7 +408,7 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	var err error
 	lUser := list.New()
-	rows, err := Db.Query("SELECT id_user, mail FROM \"user\";")
+	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
 	checkErr(err)
 	if err != nil {
 		fmt.Println(err)
@@ -408,11 +419,12 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	for rows.Next() {
 		var idUser int64
 		var mailq string
-		err = rows.Scan(&idUser, &mailq)
+		var pos string
+		err = rows.Scan(&idUser, &mailq, &pos)
 		if err != nil {
 			fmt.Println(err)
 		}
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New()})
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)
