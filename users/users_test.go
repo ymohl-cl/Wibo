@@ -33,6 +33,6 @@ func TestUsers(t *testing.T) {
 	Lst_users.Ulist = list.New()
 	Lst_ball.Blist = list.New()
 	Db, err := myDb.OpenCo(err)
-	result := Lst_users.GetStatsByUser(68, Db)
+	result := Lst_users.GetStatsByUser(88, Db)
 	fmt.Println(result)
 }
