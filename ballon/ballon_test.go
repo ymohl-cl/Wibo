@@ -1,15 +1,15 @@
 package ballon_test
 
 import (
+	"Wibo/ballon"
 	"Wibo/db"
 	"Wibo/users"
 	"container/list"
-	"time"
-	"Wibo/ballon"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"	
-//	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 	"testing"
+	"time"
 )
 
 // request data base test
@@ -34,7 +34,7 @@ func TestBallon(t *testing.T) {
 
 	user1 := new(users.User)
 	user1.Id = 68
-	user1.Mail = "mailtest2@test.com"
+	user1.Mail = "mailtest1@test.com"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
 	pass := []byte("Pass1Test")
@@ -48,9 +48,11 @@ func TestBallon(t *testing.T) {
 		t.Errorf("%v should hash %s correctly", bpass, pass)
 	}
 	Lst_users.Ulist.PushBack(user1)
-	bool, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-	// fmt.Println(bool)
-	// fmt.Println(err)
+	b, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+	if err != nil {
+		t.Fatalf("add user fail error: %s", err)
+	}
+	assert.True(t, b, "This is good. Insert user test passing")
 
 	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
 	// for rows.Next() {
@@ -90,7 +92,6 @@ func TestBallon(t *testing.T) {
 	check_test4.Coord.Lon = 48.833986
 	check_test4.Coord.Lat = 2.316045
 	check_test4.Date = time.Now()
-
 
 	lmessages := list.New()
 	listMessage1 := list.New()

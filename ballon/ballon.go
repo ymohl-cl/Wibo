@@ -458,7 +458,7 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall, NewBall.Id_ball)
 		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lat, NewBall.Coord.Value.(Checkpoint).Coord.Lat)
 		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lon, NewBall.Coord.Value.(Checkpoint).Coord.Lon)
-		fmt.Printf("insert ballon degress : type: %T | value: %v\n", NewBall.Wind.Degress, NewBall.Wind.Degress )
+		fmt.Printf("insert ballon degress : type: %T | value: %v\n", NewBall.Wind.Degress, NewBall.Wind.Degress)
 		fmt.Printf("insert ballon Speed : type: %T | value: %v\n", NewBall.Wind.Speed, NewBall.Wind.Speed)
 		fmt.Printf("insert ballon title : type: %T | value: %v\n", NewBall.Title, NewBall.Title)
 		fmt.Printf("insert ballon idball : type: %T | value: %v\n", NewBall.Id_ball, NewBall.Id_ball)
@@ -504,7 +504,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 						res, err := stm.Exec(f.Value.(Message).Content, idBall)
 						var rowsAffect int64
 						rowsAffect, err = res.RowsAffected()
-						fmt.Println("\x1b[31;1m update %d \x1b[0m",rowsAffect)
+						fmt.Println("\x1b[31;1m update %d \x1b[0m", rowsAffect)
 						j++
 						checkErr(err)
 						return err
@@ -655,18 +655,24 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				result := strings.Split(infoCont, ",")
 				idBall := GetIdBall(result[0])
 				tempCord := GetCord(result[7])
+				idTmp, _ := strconv.Atoi(result[8])
 				possessed := GetWhomGotBall(idBall, Ulist, base.Db)
-				lBallon.PushBack(
-					&Ball{
-						Title:       result[1],
-						Date:        GetDateFormat(result[5]),
-						Checkpoints: tempCord,
-						Coord:       tempCord.Front(),
-						Wind:        GetWin(result[3], result[4]),
-						Messages:    Lb.GetMessagesBall(idBall, base.Db),
-						Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
-						Possessed:   <-possessed,
-						Creator:     userE})
+				tmpBall := Lb.Get_ballbyid(int64(idTmp))
+				if tmpBall != nil {
+
+				} else {
+					lBallon.PushBack(
+						&Ball{
+							Title:       result[1],
+							Date:        GetDateFormat(result[5]),
+							Checkpoints: tempCord,
+							Coord:       tempCord.Front(),
+							Wind:        GetWin(result[3], result[4]),
+							Messages:    Lb.GetMessagesBall(idBall, base.Db),
+							Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
+							Possessed:   <-possessed,
+							Creator:     userE})
+				}
 				switch {
 				case err == sql.ErrNoRows:
 					log.Printf("No containers.")
@@ -804,14 +810,11 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 * the creator, possessord and followers.
 **/
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
-	lMasterBall := new(All_ball)
-	lMasterBall.Blist = list.New()
 	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		lMasterBall.Blist = Lb.GetListBallsByUser(e, base, LstU.Ulist)
+		Lb.Blist.PushBackList(Lb.GetListBallsByUser(e, base, LstU.Ulist))
 		i++
 	}
-	Lb.InsertListBallsFollow(lMasterBall.Blist, LstU.Ulist, base)
-	Lb.Blist = lMasterBall.Blist
+	Lb.InsertListBallsFollow(Lb.Blist, LstU.Ulist, base)
 	return nil
 }
