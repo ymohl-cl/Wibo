@@ -80,6 +80,7 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer rows.Close()
 	if rows.Next() != false {
 		var idclient string
 		var idBase, idUserDefault int64
@@ -112,6 +113,7 @@ func (Devices *All_Devices) AddDeviceOnBdd(req *protocol.Request, Ulist *users.A
 		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(&newDevice.Idbdd)
 		if err != nil {

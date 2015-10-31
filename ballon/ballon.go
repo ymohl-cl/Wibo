@@ -216,6 +216,7 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64) *list.List {
 	var eb1 *list.Element
 	var eb2 *list.Element
 	var eb3 *list.Element
+	//			if ball.Check_userCreated(Data.User) == false {
 
 	for i := 0; i < 3; i++ {
 		eball := balls.Blist.Front()
@@ -371,13 +372,18 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 	for b := Lb.Blist.Front(); b != nil; b = b.Next() {
 		var Idb int64
 		row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
+		if err != nil {
+			log.Print(err)
+		}
+		defer row.Close()
 		if row.Next() != false {
 			row.Scan(&Idb)
 			for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
-				_, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Value.(*Checkpoint).Date, i.Value.(*Checkpoint).Coord.Lon, i.Value.(*Checkpoint).Coord.Lat, Idb, i.Value.(*Checkpoint).MagnetFlag)
+				trow, err := Db.Query("SELECT insertcheckpoints($1, $2 $3, $4, 5)", i.Value.(*Checkpoint).Date, i.Value.(*Checkpoint).Coord.Lon, i.Value.(*Checkpoint).Coord.Lat, Idb, i.Value.(*Checkpoint).MagnetFlag)
 				if err != nil {
 					fmt.Println(err)
 				}
+				trow.Close()
 			}
 		} else {
 			fmt.Println(err)
@@ -393,6 +399,7 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	if err != nil {
 		log.Print(err)
 	}
+	defer rows.Close()
 	if rows.Next() != false {
 		for rows.Next() {
 			var tdate time.Time
@@ -574,6 +581,7 @@ func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) *list
 	var err error
 	rows, err := Db.Query("SELECT id_user FROM \"user\" AS userWibo LEFT OUTER JOIN followed ON (followed.iduser = userWibo.id_user)  WHERE followed.container_id = $1;", idBall)
 	checkErr(err)
+	defer rows.Close()
 	for rows.Next() {
 		var idFollower int64
 		rows.Scan(&idFollower)

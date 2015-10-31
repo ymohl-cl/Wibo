@@ -9,6 +9,7 @@ import (
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 	"strings"
 	"time"
 )
@@ -124,6 +125,11 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
 	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer rows.Close()
 	rows.Scan(&lu.NbrUsers, &lu.GlobalStat.NbrFollow, &lu.GlobalStat.NbrMessage, &lu.GlobalStat.NbrSend, &lu.GlobalStat.NbrBallCreate)
 	return err
 }
@@ -138,7 +144,7 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		fmt.Printf("Update user %v \n", cu.Id)
 		fmt.Printf("Update user %v \n", cu.Coord.Lon)
 		fmt.Printf("Update user %v \n", cu.Coord.Lat)
-		_, err = base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
+		trow, err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
 		// _, err = base.Db.Query("UPDATE stats_users SET num_owner = $1, num_catch =  $2 , num_follow = $3, num_message =  $4, num_send = $5 WHERE iduser_stats = $6;",
 		// 		u.Value.(*StatsUser).NbrBallCreate,
 		// 		u.Value.(*StatsUser).NbrCatch,
@@ -157,6 +163,7 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		// _ = base.Db.QueryRow("SELECT count(*) from container WHERE idcreator = $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrBallCreate)
 		// _ = base.Db.QueryRow("SELECT count(*) from message INNER JOIN container ON (container.id = message.containerid) WHERE idcreator= $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrMessage)
 		// _ = base.Db.QueryRow("SELECT count(*) from followed INNER JOIN container ON (container.id = followed.container_id) WHERE idcreator=$1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrFollow)
+		trow.Close()
 		u = u.Next()
 	}
 	return err
@@ -177,6 +184,12 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 	var err error
 	passb := []byte(pass)
 	rows, err := Db.Query("SELECT id_user, mail, bpass FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var idUser int64
 		var mailq string
@@ -237,6 +250,7 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var IdUser int64
 		err = rows.Scan(&IdUser)
@@ -275,7 +289,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 		fmt.Println(err)
 		return nil
 	}
-
+	defer rows.Close()
 	for rows.Next() {
 		var IdUserDefault int64
 		err = rows.Scan(&IdUserDefault)
@@ -295,6 +309,12 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	var err error
 	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var idUser int64
 		var mailq string
@@ -379,6 +399,12 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	lUser := list.New()
 	rows, err := Db.Query("SELECT id_user, mail FROM \"user\";")
 	checkErr(err)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var idUser int64
 		var mailq string
