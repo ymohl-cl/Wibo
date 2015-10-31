@@ -255,13 +255,14 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 	}
 	/* set id*/
 	//rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
-	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5);",
+	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
 		1,
 		"user_particulier",
 		new_user.Coord.Lat,
 		new_user.Coord.Lon,
 		new_user.Stats.CreationDate,
 		new_user.Log,
+		new_user.Mail,
 		bpass).Scan(&new_user.Id)
 	if err != nil {
 		return false, err
