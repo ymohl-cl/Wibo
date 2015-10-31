@@ -630,6 +630,42 @@ func (Data *Data) Manage_followon(request *list.Element) {
 	Data.Lst_asw.PushBack(answer)
 }
 
+/* Remove ball from followed list of User */
+func RemoveBallFollowed(eball *list.Element, usr *list.Element) bool {
+	user := usr.Value.(*users.User)
+	for e := user.Followed.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == eball {
+			user.Followed.Remove(e)
+			return true
+		}
+	}
+	return false
+}
+
+/* Remove ball from possessed list of User */
+func RemoveBallPossessed(eball *list.Element, usr *list.Element) bool {
+	user := usr.Value.(*users.User)
+	for e := user.Possessed.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == eball {
+			user.Possessed.Remove(e)
+			return true
+		}
+	}
+	return false
+}
+
+/* Remove user from followes list of ball */
+func RemoveUserFollower(usr *list.Element, eball *list.Element) bool {
+	ball := eball.Value.(*ballon.Ball)
+	for e := ball.Followers.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == usr {
+			ball.Followers.Remove(e)
+			return true
+		}
+	}
+	return false
+}
+
 func (Data *Data) Manage_followoff(request *list.Element) {
 	var answer []byte
 	rqt := request.Value.(*protocol.Request)
@@ -641,10 +677,12 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 	}
 	if eball != nil &&
 		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
-		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
+		RemoveUserFollower(Data.User, eball)
+		//		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
 		eball.Value.(*ballon.Ball).Edited = true
 		user := Data.User.Value.(*users.User)
-		user.Followed.Remove(eball)
+		RemoveBallFollowed(eball, Data.User)
+		//		user.Followed.Remove(eball)
 		user.Stats.NbrFollow--
 		if eball.Value.(*ballon.Ball).Followers.Len() == 0 {
 			Data.Lst_users.GlobalStat.NbrFollow--
@@ -724,7 +762,8 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
 		user := Data.User.Value.(*users.User)
-		user.Possessed.Remove(eball)
+		RemoveBallPossessed(eball, Data.User)
+		//		user.Possessed.Remove(eball)
 		eball.Value.(*ballon.Ball).Possessed = nil
 		eball.Value.(*ballon.Ball).Edited = true
 		checkpoint.Coord.Lon = rqt.Coord.Lon
