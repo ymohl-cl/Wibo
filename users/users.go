@@ -227,6 +227,13 @@ func (e *userError) Error() string {
 * Insert new user to wibo_base
 *	constrain valid_mail(text) default verification
 * query to check if mail is already registered
+	setsuserdata2(idtypeg integer,
+	groupnamec character varying,
+	latc double precision, lonc double precision,
+	creation date,
+	lastlog date,
+	mailc character varying,
+	pass bytea)
 **/
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string) (bool, error) {
@@ -247,15 +254,17 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 		}
 	}
 	/* set id*/
-	rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
+	//rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
+	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5);",
+		1,
+		"user_particulier",
+		new_user.Coord.Lat,
+		new_user.Coord.Lon,
+		new_user.Stats.CreationDate,
+		new_user.Log,
+		bpass).Scan(&new_user.Id)
 	if err != nil {
 		return false, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var IdUser int64
-		err = rows.Scan(&IdUser)
-		new_user.Id = IdUser
 	}
 	return true, nil
 }
