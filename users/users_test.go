@@ -1,13 +1,13 @@
 package users_test
 
 import (
-	"Wibo/db"
-	"testing"
 	"Wibo/ballon"
-	"fmt"
-	"container/list"
+	"Wibo/db"
 	"Wibo/users"
-	)
+	"container/list"
+	"fmt"
+	"testing"
+)
 
 // CREATE OR REPLACE FUNCTION create_statsuser() RETURNS TRIGGER AS $stats_creation$
 //     BEGIN
@@ -15,7 +15,7 @@ import (
 //         -- Create a row in stats_users to reflect the operation performed on user,
 //         -- make use of the special variable TG_OP to work out the operation.
 //         --
-       
+
 //         IF (TG_OP = 'INSERT') THEN
 //             INSERT INTO stats_users VAlUES (0, 0, 0, 0, NEW.id_user);
 //             RETURN NEW;
@@ -33,6 +33,6 @@ func TestUsers(t *testing.T) {
 	Lst_users.Ulist = list.New()
 	Lst_ball.Blist = list.New()
 	Db, err := myDb.OpenCo(err)
-	result := Lst_users.GetStatsByUser(88, Db)
+	result := Lst_users.Add_new_user(88, Db)
 	fmt.Println(result)
 }
