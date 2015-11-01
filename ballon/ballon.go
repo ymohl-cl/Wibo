@@ -396,7 +396,7 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
 	Ball.Itinerary = list.New()
-	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1", Ball.Id_ball)
+	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1 ORDER BY date DESC", Ball.Id_ball)
 	if err != nil {
 		log.Print(err)
 	}
