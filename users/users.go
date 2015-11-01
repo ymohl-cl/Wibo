@@ -49,6 +49,7 @@ type User struct {
 	Possessed   *list.List /* Value: *list.Element.Value.(*ballon.Ball) */
 	HistoricReq *list.List /* Liste d'interface History, compose l'historique des requetes utilisateurs */
 	Stats       *StatsUser /* Interface Stats, Statistique de la vie du ballon */
+	Magnet      time.Time
 	/* Les valeurs suivantes sont deprecated */
 	//Device      *list.List /* Value: Device */
 	//Password    string // pas utile car la comparaison sera faite avec la bdd
@@ -67,6 +68,13 @@ type userError struct {
 	Prob string
 	Err  error
 	Logf *log.Logger
+}
+
+func (User *User) MagnetisValid() bool {
+	if time.Since(User.Magnet) > (60 * time.Minute) {
+		return true
+	}
+	return false
 }
 
 func (User *User) User_is_online() bool {
