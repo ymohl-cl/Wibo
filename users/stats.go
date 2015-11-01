@@ -48,8 +48,8 @@ func (Lusr *All_users) SetStatsByUser(c_idUser int64, u_stats *StatsUser, Db *sq
 	if err != nil {
 		return false
 	}
-	_, err = stm.Query(u_stats.NbrBallCreate, u_stats.NbrCatch, u_stats.NbrFollow, u_stats.NbrMessage, u_stats.NbrSend, c_idUser)
-
+	row, err := stm.Query(u_stats.NbrBallCreate, u_stats.NbrCatch, u_stats.NbrFollow, u_stats.NbrMessage, u_stats.NbrSend, c_idUser)
+	row.Close()
 	if err != nil {
 		return false
 	}

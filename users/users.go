@@ -419,7 +419,6 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 	var err error
 	lUser := list.New()
 	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
-	checkErr(err)
 	if err != nil {
 		fmt.Println(err)
 		return err
