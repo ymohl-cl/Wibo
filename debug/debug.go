@@ -80,6 +80,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	mmp2 := list.New()
 	mmp := list.New()
+	mmp1 := list.New()
 	var message0 ballon.Message
 	var message1 ballon.Message
 	var message2 ballon.Message
@@ -107,6 +108,8 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	mmp.PushBack(message0)
 	mmp.PushBack(message3)
+	mmp1.PushBack(message0)
+	mmp1.PushBack(message3)
 	mmp2.PushBack(message0)
 	mmp2.PushBack(message1)
 	mmp2.PushBack(message2)
@@ -143,7 +146,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball1.Title = "tata"
 	//	ball1.Coord = tmp_lst.PushBack(check_test1)
 	ball1.Wind = ballon.Wind{}
-	ball1.Messages = mmp
+	ball1.Messages = mmp1
 	ball1.Date = time.Now()
 	//	ball1.Checkpoints = list.New()
 	ball1.Checkpoints = list.New()
