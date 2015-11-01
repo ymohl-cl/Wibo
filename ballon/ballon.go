@@ -399,7 +399,7 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
 	Ball.Itinerary = list.New()
-	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1", Ball.Id_ball)
+	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1 ORDER BY date DESC", Ball.Id_ball)
 	if err != nil {
 		log.Print(err)
 	}
@@ -430,11 +430,27 @@ func getIdMessageMax(idBall int64, base *db.Env) int32 {
 		checkErr(err)
 		rs, err := stm.Query(idBall)
 		checkErr(err)
-		for rs.Next() {
+		defer stm.Close()
+		if rs.Next() != false {
 			rs.Scan(&IdMax)
 		}
 		return err
 	})
+	checkErr(err)
+	return IdMax
+}
+
+func getIdBallMax(base *db.Env) int64 {
+	var IdMax int64
+	IdMax = 0
+	rs, err := base.Db.Query("SELECT ianix FROM container ORDER BY ianix DESC LIMIT 1;")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rs.Close()
+	if rs.Next() != false {
+		rs.Scan(&IdMax)
+	}
 	checkErr(err)
 	return IdMax
 }
@@ -575,8 +591,7 @@ func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
 **/
 func checkErr(err error) {
 	if err != nil {
-		//		fmt.Println(err)
-		panic(err)
+		fmt.Println(err)
 	}
 }
 
@@ -822,10 +837,9 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 * the creator, possessord and followers.
 **/
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
-	i := 0
+	Lb.Id_max = getIdBallMax(base)
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		Lb.Blist.PushBackList(Lb.GetListBallsByUser(e, base, LstU.Ulist))
-		i++
 	}
 	Lb.InsertListBallsFollow(Lb.Blist, LstU.Ulist, base)
 	return nil
