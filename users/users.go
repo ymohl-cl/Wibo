@@ -185,10 +185,10 @@ func CheckValidMail(email string) bool {
 func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Element {
 	var err error
 	passb := []byte(pass)
-	rows, err := Db.Query("SELECT id_user, mail, bpass FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(-1)
+		//os.Exit(-1)
 	}
 	defer rows.Close()
 
