@@ -258,6 +258,13 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 	}
 	/* set id*/
 	//rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
+	fmt.Printf("InserT User NOW")
+	fmt.Printf("InserT %T | %v \n", new_user.Coord.Lat, new_user.Coord.Lat)
+	fmt.Printf("InserT %T | %v \n", new_user.Coord.Lon, new_user.Coord.Lon)
+	fmt.Printf("InserT %T | %v \n", new_user.Stats.CreationDate, new_user.Stats.CreationDate)
+	fmt.Printf("InserT %T | %v \n", new_user.Log, new_user.Log)
+	fmt.Printf("InserT %T | %v \n", new_user.Mail, new_user.Mail)
+	fmt.Printf("InserT %T | %v \n", bpass, bpass)
 	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
 		1,
 		"user_particulier",
@@ -352,6 +359,29 @@ func (LstU *All_users) Print_users() {
 	}
 	return
 }
+
+// CREATE OR REPLACE FUNCTION public.setsuserdata2(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea)
+//  RETURNS integer
+//  LANGUAGE plpgsql
+// AS $function$
+// DECLARE
+// done boolean:= false;
+// iduser integer := 0;
+// BEGIN
+//  done :=  NOT exists(SELECT mail FROM "user");
+// IF done = false THEN
+//     INSERT INTO "user"(id_type_g, groupname, lastlogin, creationdate, mail, passbyte, location_user) VALUES(idtypeg, groupnamec, lastlog, creation, mailc, pass, ST_SetSRID(ST_MakePoint(latc, lonc), 4326));
+//     RETURN (SELECT currval('user_id_user_seq'));
+
+// END IF;
+// PERFORM 1 FROM "user" WHERE mail=mailc LIMIT 1;
+// IF FOUND THEN
+//  UPDATE "user" SET(lastlogin, location_user) = (lastlog, ST_SetSRID(ST_MakePoint(latc, lonc), 4326)) WHERE mail=mailc;
+// RETURN (SELECT id_user FROM "user" WHERE mail=mailc);
+// END IF;
+// RETURN -1;
+// END;
+// $function$
 
 /**
 * InitUser
