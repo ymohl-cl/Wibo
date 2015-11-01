@@ -24,24 +24,24 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	var check_test4 ballon.Checkpoint
 	var check_test5 ballon.Checkpoint
 
-	check_test0.Coord.Lon = 2.316055
-	check_test0.Coord.Lat = 48.833086
+	check_test0.Coord.Lon = 1.316055
+	check_test0.Coord.Lat = 49.833086
 	check_test0.Date = time.Now()
 
-	check_test1.Coord.Lon = 2.316065
-	check_test1.Coord.Lat = 48.833586
+	check_test1.Coord.Lon = 1.316065
+	check_test1.Coord.Lat = 49.833586
 	check_test1.Date = time.Now()
 
-	check_test2.Coord.Lon = 2.30810777
-	check_test2.Coord.Lat = 48.919253
+	check_test2.Coord.Lon = 1.30810777
+	check_test2.Coord.Lat = 49.919253
 	check_test2.Date = time.Now()
 
-	check_test3.Coord.Lon = 2.3088211
-	check_test3.Coord.Lat = 48.918361
+	check_test3.Coord.Lon = 1.3088211
+	check_test3.Coord.Lat = 49.918361
 	check_test3.Date = time.Now()
 
-	check_test4.Coord.Lon = 2.316045
-	check_test4.Coord.Lat = 48.833986
+	check_test4.Coord.Lon = 1.316045
+	check_test4.Coord.Lat = 49.833986
 	check_test4.Date = time.Now()
 
 	check_test5.Coord.Lon = 2.3080535
@@ -73,8 +73,8 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	Coord4.Lon = 1.3088211
 	Coord4.Lat = 49.918361
 
-	Coord5.Lon = 1.316045
-	Coord5.Lat = 49.833986
+	Coord5.Lon = 2.316045
+	Coord5.Lat = 48.833986
 
 	/* END COORDINATE -- BEGIN MESSAGE */
 
@@ -219,7 +219,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball5.Title = "PROUT"
 	//	ball5.Coord = tmp_lst.PushBack(check_test5)
 	ball5.Wind = ballon.Wind{}
-	ball5.Messages = mmp
+	ball5.Messages = mmp2
 	ball5.Date = time.Now()
 	//	ball5.Checkpoints = list.New()
 	ball5.Checkpoints = list.New()

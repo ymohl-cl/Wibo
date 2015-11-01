@@ -143,6 +143,54 @@ func Str_cut_n(str string, n int) (s1 string, s2 string) {
 	return s1, s2
 }
 
+/* Remove ball from followed list of User */
+func RemoveBallFollowed(eball *list.Element, usr *list.Element) bool {
+	user := usr.Value.(*users.User)
+	for e := user.Followed.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == eball {
+			fmt.Println("RemoveBallFollowed")
+			test := user.Followed.Remove(e)
+			if test != nil {
+				fmt.Println("Cool: ", test)
+			}
+			return true
+		}
+	}
+	return false
+}
+
+/* Remove ball from possessed list of User */
+func RemoveBallPossessed(eball *list.Element, usr *list.Element) bool {
+	user := usr.Value.(*users.User)
+	for e := user.Possessed.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == eball {
+			fmt.Println("RemoveBallPossessed")
+			test := user.Possessed.Remove(e)
+			if test != nil {
+				fmt.Println("Cool: ", test)
+			}
+			return true
+		}
+	}
+	return false
+}
+
+/* Remove user from followes list of ball */
+func RemoveUserFollower(usr *list.Element, eball *list.Element) bool {
+	ball := eball.Value.(*ballon.Ball)
+	for e := ball.Followers.Front(); e != nil; e = e.Next() {
+		if e.Value.(*list.Element) == usr {
+			fmt.Println("RemoveUserFollower")
+			test := ball.Followers.Remove(e)
+			if test != nil {
+				fmt.Println("Cool: ", test)
+			}
+			return true
+		}
+	}
+	return false
+}
+
 /* Cut one packet most big than 1024 in multi packs to 1024 octets max */
 func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List) {
 	listpack = list.New()
@@ -577,7 +625,7 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			ball.Edited = true
 			ball.Followers.PushFront(Data.User)
 			user.Followed.PushBack(eball)
-			user.Possessed.PushFront(eball)
+			user.Possessed.PushBack(eball)
 			/* Begin Stats */
 			user.Stats.NbrCatch++
 			user.Stats.NbrFollow++
@@ -628,42 +676,6 @@ func (Data *Data) Manage_followon(request *list.Element) {
 		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
-}
-
-/* Remove ball from followed list of User */
-func RemoveBallFollowed(eball *list.Element, usr *list.Element) bool {
-	user := usr.Value.(*users.User)
-	for e := user.Followed.Front(); e != nil; e = e.Next() {
-		if e.Value.(*list.Element) == eball {
-			user.Followed.Remove(e)
-			return true
-		}
-	}
-	return false
-}
-
-/* Remove ball from possessed list of User */
-func RemoveBallPossessed(eball *list.Element, usr *list.Element) bool {
-	user := usr.Value.(*users.User)
-	for e := user.Possessed.Front(); e != nil; e = e.Next() {
-		if e.Value.(*list.Element) == eball {
-			user.Possessed.Remove(e)
-			return true
-		}
-	}
-	return false
-}
-
-/* Remove user from followes list of ball */
-func RemoveUserFollower(usr *list.Element, eball *list.Element) bool {
-	ball := eball.Value.(*ballon.Ball)
-	for e := ball.Followers.Front(); e != nil; e = e.Next() {
-		if e.Value.(*list.Element) == usr {
-			ball.Followers.Remove(e)
-			return true
-		}
-	}
-	return false
 }
 
 func (Data *Data) Manage_followoff(request *list.Element) {
@@ -760,16 +772,23 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	var checkpoint ballon.Checkpoint
 	var answer []byte
 
-	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == false {
+	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == true {
 		user := Data.User.Value.(*users.User)
+		ball := eball.Value.(*ballon.Ball)
 		RemoveBallPossessed(eball, Data.User)
-		//		user.Possessed.Remove(eball)
-		eball.Value.(*ballon.Ball).Possessed = nil
-		eball.Value.(*ballon.Ball).Edited = true
+		// Ajouter Le nouveau message.
+		ball.Possessed = nil
+		ball.Edited = true
 		checkpoint.Coord.Lon = rqt.Coord.Lon
 		checkpoint.Coord.Lat = rqt.Coord.Lat
-		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
-		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		ball.Coord = ball.Checkpoints.PushBack(checkpoint)
+		ball.Get_checkpointList(Tab_wd.Get_Paris())
+		var message ballon.Message
+		message.Id = int32(ball.Messages.Len())
+		message.Size = rqt.Spec.(protocol.Send_ball).Octets
+		message.Content = rqt.Spec.(protocol.Send_ball).Message
+		message.Type = 1
+		ball.Messages.PushBack(message)
 		/* Begin stats ---- */
 		user.Stats.NbrMessage++
 		user.Stats.NbrSend++
