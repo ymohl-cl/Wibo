@@ -6,7 +6,7 @@ import (
 	"Wibo/users"
 	"container/list"
 	"fmt"
-	"github.com/stretchr/testify/assert"
+	_ "github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 	"testing"
 	"time"
@@ -46,33 +46,33 @@ func TestBallon(t *testing.T) {
 	fmt.Println("password test")
 	fmt.Println(pass)
 	bpass, err := bcrypt.GenerateFromPassword(pass, 15)
-
-	fmt.Println(len(bpass))
-	if err != nil {
-		t.Fatalf("GenerateFromPassword error: %s", err)
+	/*
+		fmt.Println(len(bpass))
+		if err != nil {
+			t.Fatalf("GenerateFromPassword error: %s", err)
+		}
+		if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
+			t.Errorf("%v should hash %s correctly", bpass, pass)
+		}
+		Lst_users.Ulist.PushBack(user1)
+		b, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
+		if err != nil {
+			t.Fatalf("add user fail error: %s", err)
+		}
+		fmt.Println(b)
+	*/
+	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 94)
+	for rows.Next() {
+		var idUser int64
+		var login string
+		var mailq string
+		var passbyte []byte
+		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
+		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
+			t.Errorf("%v should hash %s correctly", bpass, passbyte)
+		}
+		fmt.Printf(" %v | %v", bpass, passbyte)
 	}
-	if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
-		t.Errorf("%v should hash %s correctly", bpass, pass)
-	}
-	Lst_users.Ulist.PushBack(user1)
-	b, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-	if err != nil {
-		t.Fatalf("add user fail error: %s", err)
-	}
-	fmt.Println(b)
-	assert.True(t, b, "This is good. Insert user test passing")
-
-	// rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 19)
-	// for rows.Next() {
-	// 	var idUser int64
-	// 	var login string
-	// 	var mailq string
-	// 	var passbyte []byte
-	// 	err = rows.Scan(&idUser, &login, &mailq, &passbyte)
-	// 	if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
-	// 		t.Errorf("%v should hash %s correctly", bpass, passbyte)
-	// 	}
-	// }
 
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
 	// tmp_lst := list.New()

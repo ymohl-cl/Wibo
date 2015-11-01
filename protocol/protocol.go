@@ -75,7 +75,7 @@ type Send_ball struct {
 
 type Log struct {
 	Email string
-	Pswd  string
+	Pswd  []byte
 }
 
 type Request struct {
@@ -188,7 +188,7 @@ func (tkn *Request) Request_sendball(TypBuff *bytes.Buffer) (err error, er error
 
 func (tkn *Request) Request_Log(TypBuff *bytes.Buffer) (err error, er error) {
 	var email [320]byte
-	var pswd [512]byte
+	var pswd [64]byte
 	var log Log
 
 	err = binary.Read(TypBuff, binary.BigEndian, &email)
@@ -203,7 +203,7 @@ func (tkn *Request) Request_Log(TypBuff *bytes.Buffer) (err error, er error) {
 		er = errors.New("Read &pswd")
 		return
 	}
-	log.Pswd = string(pswd[:512])
+	log.Pswd = pswd[:64]
 	tkn.Spec = log
 	return
 }

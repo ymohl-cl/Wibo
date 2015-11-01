@@ -3,6 +3,7 @@ package users
 import (
 	"Wibo/db"
 	"Wibo/protocol"
+	"bytes"
 	"container/list"
 	"database/sql"
 	"errors"
@@ -71,7 +72,6 @@ type userError struct {
 }
 
 func (User *User) MagnetisValid() bool {
-	return true
 	if time.Since(User.Magnet) > (60 * time.Minute) {
 		return true
 	}
@@ -120,9 +120,7 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
 	}
 	if user != nil {
-		fmt.Println("Yeah check password")
 		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
-		fmt.Println(user)
 	}
 	return user
 }
@@ -167,7 +165,6 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 }
 
 func CheckValidMail(email string) bool {
-	// Verifier si le mail existe deja dans la base ou non. Si il existe return false
 	tmp := valid.IsEmail(email)
 	if tmp == true {
 		fmt.Println("Email ok:")
@@ -178,7 +175,7 @@ func CheckValidMail(email string) bool {
 	return tmp
 }
 
-func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Element {
+func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	var err error
 	passb := []byte(pass)
 	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
@@ -188,17 +185,24 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 	}
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() != false {
 		var idUser int64
 		var mailq string
 		var bpass []byte
 		err = rows.Scan(&idUser, &mailq, &bpass)
+		fmt.Printf("type: %T | value:  %v \n", bpass, bpass)
+		fmt.Printf("type: %T | value:  %v \n", pass, pass)
+
+		newpass, err := bcrypt.GenerateFromPassword(passb, 15)
+		fmt.Printf("new pass type: %T | value:  %v \n", newpass, newpass)
+		fmt.Printf("This are equalt 1%v \n", bytes.Equal(newpass, passb))
+		fmt.Printf("This are equalt 2 %v \n", bytes.Equal(pass, newpass))
 		if err != nil {
-			fmt.Println(err)
 			fmt.Println(err)
 			return nil
 		}
-		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
+		if t := bytes.Equal(bpass, pass); t != false {
+			fmt.Println("Wrong Password!")
 			return nil
 		}
 	}
@@ -241,14 +245,14 @@ func (e *userError) Error() string {
 	pass bytea)
 **/
 
-func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string) (bool, error) {
+func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte) (bool, error) {
 	var err error
 
 	if len(Pass) == 0 {
 		/* really danger below */
-		Pass = "ThisIsAPasswordDefault2015OP"
+		Pass = []byte("ThisIsAPasswordDefault2015OP")
 	}
-	bpass, err := bcrypt.GenerateFromPassword([]byte(Pass), 15)
+	bpass, err := bcrypt.GenerateFromPassword(Pass, 15)
 	if err != nil {
 		Lst_users.LogUser.Prob = "Add new user fail"
 		Lst_users.LogUser.Err = err
@@ -268,7 +272,8 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 	fmt.Printf("InserT %T | %v \n", new_user.Stats.CreationDate, new_user.Stats.CreationDate)
 	fmt.Printf("InserT %T | %v \n", new_user.Log, new_user.Log)
 	fmt.Printf("InserT %T | %v \n", new_user.Mail, new_user.Mail)
-	fmt.Printf("InserT %T | %v \n", bpass, bpass)
+	fmt.Printf("hast InserT %T | %v \n", bpass, bpass)
+	fmt.Printf("pass in InserTi clear %T | %v \n", Pass, Pass)
 	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
 		1,
 		"user_particulier",
@@ -277,7 +282,7 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 		new_user.Stats.CreationDate,
 		new_user.Log,
 		new_user.Mail,
-		bpass).Scan(&new_user.Id)
+		Pass).Scan(&new_user.Id)
 	if err != nil {
 		return false, err
 	}
