@@ -335,7 +335,7 @@ func Manage_ack(Type int16, IdBallon int64, value int32) (answer []byte) {
 	return answer
 }
 
-func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16) (buf []byte) {
+func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16, User *users.User) (buf []byte) {
 	var answer Packet
 	var typesp Nearby
 
@@ -353,7 +353,11 @@ func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16) (buf []byt
 	}
 	Buffer := Write_header(answer)
 	binary.Write(Buffer, binary.BigEndian, answer.ptype.(Nearby).nbrball)
-	binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
+	if User.MagnetisValid() == true {
+		binary.Write(Buffer, binary.BigEndian, int32(1))
+	} else {
+		binary.Write(Buffer, binary.BigEndian, int32(0))
+	}
 	elem = answer.ptype.(Nearby).balls.Front()
 	for elem != nil {
 		ifb := elem.Value.(Posball)
@@ -606,7 +610,7 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 		list_tmp.Remove(eball)
 		Len -= 1
 	}
-	answer := Write_nearby(Req, list_tmp, POS)
+	answer := Write_nearby(Req, list_tmp, POS, Data.User.Value.(*users.User))
 	Data.Lst_asw.PushBack(answer)
 }
 
@@ -804,34 +808,36 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 
 /* Create tree ball list with id random. If Ball is already taked, a first ball next is taked */
 func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
+	rqt := requete.Value.(*protocol.Request)
 	var tab [3]int64
 	list_tmp := list.New()
 	var ifball Posball
+	user := Data.User.Value.(*users.User)
+	var answer []byte
 
-	fmt.Println("Magnet | ID_MAX: ", Data.Lst_ball.Id_max)
-	for i := 0; i < 3; i++ {
-		tab[i] = rand.Int63n(5) // Temporaire le temps que Id_nax != 0
-	}
-	if Data.User != nil {
-		fmt.Println("User exist et c'est normal !")
+	if user.MagnetisValid() == true {
+		for i := 0; i < 3; i++ {
+			tab[i] = rand.Int63n(Data.Lst_ball.Id_max) // Temporaire le temps que Id_nax != 0
+		}
+		Data.User.Value.(*users.User).Magnet = time.Now()
+		list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
+		eball := list_tmp_2.Front()
+		for eball != nil {
+			ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
+			ifball.id = ball.Id_ball
+			ifball.title = ball.Title
+			ifball.FlagPoss = 0
+			ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
+			ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
+			ifball.wins = ball.Wind.Speed
+			ifball.wind = ball.Wind.Degress
+			list_tmp.PushBack(ifball)
+			eball = eball.Next()
+		}
+		answer = Write_nearby(requete, list_tmp, MAGNET, user)
 	} else {
-		fmt.Println("User existe pas putain ca pue !")
+		answer = Manage_ack(rqt.Rtype, 0, 0)
 	}
-	list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
-	eball := list_tmp_2.Front()
-	for eball != nil {
-		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
-		ifball.id = ball.Id_ball
-		ifball.title = ball.Title
-		ifball.FlagPoss = 0
-		ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
-		ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
-		ifball.wins = ball.Wind.Speed
-		ifball.wind = ball.Wind.Degress
-		list_tmp.PushBack(ifball)
-		eball = eball.Next()
-	}
-	answer := Write_nearby(requete, list_tmp, MAGNET)
 	Data.Lst_asw.PushBack(answer)
 }
 
