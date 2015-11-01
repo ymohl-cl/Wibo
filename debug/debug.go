@@ -134,6 +134,10 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball0.Date = time.Now()
 	ball0.Checkpoints = list.New()
 	ball0.Coord = ball0.Checkpoints.PushBack(check_test0)
+	ball0.Checkpoints.Init()
+	ball0.Scoord = ball0.Coord
+	ball0.Itinerary = list.New()
+	ball0.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
 	ball0.Possessed = nil
 	ball0.Followers = list.New()
 	//	ball0.Creator = euser
@@ -149,10 +153,14 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball1.Wind = ballon.Wind{}
 	ball1.Messages = mmp1
 	ball1.Date = time.Now()
-	//	ball1.Checkpoints = list.New()
 	ball1.Checkpoints = list.New()
-	ball1.Coord = ball1.Checkpoints.PushBack(check_test1)
-
+	ball1.Coord = ball0.Checkpoints.PushBack(check_test1)
+	ball1.Checkpoints.Init()
+	ball1.Scoord = ball0.Coord
+	ball1.Itinerary = list.New()
+	ball1.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
+	//	ball1.Checkpoints = list.New()
+	//	ball1.Coord = ball1.Checkpoints.PushBack(check_test1)
 	ball1.Possessed = nil
 	ball1.Followers = list.New()
 	//	ball1.Creator = euser
@@ -173,8 +181,13 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball2.Followers = list.New()
 	//	ball2.Creator = euser
 	ball2.Checkpoints = list.New()
-	ball2.Coord = ball2.Checkpoints.PushBack(check_test2)
-
+	ball2.Coord = ball0.Checkpoints.PushBack(check_test2)
+	ball2.Checkpoints.Init()
+	ball2.Scoord = ball0.Coord
+	ball2.Itinerary = list.New()
+	ball2.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
+	//	ball2.Checkpoints = list.New()
+	//	ball2.Coord = ball2.Checkpoints.PushBack(check_test2)
 	ball2.Stats = new(ballon.StatsBall)
 	ball2.Stats.CreationDate = time.Now()
 	ball2.Stats.CoordCreated = &Coord2
@@ -189,8 +202,13 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball3.Date = time.Now()
 	//	ball3.Checkpoints = list.New()
 	ball3.Checkpoints = list.New()
-	ball3.Coord = ball3.Checkpoints.PushBack(check_test3)
-
+	ball3.Coord = ball0.Checkpoints.PushBack(check_test3)
+	ball3.Checkpoints.Init()
+	ball3.Scoord = ball0.Coord
+	ball3.Itinerary = list.New()
+	ball3.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
+	//	ball3.Checkpoints = list.New()
+	//	ball3.Coord = ball3.Checkpoints.PushBack(check_test3)
 	ball3.Possessed = nil
 	ball3.Followers = list.New()
 	//	ball3.Creator = euser
@@ -208,8 +226,13 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball4.Date = time.Now()
 	//	ball4.Checkpoints = list.New()
 	ball4.Checkpoints = list.New()
-	ball4.Coord = ball4.Checkpoints.PushBack(check_test4)
-
+	ball4.Coord = ball0.Checkpoints.PushBack(check_test4)
+	ball4.Checkpoints.Init()
+	ball4.Scoord = ball0.Coord
+	ball4.Itinerary = list.New()
+	ball4.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
+	//	ball4.Checkpoints = list.New()
+	//	ball4.Coord = ball4.Checkpoints.PushBack(check_test4)
 	ball4.Possessed = nil
 	ball4.Followers = list.New()
 	//	ball4.Creator = euser
@@ -226,8 +249,14 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	ball5.Messages = mmp2
 	ball5.Date = time.Now()
 	//	ball5.Checkpoints = list.New()
-	ball5.Checkpoints = list.New()
-	ball5.Coord = ball5.Checkpoints.PushBack(check_test5)
+	ball4.Checkpoints = list.New()
+	ball4.Coord = ball0.Checkpoints.PushBack(check_test5)
+	ball4.Checkpoints.Init()
+	ball4.Scoord = ball0.Coord
+	ball4.Itinerary = list.New()
+	ball4.Itinerary.PushBack(ball0.Coord.Value.(ballon.Checkpoint))
+	//	ball5.Checkpoints = list.New()
+	//	ball5.Coord = ball5.Checkpoints.PushBack(check_test5)
 
 	ball5.Possessed = nil
 	ball5.Followers = list.New()

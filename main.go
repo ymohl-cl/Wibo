@@ -113,7 +113,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 			}
 		case <-channelfuncmoveball:
 			{
-				er := Serv.Lst_ball.Move_ball()
+				er := Serv.Lst_ball.Move_ball(Serv.Tab_wd)
 				if er != nil {
 					Serv.Logger.Println("Move_ball error: ", er)
 				}

@@ -614,7 +614,7 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 	Data.Lst_asw.PushBack(answer)
 }
 
-func (Data *Data) Manage_taken(request *list.Element) {
+func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 	eball := Data.Lst_ball.Blist.Front()
 	rqt := request.Value.(*protocol.Request)
 	user := Data.User.Value.(*users.User)
@@ -639,8 +639,8 @@ func (Data *Data) Manage_taken(request *list.Element) {
 			}
 			ball.Stats.NbrCatch++
 			ball.Stats.NbrFollow++
-			ball.Stats.NbrKm += ball.AddStatsDistance(rqt.Coord.Lon, rqt.Coord.Lat)
-			ball.Clearcheckpoint()
+			ball.Stats.NbrKm += ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
+			ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, rqt.Spec.(protocol.Taken).FlagMagnet, Wd, false)
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
 				ball.Stats.NbrMagnet++
 			}
@@ -716,7 +716,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	ball := new(ballon.Ball)
 	ball.Stats = new(ballon.StatsBall)
 	rqt := requete.Value.(*protocol.Request)
-	var checkpoint ballon.Checkpoint
+	//	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
 	var mess ballon.Message
 	user := Data.User.Value.(*users.User)
@@ -740,11 +740,12 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Possessed = nil
 		ball.Followers.PushFront(Data.User)
 		ball.Creator = Data.User
+		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		eball := Data.Lst_ball.Blist.PushBack(ball)
-		checkpoint.Coord.Lon = rqt.Coord.Lon
-		checkpoint.Coord.Lat = rqt.Coord.Lat
-		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
-		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
+		//		checkpoint.Coord.Lon = rqt.Coord.Lon
+		//		checkpoint.Coord.Lat = rqt.Coord.Lat
+		//		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
+		//		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		user := Data.User.Value.(*users.User)
 		user.Followed.PushBack(eball)
 		user.NbrBallSend++
@@ -773,26 +774,34 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	rqt := requete.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Send_ball).Id)
-	var checkpoint ballon.Checkpoint
+	//	var checkpoint ballon.Checkpoint
 	var answer []byte
 
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == true {
 		user := Data.User.Value.(*users.User)
 		ball := eball.Value.(*ballon.Ball)
+		//		ball.Lock()
+
 		RemoveBallPossessed(eball, Data.User)
 		// Ajouter Le nouveau message.
 		ball.Possessed = nil
 		ball.Edited = true
-		checkpoint.Coord.Lon = rqt.Coord.Lon
-		checkpoint.Coord.Lat = rqt.Coord.Lat
-		ball.Coord = ball.Checkpoints.PushBack(checkpoint)
-		ball.Get_checkpointList(Tab_wd.Get_Paris())
+		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
+
+		//		checkpoint.Coord.Lon = rqt.Coord.Lon
+		//		checkpoint.Coord.Lat = rqt.Coord.Lat
+		//		checkpoint.Coord.
+		//		checkpoint.Date = time.Now()
+		//		ball.Coord = ball.Checkpoints.PushBack(checkpoint)
+		//		ball.Get_checkpointList(Tab_wd.Get_Paris())
 		var message ballon.Message
 		message.Id = int32(ball.Messages.Len())
 		message.Size = rqt.Spec.(protocol.Send_ball).Octets
 		message.Content = rqt.Spec.(protocol.Send_ball).Message
 		message.Type = 1
 		ball.Messages.PushBack(message)
+
+		//		ball.Unlock()
 		/* Begin stats ---- */
 		user.Stats.NbrMessage++
 		user.Stats.NbrSend++
@@ -1182,7 +1191,7 @@ func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 		case POS:
 			Data.Manage_pos(request)
 		case TAKEN:
-			Data.Manage_taken(request)
+			Data.Manage_taken(request, Tab_wd)
 		case FOLLOW_ON:
 			Data.Manage_followon(request)
 		case FOLLOW_OFF:

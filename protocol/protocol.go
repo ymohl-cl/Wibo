@@ -204,6 +204,7 @@ func (tkn *Request) Request_Log(TypBuff *bytes.Buffer) (err error, er error) {
 		return
 	}
 	log.Pswd = pswd[:64]
+	//	log.Pswd = string(pswd[:64])
 	tkn.Spec = log
 	return
 }

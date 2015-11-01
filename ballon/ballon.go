@@ -7,7 +7,7 @@ import (
 	"Wibo/users"
 	"container/list"
 	"database/sql"
-	"errors"
+	//	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -15,6 +15,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	NBRCHECKPOINTLIST = 3
 )
 
 /* Type is message type. Only type 1 is use now and described a text */
@@ -60,9 +64,11 @@ type StatsBall struct {
 }
 
 type Ball struct {
+	sync.RWMutex
 	Id_ball int64         /* Id de la base de donnee, defini par le serveur */
 	Title   string        /* Titre du ballon */
 	Coord   *list.Element /* Interface coordonnee, stocke les coordonnees */
+	Scoord  *list.Element /** Last itinerary save **/
 	//	Idball      int64         /** Idball -- deprecated a supprimer */
 	Itinerary   *list.List    /* List des itineraire non enregistre par le serveur */
 	Edited      bool          /** Edited, Flag de modification (ne tiens pas compte des changement dans Coord et Checkpoints) */
@@ -93,7 +99,7 @@ func hsin(theta float64) (result float64) {
 /*
 ** Source: https://gist.github.com/cdipaolo/d3f8db3848278b49db68
  */
-func (ball *Ball) AddStatsDistance(lon_user float64, lat_user float64) float64 {
+func (ball *Ball) GetDistance(lon_user float64, lat_user float64) float64 {
 	var lat1, lat2, lon1, lon2, rayon float64
 
 	lat1 = lat_user * math.Pi / 180
@@ -146,20 +152,15 @@ func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Coord.Lon
 	rlat := request.Value.(*protocol.Request).Coord.Lat
 	if ball.Coord != nil {
-		coord := ball.Coord.Value.(Checkpoint).Coord
-		if coord.Lon < rlon+0.01 &&
-			coord.Lon > rlon-0.01 &&
-			coord.Lat < rlat+0.01 &&
-			coord.Lat > rlat-0.01 {
+		//		coord := ball.Coord.Value.(Checkpoint).Coord
+		if ball.GetDistance(rlon, rlat) < 1.0 { // { coord.Lon < rlon+0.01 &&
+			//coord.Lon > rlon-0.01 &&
+			//coord.Lat < rlat+0.01 &&
+			//coord.Lat > rlat-0.01 {
 			return true
 		}
 	}
 	return false
-}
-
-func (ball *Ball) Clearcheckpoint() {
-	ball.Coord = nil
-	ball.Checkpoints.Init()
 }
 
 /* Create list checkpoints for eball with interval time of 5 minutes on 3 hours */
@@ -248,8 +249,122 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 	return list_tmp
 }
 
-/* Apply the function Get_checkpointlist all ballons */
+/**
+** Implementation a grande echelle
+**/
+
+func (Ball *Ball) GetCheckpoint(station owm.Weather_data) Checkpoint {
+	r_world := 6378137.0
+	var tmp_coord Coordinate
+	var calc_coord Coordinate
+	var checkpoint Coordinate
+
+	speed := station.Wind.Speed * 300.00
+	dir := station.Wind.Degress*10 + 180
+	if dir >= 360 {
+		dir -= 360
+	}
+	dir = dir * (math.Pi / 180.0)
+	checkpoint.Lon = Ball.Coord.Value.(Checkpoint).Coord.Lon
+	checkpoint.Lat = Ball.Coord.Value.(Checkpoint).Coord.Lat
+	tmp_coord.Lon = checkpoint.Lon * (math.Pi / 180.0)
+	tmp_coord.Lat = checkpoint.Lat * (math.Pi / 180.0)
+	calc_coord.Lat = math.Asin(math.Sin(tmp_coord.Lat)*math.Cos(speed/r_world) + math.Cos(tmp_coord.Lat)*math.Sin(speed/r_world)*math.Cos(dir))
+	calc_coord.Lon = tmp_coord.Lon + math.Atan2(math.Sin(dir)*math.Sin(speed/r_world)*math.Cos(tmp_coord.Lat), math.Cos(speed/r_world)-math.Sin(tmp_coord.Lat)*math.Sin(calc_coord.Lat))
+	calc_coord.Lat = 180 * calc_coord.Lat / math.Pi
+	calc_coord.Lon = 180 * calc_coord.Lon / math.Pi
+	return Checkpoint{checkpoint, time.Now(), 0}
+}
+
+func (Ball *Ball) CreateCheckpoint(Lst_wd *owm.All_data) error {
+	var station owm.Weather_data
+
+	Lon := Ball.Coord.Value.(Checkpoint).Coord.Lon
+	Lat := Ball.Coord.Value.(Checkpoint).Coord.Lat
+	station = Lst_wd.GetNearest(Lon, Lat)
+
+	Ball.Lock()
+	for i := 0; i < NBRCHECKPOINTLIST; i++ {
+		Ball.Checkpoints.PushBack(Ball.GetCheckpoint(station))
+	}
+	Ball.Wind.Speed = station.Wind.Speed
+	Ball.Wind.Degress = station.Wind.Degress
+	Ball.Coord = Ball.Checkpoints.Front()
+	Ball.Checkpoints.Remove(Ball.Coord)
+	Ball.Unlock()
+	return nil
+}
+
 func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
+	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
+		ball := eb.Value.(*Ball)
+		if ball.Possessed == nil {
+			ball.CreateCheckpoint(Lst_wd)
+		}
+	}
+	return nil
+}
+
+func (Ball *Ball) GetTimeTrueCoord() {
+	lst := list.New()
+	var check Checkpoint
+
+	check.Coord = Ball.Coord.Value.(Checkpoint).Coord
+	check.Date = time.Now()
+	check.MagnetFlag = Ball.Coord.Value.(Checkpoint).MagnetFlag
+	Ball.Coord = lst.PushFront(check)
+}
+
+func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_data, CrtCK bool) {
+	var check Checkpoint
+	lst := list.New()
+
+	check.Coord.Lon = Lon
+	check.Coord.Lat = Lat
+	check.Date = time.Now()
+	check.MagnetFlag = Magnet
+	Ball.Lock()
+	Ball.Coord = lst.PushBack(lst)
+	Ball.Scoord = Ball.Coord
+	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
+	Ball.Unlock()
+	if CrtCK == true {
+		Ball.CreateCheckpoint(Wd)
+	}
+}
+
+func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
+	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
+		ball := eb.Value.(*Ball)
+		if ball.Possessed == nil {
+			ball.Lock()
+			if ball.Checkpoints.Len() == 0 {
+				ball.CreateCheckpoint(Lst_wd)
+			} else {
+				ball.Coord = ball.Checkpoints.Front()
+				ball.Checkpoints.Remove(ball.Coord)
+				ball.GetTimeTrueCoord()
+			}
+			Lon := ball.Scoord.Value.(Checkpoint).Coord.Lon
+			Lat := ball.Scoord.Value.(Checkpoint).Coord.Lat
+			if ball.Itinerary.Len() == 0 || ball.GetDistance(Lon, Lat) > 1.0 {
+				ball.Itinerary.PushBack(ball.Coord.Value.(Checkpoint))
+				ball.Scoord = ball.Coord
+			}
+			ball.Unlock()
+		}
+	}
+	return nil
+}
+
+/**
+** Fin de l'implementation a grande echelle
+**/
+/**
+** Cette section est implemente pour la beta uniquement.
+**/
+/* Apply the function Get_checkpointlist all ballons */
+func (Lst_ball *All_ball) Create_checkpointBeta(Lst_wd *owm.All_data) error {
 	var station owm.Weather_data
 
 	station = Lst_wd.Get_Paris()
@@ -263,7 +378,12 @@ func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 	return nil
 }
 
+/**
+** Fin de la section Beta
+**/
+
 /* Give a next checkpoint ball and removes the previous */
+/*
 func (Lst_ball *All_ball) Move_ball() (er error) {
 	Lst_ball.Lock()
 	defer Lst_ball.Unlock()
@@ -290,6 +410,7 @@ func (Lst_ball *All_ball) Move_ball() (er error) {
 	}
 	return nil
 }
+*/
 
 /* Add_new_ballon to list */
 func (Lst_ball *All_ball) Add_new_ballon(new_ball Ball) {
@@ -682,6 +803,8 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				result := strings.Split(infoCont, ",")
 				idBall := GetIdBall(result[0])
 				tempCord := GetCord(result[7])
+				lstIt := list.New()
+				lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
 				idTmp, _ := strconv.Atoi(result[8])
 				possessed := GetWhomGotBall(idBall, Ulist, base.Db)
 				tmpBall := Lb.Get_ballbyid(int64(idTmp))
@@ -692,7 +815,9 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 						&Ball{
 							Title:       result[1],
 							Date:        GetDateFormat(result[5]),
-							Checkpoints: tempCord,
+							Checkpoints: nil,
+							Itinerary:   lstIt,
+							Scoord:      tempCord.Front(),
 							Coord:       tempCord.Front(),
 							Wind:        GetWin(result[3], result[4]),
 							Messages:    Lb.GetMessagesBall(idBall, base.Db),
