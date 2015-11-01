@@ -9,6 +9,7 @@ import (
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -59,11 +60,13 @@ type All_users struct {
 	//Id_max int64
 	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 	NbrUsers   int64
+	LogUser    *userError
 }
 
 type userError struct {
-	prob string
-	err  error
+	Prob string
+	Err  error
+	Logf *log.Logger
 }
 
 func (User *User) User_is_online() bool {
@@ -146,13 +149,7 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		fmt.Printf("Update user %v \n", cu.Coord.Lon)
 		fmt.Printf("Update user %v \n", cu.Coord.Lat)
 		trow, err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
-		// _, err = base.Db.Query("UPDATE stats_users SET num_owner = $1, num_catch =  $2 , num_follow = $3, num_message =  $4, num_send = $5 WHERE iduser_stats = $6;",
-		// 		u.Value.(*StatsUser).NbrBallCreate,
-		// 		u.Value.(*StatsUser).NbrCatch,
-		// 		u.Value.(*StatsUser).NbrFollow,
-		// 		u.Value.(*StatsUser).NbrMessage,
-		// 		u.Value.(*StatsUser).NbrSend,
-		// 		u.Value.(*User).Id)
+
 		ex := lu.SetStatsByUser(cu.Id, cu.Stats, base.Db)
 		if ex != true {
 			fmt.Println("Fail to update user stats")
@@ -160,10 +157,6 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		// _ = base.Db.QueryRow("SELECT count(*) from container WHERE idcreator = $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrBallCreate)
-		// _ = base.Db.QueryRow("SELECT count(*) from container WHERE idcreator = $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrBallCreate)
-		// _ = base.Db.QueryRow("SELECT count(*) from message INNER JOIN container ON (container.id = message.containerid) WHERE idcreator= $1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrMessage)
-		// _ = base.Db.QueryRow("SELECT count(*) from followed INNER JOIN container ON (container.id = followed.container_id) WHERE idcreator=$1", u.Value.(*User).Id).Scan(u.Value.(*StatsUser).NbrFollow)
 		trow.Close()
 		u = u.Next()
 	}
@@ -198,6 +191,7 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 		err = rows.Scan(&idUser, &mailq, &bpass)
 		if err != nil {
 			fmt.Println(err)
+			fmt.Println(err)
 			return nil
 		}
 		if bcrypt.CompareHashAndPassword(bpass, passb) != nil {
@@ -214,13 +208,20 @@ func CheckPasswordUser(user *list.Element, pass string, Db *sql.DB) *list.Elemen
 func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
 	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
 	_, err = stm.Exec(del_user.Id)
-	checkErr(err)
+	if err != nil {
+		Lst_users.LogUser.Prob = "Del user fail"
+		Lst_users.LogUser.Err = err
+		return false, Lst_users.LogUser
+	}
 	executed = true
 	return executed, err
 }
 
 func (e *userError) Error() string {
-	return fmt.Sprintf("%s - %v", e.prob, e.err)
+	if e.Err != nil {
+		e.Logf.Println(e.Err)
+	}
+	return fmt.Sprintf("%s - %v", e.Prob, e.Err)
 }
 
 /**
@@ -245,7 +246,9 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass string
 	}
 	bpass, err := bcrypt.GenerateFromPassword([]byte(Pass), 15)
 	if err != nil {
-		return false, &userError{"Error add new user", err}
+		Lst_users.LogUser.Prob = "Add new user fail"
+		Lst_users.LogUser.Err = err
+		return false, Lst_users.LogUser
 	}
 
 	if len(new_user.Mail) > 0 {
@@ -277,7 +280,9 @@ Insert user default
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request) *list.Element {
 	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
 	if err != nil {
-		fmt.Println(err)
+		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
+		Lst_users.LogUser.Err = err
+		fmt.Println(Lst_users.LogUser.Error())
 		return nil
 	}
 	tmpUser := new(User)
@@ -316,6 +321,9 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	if err != nil {
 		fmt.Println(err)
+		LstU.LogUser.Prob = "GetDevicesByIdUser query"
+		LstU.LogUser.Err = err
+		fmt.Printf(LstU.LogUser.Error())
 		os.Exit(-1)
 	}
 	defer rows.Close()
@@ -324,7 +332,10 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 		var idUser int64
 		var mailq string
 		err = rows.Scan(&idUser, &mailq)
-		checkErr(err)
+		if err != nil {
+			LstU.LogUser.Prob = "Select User fail"
+			LstU.LogUser.Err = err
+		}
 		return initUser(idUser, mailq)
 	}
 	return nil
@@ -336,22 +347,10 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
  */
 
 func (LstU *All_users) Print_users() {
-	i := 0
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		fmt.Printf("%v | %v \n", e.Value.(*User).Id, e.Value.(*User).Mail)
-		i++
 	}
 	return
-}
-
-/**
-* CheckErr
-* Verify err value to stop execution by panic
-**/
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
 }
 
 /**
@@ -384,12 +383,20 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 
 	lDevice := list.New()
 	stm, err := Db.Prepare("SELECT getDevicesByUserId($1)")
-	checkErr(err)
+	if err != nil {
+		Lusr.LogUser.Prob = "GetDevicesByIdUser query"
+		Lusr.LogUser.Err = err
+		fmt.Printf(Lusr.LogUser.Error())
+	}
 	rows, err := stm.Query(idUser)
 	for rows.Next() {
 		var idDevice string
 		err = rows.Scan(&idDevice)
-		checkErr(err)
+		if err != nil {
+			Lusr.LogUser.Prob = "GetDevicesByIdUser Query rows fail"
+			Lusr.LogUser.Err = err
+			fmt.Printf(Lusr.LogUser.Error())
+		}
 		lDevice.PushBack(idDevice)
 	}
 	return lDevice
@@ -415,12 +422,13 @@ func GetCoord(position string) Coordinate {
 * Get_users
 * Query the user table join device and create new *listList Pointer
 **/
-func (Lusr *All_users) Get_users(Db *sql.DB) error {
+func (Lusr *All_users) Get_users(Db *sql.DB, fl *log.Logger) error {
 	var err error
 	lUser := list.New()
+	Lusr.LogUser = &userError{"init error", nil, fl}
 	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
 	if err != nil {
-		fmt.Println(err)
+		fl.Println(err)
 		return err
 	}
 	defer rows.Close()
@@ -431,7 +439,7 @@ func (Lusr *All_users) Get_users(Db *sql.DB) error {
 		var pos string
 		err = rows.Scan(&idUser, &mailq, &pos)
 		if err != nil {
-			fmt.Println(err)
+			fl.Println(err)
 		}
 		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 	}
