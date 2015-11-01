@@ -82,25 +82,28 @@ type All_ball struct {
 	Id_max int64      /* Set by bdd and incremented by server */
 }
 
-func (ball *Ball) AddStatsDistance(lon_user float64, lat_user float64) float64 {
-	var r float64
-	r = 6371000
-	var a float64
-	var c float64
-	var d float64
-	var latdiff float64
-	var londiff float64
+/*
+** Source: https://gist.github.com/cdipaolo/d3f8db3848278b49db68
+ */
+func hsin(theta float64) (result float64) {
+	result = math.Pow(math.Sin(theta/2), 2)
+	return
+}
 
-	lonBall := ball.Coord.Value.(Checkpoint).Coord.Lon
-	latBall := ball.Coord.Value.(Checkpoint).Coord.Lon
-	latdiff = (lat_user - latBall) * (math.Pi / 180)
-	londiff = (lon_user - lonBall) * (math.Pi / 180)
-	latBall = latBall * (math.Pi / 180)
-	lat_user = lat_user * (math.Pi / 180)
-	a = math.Sin(latdiff/2)*math.Sin(latdiff/2) + math.Cos(lat_user)*math.Cos(latBall)*math.Sin(londiff/2)*math.Sin(londiff/2)
-	c = 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	d = r * c
-	return d / 100
+/*
+** Source: https://gist.github.com/cdipaolo/d3f8db3848278b49db68
+ */
+func (ball *Ball) AddStatsDistance(lon_user float64, lat_user float64) float64 {
+	var lat1, lat2, lon1, lon2, rayon float64
+
+	lat1 = lat_user * math.Pi / 180
+	lon1 = lon_user * math.Pi / 180
+	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat * math.Pi / 180
+	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon * math.Pi / 180
+	rayon = 6378137
+
+	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
+	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) * 1000
 }
 
 func (ball *Ball) Print_list_checkpoints() {
