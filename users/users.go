@@ -88,29 +88,21 @@ func (User *User) User_is_online() bool {
 }
 
 func FoundUserOnListLvl2(lst *list.List, email string) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*list.Element).Value.(*User)
-
-	for euser != nil && strings.Compare(user.Mail, email) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*list.Element).Value.(*User)
-	}
-	if euser != nil {
-		return euser.Value.(*list.Element)
+	for euser := lst.Front(); euser != nil; euser = euser.Next() {
+		user := euser.Value.(*list.Element).Value.(*User)
+		if strings.Compare(user.Mail, email) != 0 {
+			return euser.Value.(*list.Element)
+		}
 	}
 	return nil
 }
 
 func FoundUserOnListLvl1(lst *list.List, email string) *list.Element {
-	euser := lst.Front()
-	user := euser.Value.(*User)
-
-	for euser != nil && strings.Compare(user.Mail, email) != 0 {
-		euser = euser.Next()
-		user = euser.Value.(*User)
-	}
-	if euser != nil {
-		return euser
+	for euser := lst.Front(); euser != nil; euser = euser.Next() {
+		user := euser.Value.(*User)
+		if strings.Compare(user.Mail, email) != 0 {
+			return euser
+		}
 	}
 	return nil
 }

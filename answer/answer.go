@@ -814,14 +814,17 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	var ifball Posball
 	user := Data.User.Value.(*users.User)
 	var answer []byte
+	var eball *list.Element
 
 	if user.MagnetisValid() == true {
-		for i := 0; i < 3; i++ {
-			tab[i] = rand.Int63n(Data.Lst_ball.Id_max) // Temporaire le temps que Id_nax != 0
+		if Data.Lst_ball.Id_max > 0 {
+			for i := 0; i < 3; i++ {
+				tab[i] = rand.Int63n(Data.Lst_ball.Id_max) // Temporaire le temps que Id_nax != 0
+			}
+			Data.User.Value.(*users.User).Magnet = time.Now()
+			list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
+			eball = list_tmp_2.Front()
 		}
-		Data.User.Value.(*users.User).Magnet = time.Now()
-		list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
-		eball := list_tmp_2.Front()
 		for eball != nil {
 			ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
@@ -858,10 +861,8 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			device := Data.Device.Value.(*devices.Device)
 			if len(req.Spec.(protocol.Log).Email) <= 1 {
 				Data.Logged = DEFAULTUSER
-				fmt.Println("COUCOU !!!")
 				Data.User = device.UserDefault
 			} else {
-				fmt.Println("SNIFF !!")
 				Data.User = Data.Lst_users.Check_user(request, Db, device.Historic)
 				if Data.User == nil {
 					flag = false
@@ -875,8 +876,10 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 				}
 			}
 		}
-		if er != nil || flag == false {
+		if er != nil {
 			answer = Manage_ack(TYPELOG, 0, int32(0))
+		} else if flag == false {
+			answer = Manage_ack(TYPELOG, 0, int32(2))
 		} else {
 			answer = Manage_ack(TYPELOG, 0, int32(1))
 		}
