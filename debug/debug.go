@@ -10,6 +10,7 @@ import (
 
 /* CREER UN BALLON POUR FAIRE DES TESTS */
 func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *owm.All_data) error {
+	lball.Id_max += 5
 	/* CREATE USER */
 
 	//	euser := luser.Ulist.Front()

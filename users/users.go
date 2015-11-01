@@ -71,6 +71,7 @@ type userError struct {
 }
 
 func (User *User) MagnetisValid() bool {
+	return true
 	if time.Since(User.Magnet) > (60 * time.Minute) {
 		return true
 	}
@@ -119,7 +120,9 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
 	}
 	if user != nil {
+		fmt.Println("Yeah check password")
 		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
+		fmt.Println(user)
 	}
 	return user
 }
@@ -164,6 +167,7 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 }
 
 func CheckValidMail(email string) bool {
+	// Verifier si le mail existe deja dans la base ou non. Si il existe return false
 	tmp := valid.IsEmail(email)
 	if tmp == true {
 		fmt.Println("Email ok:")
