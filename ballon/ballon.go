@@ -153,6 +153,7 @@ func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlat := request.Value.(*protocol.Request).Coord.Lat
 	if ball.Coord != nil {
 		//		coord := ball.Coord.Value.(Checkpoint).Coord
+		fmt.Println("Value de coord ball dans type 3: ", ball.Coord.Value.(Checkpoint))
 		if ball.GetDistance(rlon, rlat) < 1.0 { // { coord.Lon < rlon+0.01 &&
 			//coord.Lon > rlon-0.01 &&
 			//coord.Lat < rlat+0.01 &&
@@ -325,6 +326,7 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	check.MagnetFlag = Magnet
 	Ball.Lock()
 	Ball.Coord = lst.PushBack(lst)
+	fmt.Println("Coord: Init:", Ball.Coord.Value.(Checkpoint))
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
 	Ball.Unlock()
