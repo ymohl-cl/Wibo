@@ -106,10 +106,10 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 				if er != nil {
 					Serv.Logger.Println("Update_weather error: ", er)
 				} // If possible print Weather data with Serv.Tab_wd.Print_weatherdata()
-				er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
-				if er != nil {
-					Serv.Logger.Println("Create_checkpoint error: ", er)
-				} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
+				//				er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
+				//				if er != nil {
+				//					Serv.Logger.Println("Create_checkpoint error: ", er)
+				//				} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
 			}
 		case <-channelfuncmoveball:
 			{

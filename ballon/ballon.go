@@ -334,13 +334,17 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 }
 
 func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
+	fmt.Println("Move Ball")
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
 		if ball.Possessed == nil {
+			fmt.Println("Change Coord")
 			ball.Lock()
 			if ball.Checkpoints.Len() == 0 {
+				fmt.Println("Create Checkpoint")
 				ball.CreateCheckpoint(Lst_wd)
 			} else {
+				fmt.Println("Next Checkpoint")
 				ball.Coord = ball.Checkpoints.Front()
 				ball.Checkpoints.Remove(ball.Coord)
 				ball.GetTimeTrueCoord()
@@ -640,6 +644,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
+			e.Value.(*Ball).Lock()
 
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax := getIdMessageMax(idBall, base)
@@ -660,6 +665,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					checkErr(err)
 				}
 			}
+			e.Value.(*Ball).Unlock()
 		} else if e.Value.(*Ball).Id_ball > ABalls.Id_max {
 			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", e.Value.(*Ball).Id_ball)
 			Lb.InsertBallon(e.Value.(*Ball), base)

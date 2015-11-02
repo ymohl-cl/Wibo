@@ -427,7 +427,7 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		numPack += 1
 		tmp := Contentball{}
 		tmp.messages = tp.ptype.(Contentball).messages
-		tmp.nbruser = (int32)(follow - 1) // - l'ajout qui viens d'etre fait.
+		tmp.nbruser = (int32)(follow)
 		tmp.nbrmess = (int32)(tmp.messages.Len())
 		tp.ptype = tmp
 		epck.Value = tp
@@ -586,10 +586,12 @@ func (Data *Data) Manage_pos(Req *list.Element) {
 			ball := eball.Value.(*ballon.Ball)
 			ifball.id = ball.Id_ball
 			ifball.title = ball.Title
-			if ball.Check_userCreated(Data.User) == false {
-				ifball.FlagPoss = 0
-			} else {
+			if ball.Check_userCreated(Data.User) == true {
 				ifball.FlagPoss = 1
+			} else if ball.Check_userfollower(Data.User) == true {
+				ifball.FlagPoss = 2
+			} else {
+				ifball.FlagPoss = 0
 			}
 			ifball.lon = ball.Coord.Value.(ballon.Checkpoint).Coord.Lon
 			ifball.lat = ball.Coord.Value.(ballon.Checkpoint).Coord.Lat
@@ -627,7 +629,7 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 		if ball.Possessed == nil && ball.Check_userfollower(Data.User) == false && ball.Check_userCreated(Data.User) == false {
 			ball.Possessed = Data.User
 			ball.Edited = true
-			ball.Followers.PushFront(Data.User)
+			ball.Followers.PushBack(Data.User)
 			user.Followed.PushBack(eball)
 			user.Possessed.PushBack(eball)
 			/* Begin Stats */
