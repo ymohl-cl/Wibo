@@ -325,8 +325,7 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	check.Date = time.Now()
 	check.MagnetFlag = Magnet
 	Ball.Lock()
-	Ball.Coord = lst.PushBack(lst)
-	fmt.Println("Coord: Init:", Ball.Coord.Value.(Checkpoint))
+	Ball.Coord = lst.PushBack(check)
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
 	Ball.Unlock()

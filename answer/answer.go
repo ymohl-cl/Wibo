@@ -742,6 +742,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Possessed = nil
 		ball.Followers.PushFront(Data.User)
 		ball.Creator = Data.User
+		ball.Scoord = new(list.Element)
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		eball := Data.Lst_ball.Blist.PushBack(ball)
 		//		checkpoint.Coord.Lon = rqt.Coord.Lon
