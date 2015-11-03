@@ -725,8 +725,8 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 
 	if user.NbrBallSend < 10 {
 		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
-		Data.Lst_ball.Id_max++
 		ball.Id_ball = Data.Lst_ball.Id_max
+		Data.Lst_ball.Id_max++
 		ball.Edited = true
 		ball.Title = newball.Title
 		ball.Messages = list.New()
