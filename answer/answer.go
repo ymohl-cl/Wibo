@@ -61,11 +61,12 @@ const (
 	DEFAULTUSER = 2
 	USERLOGGED  = 3
 	// Size Packet
-	SIZE_PACKET        = 1014
+	SIZE_PACKET        = 1024
 	SIZE_HEADER        = 16
 	SIZE_STATUSER      = 104
 	SIZE_STATBALL      = 56
 	SIZE_COORDSTATBALL = 24
+	SIZE_CONTENTBALL   = 48
 )
 
 type Posball struct {
@@ -234,7 +235,7 @@ func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List)
 		}
 	}
 	epack := listpack.Back()
-	if epack.Value.(Packet) != pack {
+	if epack != nil && epack.Value.(Packet) != pack {
 		listpack.PushBack(pack)
 	}
 	return listpack
@@ -382,72 +383,64 @@ func Write_nearby(Req *list.Element, list_tmp *list.List, Type int16, User *user
 	return buf
 }
 
-func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
-	var pack Packet
-	var contball Contentball
+func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
+	lstP := list.New()
+	pck := new(Packet)
 
-	alist = list.New()
-	plist := list.New()
-	pack.head.octets = 32 + 16 + 16
-	pack.head.pnum = 0
-	contball.messages = list.New()
-	pack.ptype = contball
-	emess := Ball.Messages.Front()
-	for emess != nil {
-		msg := emess.Value.(ballon.Message)
-		if int16(msg.Size)+16+pack.head.octets > 1024 {
-			tmp_lst := Cut_messagemultipack(pack, msg)
-			tmp := tmp_lst.Back()
-			pack = (tmp_lst.Remove(tmp)).(Packet)
-			plist.PushBackList(tmp_lst)
-		} else {
-			newMess := Message{}
-			pack.head.octets += 16 + int16(msg.Size)
-			newMess.size = msg.Size
-			newMess.id = msg.Id
-			newMess.idcountry = msg.Idcountry
-			newMess.idcity = msg.Idcity
-			newMess.mess = msg.Content
-			newMess.mtype = msg.Type
-			pack.ptype.(Contentball).messages.PushBack(newMess)
+	pck.head.octets = SIZE_HEADER + SIZE_CONTENTBALL
+	pck.head.rtype = typeR
+	pck.head.pnum = 0
+	pck.ptype = new(Contentball)
+	pck.ptype.(*Contentball).messages = list.New()
+	for em := ball.Messages.Front(); em != nil; em = em.Next() {
+		msg := em.Value.(ballon.Message)
+		if int16(msg.Size)+16+pck.head.octets > SIZE_PACKET {
+			pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
+			pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(Contentball).messages.Len())
+			lstP.PushBack(pck)
+			tmp := pck
+			pck = new(Packet)
+			pck.head.octets = SIZE_HEADER + SIZE_CONTENTBALL
+			pck.head.rtype = typeR
+			pck.head.pnum = tmp.head.pnum + 1
+			pck.ptype = new(Contentball)
+			pck.ptype.(*Contentball).messages = list.New()
 		}
-		emess = emess.Next()
+		var mes Message
+		mes.size = msg.Size
+		mes.id = msg.Id
+		mes.idcountry = msg.Idcountry
+		mes.idcity = msg.Idcity
+		mes.mess = msg.Content
+		mes.mtype = msg.Type
+		pck.head.octets += 16 + int16(msg.Size)
+		pck.ptype.(*Contentball).messages.PushBack(mes)
 	}
-	tmp := plist.Back()
-	if tmp == nil || tmp.Value.(Packet) != pack {
-		plist.PushBack(pack)
+	pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
+	pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
+	lstP.PushBack(pck)
+	Pnbr := lstP.Len()
+	for e := lstP.Front(); e != nil; e = e.Next() {
+		e.Value.(*Packet).head.pnbr = int32(Pnbr)
 	}
-	epck := plist.Front()
-	numPack := 0
-	NbrPack := plist.Len()
-	if NbrPack == 0 {
-		NbrPack = 1
-	}
-	follow := Ball.Followers.Len()
-	for epck != nil {
-		tp := epck.Value.(Packet)
-		tp.head.rtype = packettype
-		tp.head.pnbr = (int32)(NbrPack)
-		tp.head.pnum = (int32)(numPack)
-		numPack += 1
-		tmp := Contentball{}
-		tmp.messages = tp.ptype.(Contentball).messages
-		tmp.nbruser = (int32)(follow)
-		tmp.nbrmess = (int32)(tmp.messages.Len())
-		tp.ptype = tmp
-		epck.Value = tp
-		epck = epck.Next()
-	}
-	epck = plist.Front()
-	for epck != nil {
-		tpack := epck.Value.(Packet)
-		Buffer := Write_header(tpack)
+	return lstP
+}
+
+func Write_contentball(Ball *ballon.Ball, packettype int16) (Alst *list.List) {
+	Alst = list.New()
+	lstPack := GetPacketsContent(Ball, packettype)
+
+	year := int16(Ball.Stats.CreationDate.Year())
+	month := int16(Ball.Stats.CreationDate.Month())
+	day := int16(Ball.Stats.CreationDate.Day())
+	houre := int16(Ball.Stats.CreationDate.Hour())
+	minute := int16(Ball.Stats.CreationDate.Minute())
+	sizeTitle := len(Ball.Title)
+
+	for ep := lstPack.Front(); ep != nil; ep = ep.Next() {
+		pck := ep.Value.(*Packet)
+		Buffer := Write_header(*pck)
 		binary.Write(Buffer, binary.BigEndian, Ball.Id_ball)
-		year := int16(Ball.Stats.CreationDate.Year())
-		month := int16(Ball.Stats.CreationDate.Month())
-		day := int16(Ball.Stats.CreationDate.Day())
-		houre := int16(Ball.Stats.CreationDate.Hour())
-		minute := int16(Ball.Stats.CreationDate.Minute())
 		binary.Write(Buffer, binary.BigEndian, year)
 		binary.Write(Buffer, binary.BigEndian, month)
 		binary.Write(Buffer, binary.BigEndian, day)
@@ -455,23 +448,21 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (alist *list.List) {
 		binary.Write(Buffer, binary.BigEndian, minute)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
 		Buffer.WriteString(Ball.Title)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(Ball.Title)))
-		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbruser)
-		binary.Write(Buffer, binary.BigEndian, tpack.ptype.(Contentball).nbrmess)
-		tmess := tpack.ptype.(Contentball).messages.Front()
-		for tmess != nil {
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).id)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).size)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).idcountry)
-			binary.Write(Buffer, binary.BigEndian, tmess.Value.(Message).idcity)
-			Buffer.WriteString(tmess.Value.(Message).mess)
-			tmess = tmess.Next()
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-sizeTitle))
+		binary.Write(Buffer, binary.BigEndian, pck.ptype.(*Contentball).nbruser)
+		binary.Write(Buffer, binary.BigEndian, pck.ptype.(*Contentball).nbrmess)
+		for em := pck.ptype.(*Contentball).messages.Front(); em != nil; em = em.Next() {
+			mes := em.Value.(Message)
+			binary.Write(Buffer, binary.BigEndian, mes.id)
+			binary.Write(Buffer, binary.BigEndian, mes.size)
+			binary.Write(Buffer, binary.BigEndian, mes.idcountry)
+			binary.Write(Buffer, binary.BigEndian, mes.idcity)
+			Buffer.WriteString(mes.mess)
 		}
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
-		epck = epck.Next()
-		alist.PushBack(Buffer.Bytes())
+		binary.Write(Buffer, binary.BigEndian, make([]byte, SIZE_PACKET-pck.head.octets))
+		Alst.PushBack(Buffer.Bytes())
 	}
-	return alist
+	return Alst
 }
 
 func (Data *Data) Write_StatUser(year, month, day, houre, minute int16) (buf []byte) {

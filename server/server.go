@@ -58,15 +58,15 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	if er != nil {
 		return er
 	} // If possible print workball List with Serv.Lst_Work.Print_all_workball()
-	er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
-	if er != nil {
-		Serv.Logger.Println("Create_checkpoint error: ", er)
-	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
 
 	er = debug.CreateDataToDebug(Serv.Lst_ball, Serv.Lst_users, Serv.Tab_wd)
 	if er != nil {
 		return er
 	} // If possible comment this section. Data filled to debug.
+	er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
+	if er != nil {
+		Serv.Logger.Println("Create_checkpoint error: ", er)
+	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
 
 	return nil
 }
@@ -84,17 +84,34 @@ func (Serv *Server) InitServer() error {
 
 	file, er := os.Create("LogsSys.txt")
 	if er != nil {
-		fmt.Println("Erreur to create LogsSys.txt")
-		fmt.Println(er)
+		fmt.Println("Erreur to create LogsSys.txt: ", er)
 		return er
 	}
-	Serv.Logger = log.New(file, "logger: ", log.Llongfile|log.Ldate|log.Ltime)
+	Serv.Logger = log.New(file, "logger: ", log.Lshortfile|log.Ldate|log.Ltime)
 	file2, er := os.Create("LogsWeathers.txt")
 	if er != nil {
-		fmt.Println("Erreur to create LogsWeather.txt")
-		fmt.Println(er)
+		fmt.Println("Erreur to create LogsWeather.txt: ", er)
 		return er
 	}
-	Serv.Tab_wd.Logger = log.New(file2, "Data weather: ", log.Llongfile|log.Ldate|log.Ltime)
+	Serv.Tab_wd.Logger = log.New(file2, "Weather: ", log.Lshortfile|log.Ldate|log.Ltime)
+	file3, er := os.Create("LogsBddBall.txt")
+	if er != nil {
+		fmt.Println("Erreur to create LogsBddBall.txt: ", er)
+		return er
+	}
+	Serv.Lst_ball.Logger = log.New(file3, "BddBall: ", log.Lshortfile|log.Ldate|log.Ltime)
+	file4, er := os.Create("LogsBddUsers.txt")
+	if er != nil {
+		fmt.Println("Erreur to create LogsBddUsers.txt: ", er)
+		return er
+	}
+	Serv.Lst_users.Logger = log.New(file4, "BddUsers: ", log.Lshortfile|log.Ldate|log.Ltime)
+	file5, er := os.Create("LogsBddDevice.txt")
+	if er != nil {
+		fmt.Println("Erreur to create LogsBddDevice.txt: ", er)
+		return er
+	}
+	Serv.Lst_Devices.Logger = log.New(file5, "BddDevice: ", log.Lshortfile|log.Ldate|log.Ltime)
+	Serv.Logger.Println("Init Server Done")
 	return er
 }

@@ -65,11 +65,10 @@ type StatsBall struct {
 
 type Ball struct {
 	sync.RWMutex
-	Id_ball int64         /* Id de la base de donnee, defini par le serveur */
-	Title   string        /* Titre du ballon */
-	Coord   *list.Element /* Interface coordonnee, stocke les coordonnees */
-	Scoord  *list.Element /** Last itinerary save **/
-	//	Idball      int64         /** Idball -- deprecated a supprimer */
+	Id_ball     int64         /* Id de la base de donnee, defini par le serveur */
+	Title       string        /* Titre du ballon */
+	Coord       *list.Element /* Interface coordonnee, stocke les coordonnees */
+	Scoord      *list.Element /** Last itinerary save **/
 	Itinerary   *list.List    /* List des itineraire non enregistre par le serveur */
 	Edited      bool          /** Edited, Flag de modification (ne tiens pas compte des changement dans Coord et Checkpoints) */
 	Wind        Wind          /* Interface Wind, stocke les donnees des vents */
@@ -86,6 +85,7 @@ type All_ball struct {
 	sync.RWMutex
 	Blist  *list.List /* Value: *Ball */
 	Id_max int64      /* Set by bdd and incremented by server */
+	Logger *log.Logger
 }
 
 /*
@@ -161,67 +161,12 @@ func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlat := request.Value.(*protocol.Request).Coord.Lat
 
 	if ball.Coord != nil {
-		//		coord := ball.Coord.Value.(Checkpoint).Coord
-		// Test
 		if ball.GetDistance(rlon, rlat) < 1.0 {
 			return true
-			//			fmt.Println("Get distance < 1.0: TRUE")
-		} // else {
-		//			fmt.Println("Get distance > 1.0: FALSE")
-		//		}
-		//		if coord.Lon < rlon+0.01 &&
-		//			coord.Lon > rlon-0.01 &&
-		//			coord.Lat < rlat+0.01 &&
-		//			coord.Lat > rlat-0.01 {
-		//			return true
-		//		}
+		}
 	}
 	return false
 }
-
-/* Create list checkpoints for eball with interval time of 5 minutes on 3 hours */
-/*
-func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
-	r_world := 6371000.0
-	var tmp_coord Coordinate
-	var calc_coord Coordinate
-	var checkpoint Coordinate
-
-	speed := station.Wind.Speed * 300.00
-	dir := station.Wind.Degress*10 + 180
-	if dir >= 360 {
-		dir -= 360
-	}
-	dir = dir * (math.Pi / 180.0)
-	checkpoint.Lon = eball.Coord.Value.(Checkpoint).Coord.Lon
-	checkpoint.Lat = eball.Coord.Value.(Checkpoint).Coord.Lat
-	eball.Checkpoints = eball.Checkpoints.Init()
-	for i := 0; i < 35; i++ {
-		tmp_coord.Lon = checkpoint.Lon * (math.Pi / 180.0)
-		tmp_coord.Lat = checkpoint.Lat * (math.Pi / 180.0)
-		calc_coord.Lat = math.Asin(math.Sin(tmp_coord.Lat)*math.Cos(speed/r_world) + math.Cos(tmp_coord.Lat)*math.Sin(speed/r_world)*math.Cos(dir))
-		calc_coord.Lon = tmp_coord.Lon + math.Atan2(math.Sin(dir)*math.Sin(speed/r_world)*math.Cos(tmp_coord.Lat), math.Cos(speed/r_world)-math.Sin(tmp_coord.Lat)*math.Sin(calc_coord.Lat))
-		calc_coord.Lat = 180 * calc_coord.Lat / math.Pi
-		calc_coord.Lon = 180 * calc_coord.Lon / math.Pi
-		if calc_coord.Lat < 48.72 {
-			checkpoint.Lat = 49.02
-		} else if calc_coord.Lat > 49.02 {
-			checkpoint.Lat = 48.72
-		} else {
-			checkpoint.Lat = calc_coord.Lat
-		}
-		if calc_coord.Lon < 2.10 {
-			checkpoint.Lon = 2.60
-		} else if calc_coord.Lon > 2.60 {
-			checkpoint.Lon = 2.10
-		} else {
-			checkpoint.Lon = calc_coord.Lon
-		}
-		eball.Checkpoints.PushBack(Checkpoint{checkpoint, time.Now(), 0})
-	}
-	eball.Wind.Speed = station.Wind.Speed
-	eball.Wind.Degress = station.Wind.Degress
-} */
 
 func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {
 	eball = balls.Blist.Front()
@@ -251,7 +196,7 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
 			eball = eball.Next()
 		}
-		for eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true {
+		for eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false {
 			eball = eball.Next()
 			if eball == nil && flag == false {
 				flag = true
@@ -351,18 +296,21 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 }
 
 func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
-	fmt.Println("Move Ball")
+	var coord Coordinate
+
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
 		if ball.Possessed == nil {
-			fmt.Println("Change Coord")
 			ball.Lock()
 			if ball.Checkpoints.Len() == 0 {
-				fmt.Println("Create Checkpoint")
+				coord = ball.Coord.Value.(Checkpoint).Coord
 				ball.CreateCheckpoint(Lst_wd)
+				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
 			} else {
-				fmt.Println("Next Checkpoint")
-				ball.Coord = ball.Checkpoints.Front()
+				e := ball.Checkpoints.Front()
+				coord = e.Value.(Checkpoint).Coord
+				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
+				ball.Coord = e
 				ball.Checkpoints.Remove(ball.Coord)
 				ball.GetTimeTrueCoord()
 			}
@@ -398,40 +346,9 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 	}
 	return nil
 }*/
-
 /**
 ** Fin de la section Beta
 **/
-
-/* Give a next checkpoint ball and removes the previous */
-/*
-func (Lst_ball *All_ball) Move_ball() (er error) {
-	Lst_ball.Lock()
-	defer Lst_ball.Unlock()
-	elem := Lst_ball.Blist.Front()
-
-	for elem != nil {
-		ball := elem.Value.(*Ball)
-		if ball.Coord != nil {
-			statsCoord := ball.Coord.Value.(Checkpoint).Coord
-			ball.Coord = ball.Coord.Next()
-			if ball.Coord != nil {
-				ball.Checkpoints.Remove(ball.Checkpoints.Front())
-			} else {
-				ball.Coord = ball.Checkpoints.Front()
-				if ball.Coord == nil {
-					er = errors.New("next coord not found")
-					return er
-				}
-			}
-			ball.Stats.NbrKm += ball.AddStatsDistance(statsCoord.Lon, statsCoord.Lat)
-		}
-		elem.Value = ball
-		elem = elem.Next()
-	}
-	return nil
-}
-*/
 
 /* Add_new_ballon to list */
 func (Lst_ball *All_ball) Add_new_ballon(new_ball Ball) {
@@ -564,37 +481,39 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	return 0, Ball.Itinerary
 }
 
-func getIdMessageMax(idBall int64, base *db.Env) int32 {
+func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	var IdMax int32
 	err := base.Transact(base.Db, func(tx *sql.Tx) error {
 		var err error
 		stm, err := tx.Prepare("select id from message where id = (select max(id) from message) and containerid = $1;")
-		checkErr(err)
+		if err != nil {
+			return err
+		}
 		rs, err := stm.Query(idBall)
-		checkErr(err)
+		if err != nil {
+			return err
+		}
 		defer stm.Close()
 		if rs.Next() != false {
 			rs.Scan(&IdMax)
 		}
 		return err
 	})
-	checkErr(err)
-	return IdMax
+	return IdMax, err
 }
 
-func getIdBallMax(base *db.Env) int64 {
+func getIdBallMax(base *db.Env) (int64, error) {
 	var IdMax int64
 	IdMax = 0
 	rs, err := base.Db.Query("SELECT ianix FROM container ORDER BY ianix DESC LIMIT 1;")
 	if err != nil {
-		fmt.Println(err)
+		return IdMax, err
 	}
 	defer rs.Close()
 	if rs.Next() != false {
 		rs.Scan(&IdMax)
 	}
-	checkErr(err)
-	return IdMax
+	return IdMax, err
 }
 
 /*
@@ -624,14 +543,6 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		if err != nil {
 			return (err)
 		}
-		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall, NewBall.Id_ball)
-		fmt.Printf("insert ballon coordinate lat : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lat, NewBall.Coord.Value.(Checkpoint).Coord.Lat)
-		fmt.Printf("insert ballon coordinate lon : type: %T | value: %v\n", NewBall.Coord.Value.(Checkpoint).Coord.Lon, NewBall.Coord.Value.(Checkpoint).Coord.Lon)
-		fmt.Printf("insert ballon degress : type: %T | value: %v\n", NewBall.Wind.Degress, NewBall.Wind.Degress)
-		fmt.Printf("insert ballon Speed : type: %T | value: %v\n", NewBall.Wind.Speed, NewBall.Wind.Speed)
-		fmt.Printf("insert ballon title : type: %T | value: %v\n", NewBall.Title, NewBall.Title)
-		fmt.Printf("insert ballon idball : type: %T | value: %v\n", NewBall.Id_ball, NewBall.Id_ball)
-		fmt.Printf("insert ballon date : type: %T | value: %v\n", NewBall.Date, NewBall.Date)
 		err = stm.QueryRow(NewBall.Creator.Value.(*users.User).Id,
 			NewBall.Coord.Value.(Checkpoint).Coord.Lat,
 			NewBall.Coord.Value.(Checkpoint).Coord.Lon,
@@ -642,8 +553,9 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 			NewBall.Date).Scan(&IdC)
 		return err
 	})
-	log.Println(err)
+	Lst_ball.checkErr(err)
 	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
+	Lst_ball.checkErr(err)
 	executed = true
 	return executed, err
 }
@@ -658,28 +570,40 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	i := 0
 	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
 	fmt.Printf("%v Id Max\n", ABalls.Id_max)
+
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
 			e.Value.(*Ball).Lock()
-
 			idBall := e.Value.(*Ball).Id_ball
-			idMessageMax := getIdMessageMax(idBall, base)
+			idMessageMax, er := getIdMessageMax(idBall, base)
+			if er != nil {
+				Lb.checkErr(er)
+				return er
+			}
 			j := 0
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
 						stm, err := tx.Prepare("INSERT INTO message(content, containerid) values($1, (SELECT id from container where ianix = $2))")
-						checkErr(err)
+						if err != nil {
+							return err
+						}
 						res, err := stm.Exec(f.Value.(Message).Content, idBall)
+						if err != nil {
+							return err
+						}
 						var rowsAffect int64
 						rowsAffect, err = res.RowsAffected()
-						fmt.Println("\x1b[31;1m update %d \x1b[0m", rowsAffect)
+						if err != nil {
+							return err
+						}
+						rowsAffect = rowsAffect // SET BUT NOT USE
+						res = res               // SET BUT NOT USE
 						j++
-						checkErr(err)
 						return err
 					})
-					checkErr(err)
+					Lb.checkErr(err)
 				}
 			}
 			e.Value.(*Ball).Unlock()
@@ -697,10 +621,10 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
 			stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
-			checkErr(err)
+			Lst_ball.checkErr(err)
 			_, err = stm.Query(e.Value.(Message).Content, idBall)
 			i++
-			checkErr(err)
+			Lst_ball.checkErr(err)
 			return err
 		})
 	}
@@ -708,42 +632,22 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 }
 
 /**
-* InsertBallonByChamp
-* Debug: send an instance of Ball Strut
-* Modify the parametres as your needs
-**/
-func (Lst_ball *All_ball) GetBall(titlename string, Db *sql.DB) *Ball {
-	b := new(Ball)
-	b.Title = titlename
-
-	u := new(users.User)
-	u.Id = 2
-
-	luser := list.New()
-	luser.PushBack(u)
-	b.Creator = luser.Back()
-	b.Id_ball = 5
-	b.Wind.Degress = 23.90
-	b.Wind.Speed = 222
-	b.Messages = Lst_ball.GetMessagesBall(10, Db)
-	return (b)
-}
-
-/**
 * CheckErr
 * Verify err value to stop execution by panic
 **/
-func checkErr(err error) {
+func (Lst_ball *All_ball) checkErr(err error) {
 	if err != nil {
-		fmt.Println(err)
+		Lst_ball.Logger.Printf("Error: %s", err)
 	}
 }
 
-func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) *list.List {
+func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) (*list.List, error) {
 	lstFollow := list.New()
 	var err error
 	rows, err := Db.Query("SELECT id_user FROM \"user\" AS userWibo LEFT OUTER JOIN followed ON (followed.iduser = userWibo.id_user)  WHERE followed.container_id = $1;", idBall)
-	checkErr(err)
+	if err != nil {
+		return lstFollow, err
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var idFollower int64
@@ -754,33 +658,39 @@ func (Lb *All_ball) GetFollowers(idBall int, Db *sql.DB, Ulist *list.List) *list
 			}
 		}
 	}
-	return lstFollow
+	return lstFollow, err
 }
 
-func GetCurrentUserBall(LUser *list.List, idBall int, Db *sql.DB) *list.Element {
+func GetCurrentUserBall(LUser *list.List, idBall int, Db *sql.DB) (*list.Element, error) {
 	stm, err := Db.Prepare("SELECT idcurrentuser  FROM container WHERE id=($1)")
-	checkErr(err)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := stm.Query(idBall)
-	checkErr(err)
+	if err != nil {
+		return nil, err
+	}
+
 	for rows.Next() {
 		var idPossesed int64
 		err = rows.Scan(&idPossesed)
-		checkErr(err)
+		if err != nil {
+			return nil, err
+		}
 		i := 0
 		for e := LUser.Front(); e != nil; e = e.Next() {
 			if e.Value.(*users.User).Id == idPossesed {
-				return e
+				return e, err
 			}
 			i++
 		}
 	}
-	return nil
+	return nil, err
 }
 
-func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Element {
-	p := make(chan *list.Element)
-	go func() { p <- GetCurrentUserBall(LstU, idBall, Db) }()
-	return p
+func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) (*list.Element, error) {
+	p, er := GetCurrentUserBall(LstU, idBall, Db)
+	return p, er
 }
 
 /**
@@ -800,78 +710,73 @@ func GetWhomGotBall(idBall int, LstU *list.List, Db *sql.DB) <-chan *list.Elemen
 			locationcont text)
 */
 
-func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist *list.List) *list.List {
-	lBallon := list.New()
-	var err error
+func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist *list.List) (lBallon *list.List, err error) {
+	lBallon = list.New()
+	err = nil
+
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
-		checkErr(errT)
-		fmt.Printf("getlistballsbyuser type %T, value: %v\n", userE.Value.(*users.User).Id, userE.Value.(*users.User).Id)
 		defer stm.Close()
+		if errT != nil {
+			return errT
+		}
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
-		if rows.Next() == false {
+		if err != nil {
+			return err
+		} else if rows.Next() == false {
 			return nil
 		}
-		switch {
-		case err == sql.ErrNoRows:
-			log.Printf("No containers.")
-		case err != nil:
-			log.Print("Error: get containersbyuserid")
-			return (err)
-		default:
-			for rows.Next() {
-				var infoCont string
-				err = rows.Scan(&infoCont)
-				checkErr(err)
-				result := strings.Split(infoCont, ",")
-				idBall := GetIdBall(result[0])
-				tempCord := GetCord(result[7])
-				lstIt := list.New()
-				lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
-				idTmp, _ := strconv.Atoi(result[8])
-				possessed := GetWhomGotBall(idBall, Ulist, base.Db)
-				tmpBall := Lb.Get_ballbyid(int64(idTmp))
-				if tmpBall != nil {
-
-				} else {
-					lBallon.PushBack(
-						&Ball{
-							Title:       result[1],
-							Date:        GetDateFormat(result[5]),
-							Checkpoints: nil,
-							Itinerary:   lstIt,
-							Scoord:      tempCord.Front(),
-							Coord:       tempCord.Front(),
-							Wind:        GetWin(result[3], result[4]),
-							Messages:    Lb.GetMessagesBall(idBall, base.Db),
-							Followers:   Lb.GetFollowers(idBall, base.Db, Ulist),
-							Possessed:   <-possessed,
-							Creator:     userE})
-				}
-				switch {
-				case err == sql.ErrNoRows:
-					log.Printf("No containers.")
-				case err != nil:
-					checkErr(err)
+		for rows.Next() {
+			var infoCont string
+			err = rows.Scan(&infoCont)
+			if err != nil {
+				return err
+			}
+			//			Lb.checkErr(err)
+			result := strings.Split(infoCont, ",")
+			idBall := GetIdBall(result[0])
+			tempCord := GetCord(result[7])
+			lstIt := list.New()
+			lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
+			idTmp, _ := strconv.Atoi(result[8])
+			possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
+			if er != nil {
+				return er
+			}
+			tmpBall := Lb.Get_ballbyid(int64(idTmp))
+			if tmpBall != nil {
+				// Do Nothing
+			} else {
+				lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
+				if err != nil {
 					return err
-				default:
-					fmt.Printf("get containers%v | %v | %v \n\n", result[1], result[3], result[4])
 				}
+				lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
+				if err != nil {
+					return err
+				}
+				lBallon.PushBack(
+					&Ball{
+						Title:       result[1],
+						Date:        GetDateFormat(result[5]),
+						Checkpoints: nil,
+						Itinerary:   lstIt,
+						Scoord:      tempCord.Front(),
+						Coord:       tempCord.Front(),
+						Wind:        GetWin(result[3], result[4]),
+						Messages:    lstMess,
+						Followers:   lstFols,
+						Possessed:   possessed,
+						Creator:     userE})
 			}
 		}
 		return err
 	})
-	switch {
-	case err == sql.ErrNoRows:
-		log.Printf("No containers.")
-	case err != nil:
-		log.Print("Here some error")
-		log.Print(err)
-	default:
-		fmt.Printf("get containers 2 %v\n", lBallon)
+	if err == sql.ErrNoRows {
+		err = nil
 	}
-	return lBallon
+	return lBallon, err
 }
 
 func GetDateFormat(qdate string) (fdate time.Time) {
@@ -882,8 +787,7 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, err := time.Parse("2006-01-02 15:04:05", qdate)
-	checkErr(err)
+	fdate, _ = time.Parse("2006-01-02 15:04:05", qdate)
 	return fdate
 }
 
@@ -952,22 +856,26 @@ func GetWin(speed string, direction string) Wind {
 * return the list
 **/
 
-func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
+func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) (*list.List, error) {
 	Mlist := list.New()
+
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
-	checkErr(err)
 	defer stm.Close()
 	rows, err := stm.Query(idBall)
-	checkErr(err)
+	if err != nil {
+		return Mlist, err
+	}
 	for rows.Next() {
 		var idm int32
 		var message string
 		var idType int32
 		err = rows.Scan(&idm, &message, &idType)
-		checkErr(err)
+		if err != nil {
+			return Mlist, err
+		}
 		Mlist.PushBack(&Message{Content: message, Type: idType, Id: idm})
 	}
-	return Mlist
+	return Mlist, err
 }
 
 func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List, base *db.Env) {
@@ -986,11 +894,20 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 * get all ball from database and associeted
 * the creator, possessord and followers.
 **/
-func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) error {
-	Lb.Id_max = getIdBallMax(base)
+func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (er error) {
+	er = nil
+
+	Lb.Id_max, er = getIdBallMax(base)
+	if er != nil {
+		return er
+	}
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
-		Lb.Blist.PushBackList(Lb.GetListBallsByUser(e, base, LstU.Ulist))
+		tlst, er := Lb.GetListBallsByUser(e, base, LstU.Ulist)
+		if er != nil {
+			return er
+		}
+		Lb.Blist.PushBackList(tlst)
 	}
 	Lb.InsertListBallsFollow(Lb.Blist, LstU.Ulist, base)
-	return nil
+	return er
 }

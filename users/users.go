@@ -63,6 +63,7 @@ type All_users struct {
 	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 	NbrUsers   int64
 	LogUser    *userError
+	Logger     *log.Logger
 }
 
 type userError struct {

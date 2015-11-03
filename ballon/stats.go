@@ -43,14 +43,14 @@ func (Lusr *All_ball) SetStatsBallon(c_idBall int64, b_stats *StatsBall, Db *sql
 
 func (Lusr *All_ball) GetStatsBallon(idBall int64, Db *sql.DB) *StatsBall {
 	rows, err := Db.Query("SELECT num_km, num_catch, num_follow, num_magnet  FROM stats_container  WHERE idball_stats = $1;", idBall)
-	checkErr(err)
+	Lusr.checkErr(err)
 	defer rows.Close()
 	if rows.Next() != false {
 		for rows.Next() {
 			var nkm float64
 			var ncath, nfollow, nmagnet int64
 			err = rows.Scan(&nkm, &ncath, &nfollow, &nmagnet)
-			checkErr(err)
+			Lusr.checkErr(err)
 			return &StatsBall{NbrKm: nkm, NbrFollow: nfollow, NbrCatch: ncath, NbrMagnet: nmagnet}
 		}
 	}
