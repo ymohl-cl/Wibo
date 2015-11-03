@@ -717,6 +717,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
+		defer stm.Close()
 		if errT != nil {
 			return errT
 		}
@@ -859,9 +860,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) (*list.List, erro
 	Mlist := list.New()
 
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
-	if err != nil {
-		return Mlist, err
-	}
+	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	if err != nil {
 		return Mlist, err
