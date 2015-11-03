@@ -808,6 +808,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
 		checkErr(errT)
 		fmt.Printf("getlistballsbyuser type %T, value: %v\n", userE.Value.(*users.User).Id, userE.Value.(*users.User).Id)
+		defer stm.Close()
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
 		if rows.Next() == false {
 			return nil
@@ -955,6 +956,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int, Db *sql.DB) *list.List {
 	Mlist := list.New()
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
 	checkErr(err)
+	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	checkErr(err)
 	for rows.Next() {
