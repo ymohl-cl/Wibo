@@ -58,8 +58,7 @@ type User struct {
 }
 
 type All_users struct {
-	Ulist *list.List
-	//Id_max int64
+	Ulist      *list.List
 	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 	NbrUsers   int64
 	LogUser    *userError
@@ -130,14 +129,14 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
 func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
-	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
-	if err != nil {
-		fmt.Println(err)
-		return err
+	rows, lu.logUser.Err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
+	if lu.logUser.Err != nil {
+		lu.LogUser.Prob = "Update users fail:"
+		return lu.LogUser.Error()
 	}
 	defer rows.Close()
 	rows.Scan(&lu.NbrUsers, &lu.GlobalStat.NbrFollow, &lu.GlobalStat.NbrMessage, &lu.GlobalStat.NbrSend, &lu.GlobalStat.NbrBallCreate)
-	return err
+	return nil
 }
 
 // FUNCTION updatelocationuser(iduser integer, latitudec double precision, longitudec double precision)
@@ -147,22 +146,20 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 	u := lu.Ulist.Front()
 	for u != nil {
 		cu := u.Value.(*User)
-		fmt.Printf("Update user %v \n", cu.Id)
-		fmt.Printf("Update user %v \n", cu.Coord.Lon)
-		fmt.Printf("Update user %v \n", cu.Coord.Lat)
-		trow, err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
+		trow, Lst_users.LogUser.Err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
+		if Lst_users.LogUser.Err != nil {
+			Lst_users.LogUser.Prob = "Update users fail:"
+			return Lst_users.LogUser.Error()
+		}
 
+		defer trow.Close()
 		ex := lu.SetStatsByUser(cu.Id, cu.Stats, base.Db)
 		if ex != true {
 			fmt.Println("Fail to update user stats")
 		}
-		if err != nil {
-			fmt.Println(err)
-		}
-		trow.Close()
 		u = u.Next()
 	}
-	return err
+	return nil
 }
 
 func CheckValidMail(email string) bool {
@@ -191,13 +188,8 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 		var mailq string
 		var bpass []byte
 		err = rows.Scan(&idUser, &mailq, &bpass)
-		fmt.Printf("type: %T | value:  %v \n", bpass, bpass)
-		fmt.Printf("type: %T | value:  %v \n", pass, pass)
 
 		newpass, err := bcrypt.GenerateFromPassword(passb, 15)
-		fmt.Printf("new pass type: %T | value:  %v \n", newpass, newpass)
-		fmt.Printf("This are equalt 1%v \n", bytes.Equal(newpass, passb))
-		fmt.Printf("This are equalt 2 %v \n", bytes.Equal(pass, newpass))
 		if err != nil {
 			fmt.Println(err)
 			return nil
@@ -215,15 +207,15 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 *	TODO: del device
 **/
 func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
-	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
-	_, err = stm.Exec(del_user.Id)
-	if err != nil {
+	stm, Lst_users.LogUser.Err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
+	defer stm.Close()
+	if Lst_users.LogUser.Err != nil {
 		Lst_users.LogUser.Prob = "Del user fail"
-		Lst_users.LogUser.Err = err
 		return false, Lst_users.LogUser
 	}
+	_, Lst_users.LogUser.Err = stm.Exec(del_user.Id)
 	executed = true
-	return executed, err
+	return executed, Lst_users.LogUser.Err
 }
 
 func (e *userError) Error() string {
@@ -247,17 +239,15 @@ func (e *userError) Error() string {
 **/
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte) (bool, error) {
-	var err error
 
 	if len(Pass) == 0 {
 		/* really danger below */
 		Pass = []byte("ThisIsAPasswordDefault2015OP")
 	}
-	bpass, err := bcrypt.GenerateFromPassword(Pass, 15)
-	if err != nil {
+	bpass, Lst_users.LogUser.Err := bcrypt.GenerateFromPassword(Pass, 15)
+	if Lst_users.LogUser.Err != nil {
 		Lst_users.LogUser.Prob = "Add new user fail"
-		Lst_users.LogUser.Err = err
-		return false, Lst_users.LogUser
+		return false, Lst_users.LogUser.Error()
 	}
 
 	if len(new_user.Mail) > 0 {
@@ -265,17 +255,7 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte
 			return false, errors.New("Wrong mail format")
 		}
 	}
-	/* set id*/
-	//rows, err := Db.Query("INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_user;", 1, "particulier", bpass, time.Now(), new_user.Stats.CreationDate, new_user.Mail)
-	fmt.Printf("InserT User NOW")
-	fmt.Printf("InserT %T | %v \n", new_user.Coord.Lat, new_user.Coord.Lat)
-	fmt.Printf("InserT %T | %v \n", new_user.Coord.Lon, new_user.Coord.Lon)
-	fmt.Printf("InserT %T | %v \n", new_user.Stats.CreationDate, new_user.Stats.CreationDate)
-	fmt.Printf("InserT %T | %v \n", new_user.Log, new_user.Log)
-	fmt.Printf("InserT %T | %v \n", new_user.Mail, new_user.Mail)
-	fmt.Printf("hast InserT %T | %v \n", bpass, bpass)
-	fmt.Printf("pass in InserTi clear %T | %v \n", Pass, Pass)
-	err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
+	Lst_users.LogUser.Err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
 		1,
 		"user_particulier",
 		new_user.Coord.Lat,
@@ -284,8 +264,8 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte
 		new_user.Log,
 		new_user.Mail,
 		Pass).Scan(&new_user.Id)
-	if err != nil {
-		return false, err
+	if Lst_users.LogUser.Err != nil {
+		return false, Lst_users.LogUser.Err
 	}
 	return true, nil
 }
@@ -295,11 +275,10 @@ Insert user default
 	insert a user with default data
 */
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request) *list.Element {
-	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
-	if err != nil {
+	bpass, Lst_users.LogUser.Err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
+	if Lst_users.LogUser.Err != nil {
 		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
-		Lst_users.LogUser.Err = err
-		fmt.Println(Lst_users.LogUser.Error())
+		Lst_users.LogUser.Error()
 		return nil
 	}
 	tmpUser := new(User)
@@ -316,11 +295,9 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	tmpUser.Stats.NbrSend = 0
 	tmpUser.Stats.NbrFollow = 0
 	tmpUser.Stats.NbrMessage = 0
-	//rows, err := Db.Query(
-	//	"INSERT INTO \"user\" (id_type_g, groupname, passbyte, lastlogin, creationdate, mail) VALUES ($1, $2, $3, $4, $5, make_uid()) RETURNING id_user;", 2, "user_default", bpass, tmpUser.Log, tmpUser.Stats.CreationDate)
-	err = Db.QueryRow("SELECT setsdefaultuserdata($1, $2, $3, $4, $5);", tmpUser.Coord.Lat, tmpUser.Coord.Lon, tmpUser.Log, tmpUser.Stats.CreationDate, bpass).Scan(&tmpUser.Id)
-	if err != nil {
-		fmt.Println(err)
+	Lst_users.LogUser.Err = Db.QueryRow("SELECT setsdefaultuserdata($1, $2, $3, $4, $5);", tmpUser.Coord.Lat, tmpUser.Coord.Lon, tmpUser.Log, tmpUser.Stats.CreationDate, bpass).Scan(&tmpUser.Id)
+	if Lst_users.LogUser.Err != nil {
+		Lst_users.LogUser.Error()
 		return nil
 	}
 	Lst_users.Ulist.PushBack(tmpUser)
@@ -334,26 +311,26 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
  */
 
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
-	var err error
-	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
-	if err != nil {
-		fmt.Println(err)
+	rows, LstU.LogUser.Err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
+	if LstU.LogUser.Err != nil {
 		LstU.LogUser.Prob = "GetDevicesByIdUser query"
-		LstU.LogUser.Err = err
-		fmt.Printf(LstU.LogUser.Error())
-		os.Exit(-1)
+		LstU.LogUser.Error()
+		return nil
 	}
 	defer rows.Close()
 
-	for rows.Next() {
-		var idUser int64
-		var mailq string
-		err = rows.Scan(&idUser, &mailq)
-		if err != nil {
-			LstU.LogUser.Prob = "Select User fail"
-			LstU.LogUser.Err = err
-		}
+	if rows.Next() != false {
+		for rows.Next() {
+			var idUser int64
+			var mailq string
+			LstU.LogUser.Err = rows.Scan(&idUser, &mailq)
+			if LstU.LogUser.Err != nil {
+				LstU.LogUser.Prob = "Select User fail"
+				LstU.LogUser.Error()
+				return nil
+			}
 		return initUser(idUser, mailq)
+		}
 	}
 	return nil
 }
@@ -369,29 +346,6 @@ func (LstU *All_users) Print_users() {
 	}
 	return
 }
-
-// CREATE OR REPLACE FUNCTION public.setsuserdata2(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea)
-//  RETURNS integer
-//  LANGUAGE plpgsql
-// AS $function$
-// DECLARE
-// done boolean:= false;
-// iduser integer := 0;
-// BEGIN
-//  done :=  NOT exists(SELECT mail FROM "user");
-// IF done = false THEN
-//     INSERT INTO "user"(id_type_g, groupname, lastlogin, creationdate, mail, passbyte, location_user) VALUES(idtypeg, groupnamec, lastlog, creation, mailc, pass, ST_SetSRID(ST_MakePoint(latc, lonc), 4326));
-//     RETURN (SELECT currval('user_id_user_seq'));
-
-// END IF;
-// PERFORM 1 FROM "user" WHERE mail=mailc LIMIT 1;
-// IF FOUND THEN
-//  UPDATE "user" SET(lastlogin, location_user) = (lastlog, ST_SetSRID(ST_MakePoint(latc, lonc), 4326)) WHERE mail=mailc;
-// RETURN (SELECT id_user FROM "user" WHERE mail=mailc);
-// END IF;
-// RETURN -1;
-// END;
-// $function$
 
 /**
 * InitUser
@@ -422,22 +376,23 @@ func (Lusr *All_users) NewUser(mail string) *User {
 func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 
 	lDevice := list.New()
-	stm, err := Db.Prepare("SELECT getDevicesByUserId($1)")
-	if err != nil {
+	stm, Lusr.LogUser.Err := Db.Prepare("SELECT getDevicesByUserId($1)")
+	if Lusr.LogUser.Err != nil {
 		Lusr.LogUser.Prob = "GetDevicesByIdUser query"
-		Lusr.LogUser.Err = err
-		fmt.Printf(Lusr.LogUser.Error())
+		Lusr.LogUser.Error()
 	}
-	rows, err := stm.Query(idUser)
-	for rows.Next() {
-		var idDevice string
-		err = rows.Scan(&idDevice)
-		if err != nil {
-			Lusr.LogUser.Prob = "GetDevicesByIdUser Query rows fail"
-			Lusr.LogUser.Err = err
-			fmt.Printf(Lusr.LogUser.Error())
+	rows, Lusr.LogUser.Err := stm.Query(idUser)
+	defer stm.Close()
+	if rows.Next() != false {
+		for rows.Next() {
+			var idDevice string
+			Lusr.LogUser.Err = rows.Scan(&idDevice)
+			if Lusr.LogUser.Err != nil {
+				Lusr.LogUser.Prob = "GetDevicesByIdUser Query rows fail"
+				fmt.Printf(Lusr.LogUser.Error())
+			}
+			lDevice.PushBack(idDevice)
 		}
-		lDevice.PushBack(idDevice)
 	}
 	return lDevice
 }
@@ -462,26 +417,24 @@ func GetCoord(position string) Coordinate {
 * Get_users
 * Query the user table join device and create new *listList Pointer
 **/
-func (Lusr *All_users) Get_users(Db *sql.DB, fl *log.Logger) error {
-	var err error
+func (Lusr *All_users) Get_users(Db *sql.DB) (err error) {
 	lUser := list.New()
-	Lusr.LogUser = &userError{"init error", nil, fl}
+	Lusr.LogUser = &userError{"init error", nil, Lusr.Logger}
 	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
 	if err != nil {
-		fl.Println(err)
 		return err
 	}
 	defer rows.Close()
-
-	for rows.Next() {
-		var idUser int64
-		var mailq string
-		var pos string
-		err = rows.Scan(&idUser, &mailq, &pos)
-		if err != nil {
-			fl.Println(err)
+	if rows.Next() != false {
+		for rows.Next() {
+			var idUser int64
+			var mailq, pos string
+			err = rows.Scan(&idUser, &mailq, &pos)
+			if err != nil {
+				return err
+			}
+			lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 		}
-		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 	}
 	Lusr.Ulist.Init()
 	Lusr.Ulist.PushFrontList(lUser)

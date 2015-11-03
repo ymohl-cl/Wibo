@@ -589,6 +589,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 						if err != nil {
 							return err
 						}
+						defer stm.Close()
 						res, err := stm.Exec(f.Value.(Message).Content, idBall)
 						if err != nil {
 							return err
