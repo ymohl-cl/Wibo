@@ -16,7 +16,7 @@ package owm
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"sync"
@@ -44,6 +44,7 @@ type Weather_data struct {
 type All_data struct {
 	Tab_wd []Weather_data `json:"list"`
 	sync.RWMutex
+	Logger *log.Logger
 }
 
 /*
@@ -67,7 +68,7 @@ func (Wd Weather_data) GetDistance(lon_user float64, lat_user float64) float64 {
 	rayon = 6378137
 
 	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
-	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) * 1000
+	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) / 1000
 }
 
 func (Data *All_data) GetNearest(Lon float64, Lat float64) Weather_data {
@@ -103,7 +104,7 @@ func (Data *All_data) GetNearest(Lon float64, Lat float64) Weather_data {
 /*
 ** For BetaVersionONLY
  */
-func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
+/*func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
 	for _, elem := range Tab_wd.Tab_wd {
 		if elem.Station_name == "Paris" {
 			station = elem
@@ -111,7 +112,7 @@ func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
 		}
 	}
 	return station
-}
+}*/
 
 /* Update_weather_data with api openWeatherMap */
 func (Tab_wd *All_data) Update_weather_data() error {
@@ -130,15 +131,15 @@ func (Tab_wd *All_data) Update_weather_data() error {
 }
 
 /* Print wins data for debug */
-func (Tab_wd *All_data) Print_weatherdata() {
+func (Wd *All_data) Print_weatherdata() {
 	var index int = 0
-	for _, elem := range Tab_wd.Tab_wd {
+	for _, elem := range Wd.Tab_wd {
 		index++
-		fmt.Println(elem.Station_id)
-		fmt.Println(elem.Station_name)
-		fmt.Println(elem.Coord)
-		fmt.Println(elem.Wind)
-		fmt.Println("--------------------")
+		Wd.Logger.Println(elem.Station_id)
+		Wd.Logger.Println(elem.Station_name)
+		Wd.Logger.Println(elem.Coord)
+		Wd.Logger.Println(elem.Wind)
+		Wd.Logger.Println("--------------------")
 	}
-	fmt.Println("nombre de stations: %d", index)
+	Wd.Logger.Println("Number station updated: %d", index)
 }

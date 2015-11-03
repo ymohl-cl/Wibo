@@ -102,14 +102,22 @@ func hsin(theta float64) (result float64) {
 func (ball *Ball) GetDistance(lon_user float64, lat_user float64) float64 {
 	var lat1, lat2, lon1, lon2, rayon float64
 
+	fmt.Println("Get distance with ball id: ", ball.Id_ball)
 	lat1 = lat_user * math.Pi / 180
 	lon1 = lon_user * math.Pi / 180
+	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat
+	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon
+	fmt.Println("Latatitude ballon: ", lat2)
+	fmt.Println("Longititude ballon: ", lon2)
 	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat * math.Pi / 180
 	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon * math.Pi / 180
+	fmt.Println("Latatitude user: ", lat_user)
+	fmt.Println("Longititude user: ", lon_user)
 	rayon = 6378137
 
 	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
-	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) * 1000
+	fmt.Println("Distance calcule en km: ", 2*rayon*math.Asin(math.Sqrt(hvsin)/1000))
+	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) / 1000
 }
 
 func (ball *Ball) Print_list_checkpoints() {
@@ -151,25 +159,28 @@ func (ball *Ball) Check_userPossessed(user *list.Element) bool {
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Coord.Lon
 	rlat := request.Value.(*protocol.Request).Coord.Lat
-	coord := ball.Coord.Value.(Checkpoint).Coord
+
 	if ball.Coord != nil {
 		//		coord := ball.Coord.Value.(Checkpoint).Coord
-		fmt.Println("Value de coord ball dans type 3: ", ball.Coord.Value.(Checkpoint))
-		fmt.Println(ball.GetDistance(rlon, rlat))
-		fmt.Printf("Lonuser: ", rlon)
-		fmt.Printf("Latuser: ", rlat)
-		// if ball.GetDistance(rlon, rlat) < 1.0 {
-		if coord.Lon < rlon+0.01 &&
-			coord.Lon > rlon-0.01 &&
-			coord.Lat < rlat+0.01 &&
-			coord.Lat > rlat-0.01 {
+		// Test
+		if ball.GetDistance(rlon, rlat) < 1.0 {
 			return true
-		}
+			//			fmt.Println("Get distance < 1.0: TRUE")
+		} // else {
+		//			fmt.Println("Get distance > 1.0: FALSE")
+		//		}
+		//		if coord.Lon < rlon+0.01 &&
+		//			coord.Lon > rlon-0.01 &&
+		//			coord.Lat < rlat+0.01 &&
+		//			coord.Lat > rlat-0.01 {
+		//			return true
+		//		}
 	}
 	return false
 }
 
 /* Create list checkpoints for eball with interval time of 5 minutes on 3 hours */
+/*
 func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 	r_world := 6371000.0
 	var tmp_coord Coordinate
@@ -210,7 +221,7 @@ func (eball *Ball) Get_checkpointList(station owm.Weather_data) {
 	}
 	eball.Wind.Speed = station.Wind.Speed
 	eball.Wind.Degress = station.Wind.Degress
-}
+} */
 
 func (balls *All_ball) Get_ballbyid(id int64) (eball *list.Element) {
 	eball = balls.Blist.Front()
@@ -374,7 +385,7 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 ** Cette section est implemente pour la beta uniquement.
 **/
 /* Apply the function Get_checkpointlist all ballons */
-func (Lst_ball *All_ball) Create_checkpointBeta(Lst_wd *owm.All_data) error {
+/*func (Lst_ball *All_ball) Create_checkpointBeta(Lst_wd *owm.All_data) error {
 	var station owm.Weather_data
 
 	station = Lst_wd.Get_Paris()
@@ -386,7 +397,7 @@ func (Lst_ball *All_ball) Create_checkpointBeta(Lst_wd *owm.All_data) error {
 		eball = eball.Next()
 	}
 	return nil
-}
+}*/
 
 /**
 ** Fin de la section Beta

@@ -89,5 +89,12 @@ func (Serv *Server) InitServer() error {
 		return er
 	}
 	Serv.Logger = log.New(file, "logger: ", log.Llongfile|log.Ldate|log.Ltime)
+	file2, er := os.Create("LogsWeathers.txt")
+	if er != nil {
+		fmt.Println("Erreur to create LogsWeather.txt")
+		fmt.Println(er)
+		return er
+	}
+	Serv.Tab_wd.Logger = log.New(file2, "Data weather: ", log.Llongfile|log.Ldate|log.Ltime)
 	return er
 }

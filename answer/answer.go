@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"time"
 )
 
@@ -131,6 +132,7 @@ type Data struct {
 	Device      *list.Element /* *list.Element.Value.(*device.device) */
 	User        *list.Element /* Value: (*users.User) */
 	Logger      *log.Logger
+	Conn        net.Conn
 }
 
 /* Cut one string in two news strings */
@@ -319,7 +321,7 @@ func Write_conn(plist *list.List) (alist *list.List) {
 }
 
 /* Write_type_Ack */
-func Manage_ack(Type int16, IdBallon int64, value int32) (answer []byte) {
+func (Data *Data) Manage_ack(Type int16, IdBallon int64, value int32) (answer []byte) {
 	tpack := Packet{}
 
 	tpack.head.octets = int16(32)
@@ -332,6 +334,9 @@ func Manage_ack(Type int16, IdBallon int64, value int32) (answer []byte) {
 	binary.Write(Buffer, binary.BigEndian, IdBallon)
 	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
 	answer = Buffer.Bytes()
+	if value == 0 {
+		Data.Logger.Printf("Answer negative to: %s | %X \n", Data.Conn.RemoteAddr(), answer)
+	}
 	return answer
 }
 
@@ -570,7 +575,7 @@ func (Data *Data) Manage_update(request *list.Element) {
 		Lst_answer := Write_contentball(ball, UPDATE)
 		Data.Lst_asw.PushBackList(Lst_answer)
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer := Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -642,6 +647,9 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 			ball.Stats.NbrCatch++
 			ball.Stats.NbrFollow++
 			ball.Stats.NbrKm += ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
+			// To check
+			ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
+			// Check - end
 			ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, rqt.Spec.(protocol.Taken).FlagMagnet, Wd, false)
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
 				ball.Stats.NbrMagnet++
@@ -650,11 +658,11 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 			Data.Lst_asw.PushBackList(Lst_answer)
 			/* End Stats */
 		} else {
-			answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
+			answer := Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
 			Data.Lst_asw.PushBack(answer)
 		}
 	} else {
-		answer := Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
+		answer := Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Taken).Id, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -677,9 +685,9 @@ func (Data *Data) Manage_followon(request *list.Element) {
 			Data.Lst_users.GlobalStat.NbrFollow++
 		}
 		eball.Value.(*ballon.Ball).Stats.NbrFollow++
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer = Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -706,10 +714,10 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 			Data.Lst_users.GlobalStat.NbrFollow--
 		}
 		eball.Value.(*ballon.Ball).Stats.NbrFollow--
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(1))
 
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
+		answer = Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Ballid).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -766,10 +774,10 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Stats.CoordCreated.Lon = rqt.Coord.Lon
 		ball.Stats.CoordCreated.Lat = rqt.Coord.Lat
 		// End Stats
-		answer := Manage_ack(rqt.Rtype, ball.Id_ball, int32(1))
+		answer := Data.Manage_ack(rqt.Rtype, ball.Id_ball, int32(1))
 		Data.Lst_asw.PushBack(answer)
 	} else {
-		answer := Manage_ack(rqt.Rtype, 0, int32(0))
+		answer := Data.Manage_ack(rqt.Rtype, 0, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	}
 }
@@ -811,9 +819,9 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		Data.Lst_users.GlobalStat.NbrSend++
 		Data.Lst_users.GlobalStat.NbrMessage++
 		/* End Stats --- */
-		answer = Manage_ack(rqt.Rtype, eball.Value.(*ballon.Ball).Id_ball, int32(1))
+		answer = Data.Manage_ack(rqt.Rtype, eball.Value.(*ballon.Ball).Id_ball, int32(1))
 	} else {
-		answer = Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Send_ball).Id, int32(0))
+		answer = Data.Manage_ack(rqt.Rtype, rqt.Spec.(protocol.Send_ball).Id, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -851,7 +859,7 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 		}
 		answer = Write_nearby(requete, list_tmp, MAGNET, user)
 	} else {
-		answer = Manage_ack(rqt.Rtype, 0, 0)
+		answer = Data.Manage_ack(rqt.Rtype, 0, 0)
 	}
 	Data.Lst_asw.PushBack(answer)
 }
@@ -864,7 +872,7 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 
 	if req.Rtype != TYPELOG {
 		er = errors.New("Bad type to Manage_Login")
-		answer = Manage_ack(TYPELOG, 0, int32(0))
+		answer = Data.Manage_ack(TYPELOG, 0, int32(0))
 	} else {
 		if Data.Device == nil {
 			Data.Device, er = Dlist.GetDevice(request, Db, Data.Lst_users)
@@ -889,11 +897,11 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			}
 		}
 		if er != nil {
-			answer = Manage_ack(TYPELOG, 0, int32(0))
+			answer = Data.Manage_ack(TYPELOG, 0, int32(0))
 		} else if flag == false {
-			answer = Manage_ack(TYPELOG, 0, int32(2))
+			answer = Data.Manage_ack(TYPELOG, 0, int32(2))
 		} else {
-			answer = Manage_ack(TYPELOG, 0, int32(1))
+			answer = Data.Manage_ack(TYPELOG, 0, int32(1))
 		}
 	}
 	fmt.Println("Fin de manage Login")
@@ -933,14 +941,14 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 			User.Stats.CreationDate = time.Now()
 			Data.Lst_users.NbrUsers++
 			/* End Stats */
-			answer = Manage_ack(CREATEACCOUNT, 0, int32(1))
+			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(1))
 		} else {
 			fmt.Println("FLAG FLASE !")
-			answer = Manage_ack(CREATEACCOUNT, 0, int32(0))
+			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(0))
 		}
 	} else {
 		fmt.Println("WHY ?")
-		answer = Manage_ack(CREATEACCOUNT, 0, int32(0))
+		answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(0))
 	}
 	fmt.Println("err:")
 	fmt.Println(er)
@@ -1017,9 +1025,9 @@ func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er erro
 		user.Log = time.Now()
 		AddFollowed(device.UserSpec, device.UserDefault)
 		GetPossessed(device.UserSpec, device.UserDefault)
-		answer = Manage_ack(SYNCROACCOUNT, 0, int32(1))
+		answer = Data.Manage_ack(SYNCROACCOUNT, 0, int32(1))
 	} else {
-		answer = Manage_ack(SYNCROACCOUNT, 0, int32(0))
+		answer = Data.Manage_ack(SYNCROACCOUNT, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
@@ -1033,10 +1041,10 @@ func (Data *Data) Manage_Delog(request *list.Element, Db *sql.DB) (er error) {
 		Data.User.Value.(*users.User).Log = time.Now()
 		Data.User = device.UserDefault
 		device.UserSpec = nil
-		answer = Manage_ack(DELOG, 0, int32(1))
+		answer = Data.Manage_ack(DELOG, 0, int32(1))
 		Data.Logged = DEFAULTUSER
 	} else {
-		answer = Manage_ack(DELOG, 0, int32(0))
+		answer = Data.Manage_ack(DELOG, 0, int32(0))
 	}
 	Data.Lst_asw.PushBack(answer)
 	return er
@@ -1046,7 +1054,7 @@ func (Data *Data) Manage_StatUser(request *list.Element) {
 	var answer []byte
 	user := Data.User.Value.(*users.User)
 	if user == nil {
-		answer = Manage_ack(STATSUSER, 0, int32(0))
+		answer = Data.Manage_ack(STATSUSER, 0, int32(0))
 	} else {
 		year := int16(user.Stats.CreationDate.Year())
 		month := int16(user.Stats.CreationDate.Month())
@@ -1126,7 +1134,7 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	fmt.Println("NbrPacket: ", nbrPacket)
 	lst_asw := Write_StatBall(LstCheckpoint, nbrCheckpoint, nbrPacket, ball)
 	if lst_asw == nil {
-		answer := Manage_ack(STATSBALL, 0, int32(0))
+		answer := Data.Manage_ack(STATSBALL, 0, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	} else {
 		Data.Lst_asw.PushBackList(lst_asw)
@@ -1167,7 +1175,7 @@ func (Data *Data) Manage_WorkBall(request *list.Element) {
 		}
 	}
 	if lst_work.Len() == 0 {
-		answer := Manage_ack(WORKBALL, 0, int32(0))
+		answer := Data.Manage_ack(WORKBALL, 0, int32(0))
 		Data.Lst_asw.PushBack(answer)
 	} else {
 		Data.Lst_asw.PushBackList(Write_workball(lst_work))
@@ -1234,9 +1242,9 @@ func (Data *Data) Get_aknowledgement(Lst_usr *users.All_users) (answer []byte) {
 	treq := elem.Value.(*protocol.Request)
 
 	if treq.Rtype == NEW_BALL {
-		answer = Manage_ack(treq.Rtype, 0, int32(1))
+		answer = Data.Manage_ack(treq.Rtype, 0, int32(1))
 	} else {
-		answer = Manage_ack(treq.Rtype, treq.Spec.(protocol.Ballid).Id, int32(1))
+		answer = Data.Manage_ack(treq.Rtype, treq.Spec.(protocol.Ballid).Id, int32(1))
 	}
 	return answer
 }
