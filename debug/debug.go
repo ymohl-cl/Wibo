@@ -37,8 +37,8 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	check_test2.Coord.Lat = 49.919253
 	check_test2.Date = time.Now()
 
-	check_test3.Coord.Lon = 1.3088211
-	check_test3.Coord.Lat = 49.918361
+	check_test3.Coord.Lon = 2.32386229
+	check_test3.Coord.Lat = 48.8851832
 	check_test3.Date = time.Now()
 
 	check_test4.Coord.Lon = 1.316045
@@ -59,20 +59,20 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	var Coord5 ballon.Coordinate
 
 	//2 | 48
-	Coord0.Lon = 1.3080535
-	Coord0.Lat = 49.910242
+	Coord0.Lon = 2.3080535
+	Coord0.Lat = 48.910242
 
-	Coord1.Lon = 1.316055
-	Coord1.Lat = 49.833086
+	Coord1.Lon = 2.316055
+	Coord1.Lat = 48.833086
 
-	Coord2.Lon = 1.316065
-	Coord2.Lat = 49.833586
+	Coord2.Lon = 2.316065
+	Coord2.Lat = 48.833586
 
-	Coord3.Lon = 1.30810777
-	Coord3.Lat = 49.919253
+	Coord3.Lon = 2.352222
+	Coord3.Lat = 48.856614
 
-	Coord4.Lon = 1.3088211
-	Coord4.Lat = 49.918361
+	Coord4.Lon = 2.3088211
+	Coord4.Lat = 48.918361
 
 	Coord5.Lon = 2.316045
 	Coord5.Lat = 48.833986

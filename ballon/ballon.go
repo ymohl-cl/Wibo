@@ -151,13 +151,18 @@ func (ball *Ball) Check_userPossessed(user *list.Element) bool {
 func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Coord.Lon
 	rlat := request.Value.(*protocol.Request).Coord.Lat
+	coord := ball.Coord.Value.(Checkpoint).Coord
 	if ball.Coord != nil {
 		//		coord := ball.Coord.Value.(Checkpoint).Coord
 		fmt.Println("Value de coord ball dans type 3: ", ball.Coord.Value.(Checkpoint))
-		if ball.GetDistance(rlon, rlat) < 1.0 { // { coord.Lon < rlon+0.01 &&
-			//coord.Lon > rlon-0.01 &&
-			//coord.Lat < rlat+0.01 &&
-			//coord.Lat > rlat-0.01 {
+		fmt.Println(ball.GetDistance(rlon, rlat))
+		fmt.Printf("Lonuser: ", rlon)
+		fmt.Printf("Latuser: ", rlat)
+		// if ball.GetDistance(rlon, rlat) < 1.0 {
+		if coord.Lon < rlon+0.01 &&
+			coord.Lon > rlon-0.01 &&
+			coord.Lat < rlat+0.01 &&
+			coord.Lat > rlat-0.01 {
 			return true
 		}
 	}
