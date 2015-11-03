@@ -94,8 +94,8 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
-					//					fmt.Println("Answer sending:")    // Print Verification
-					//					fmt.Println(Front.Value.([]byte)) // Print Verification
+					fmt.Println("Answer sending:")    // Print Verification
+					fmt.Println(Front.Value.([]byte)) // Print Verification
 					size, er = Conn.Write(Front.Value.([]byte))
 					fmt.Printf("Write %d octets\n", size)
 					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",

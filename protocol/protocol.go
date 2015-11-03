@@ -155,7 +155,8 @@ func (tkn *Request) Request_newball(TypBuff *bytes.Buffer) (err error, er error)
 		return
 	}
 	TypBuff.Next(4)
-	ball.Message, err = TypBuff.ReadString(0)
+	tmpM := TypBuff.Next(int(ball.Octets))
+	ball.Message = (bytes.NewBuffer(tmpM)).String()
 	if 1 == len(ball.Message) {
 		er = errors.New("Read ball.Message")
 		return
@@ -179,7 +180,8 @@ func (tkn *Request) Request_sendball(TypBuff *bytes.Buffer) (err error, er error
 		return
 	}
 	TypBuff.Next(4)
-	ball.Message, err = TypBuff.ReadString(0)
+	tmpM := TypBuff.Next(int(ball.Octets))
+	ball.Message = (bytes.NewBuffer(tmpM)).String()
 	if 1 == len(ball.Message) {
 		er = errors.New("Read ball Message")
 		return
@@ -288,36 +290,35 @@ func (token *Request) Get_request(buff []byte) (err error, er error) {
 func (token *Request) Print_token_debug(Log *log.Logger, Conn net.Conn) {
 	Log.Printf("Request from: %s| %v | type: %d\n", Conn.RemoteAddr(), token, token.Rtype)
 	fmt.Println("Request: ", token)
-	/*	fmt.Println("Request header:")
-		fmt.Println(token.Octets)
-		fmt.Println(token.Rtype)
-		fmt.Println(token.Nbrpck)
-		fmt.Println(token.Numpck)
-		fmt.Println(token.IdMobile)
-		fmt.Println(token.Coord.Lon)
-		fmt.Println(token.Coord.Lat)
-		fmt.Println("Type request:")
-		switch token.Rtype {
-		case SYNC:
-			fmt.Println("Data base synchronisation, type 1")
-		case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
-			fmt.Println(token.Spec.(Ballid).Id)
-		case POS, WORKBALL, MAGNET:
-		case TAKEN:
-			fmt.Println(token.Spec.(Taken).Id)
-			fmt.Println(token.Spec.(Taken).FlagMagnet)
-		case NEW_BALL:
-			fmt.Println(token.Spec.(New_ball).Title)
-			fmt.Println(token.Spec.(New_ball).Octets)
-			fmt.Println(token.Spec.(New_ball).Message)
-		case SEND_BALL:
-			fmt.Println(token.Spec.(Send_ball).Id)
-			fmt.Println(token.Spec.(Send_ball).Octets)
-			fmt.Println(token.Spec.(Send_ball).Message)
-		case ACK:
-			fmt.Println(token.Spec.(Ack).Atype)
-			fmt.Println(token.Spec.(Ack).Status)
-		case STATSUSER:
-		}
-	*/
+	fmt.Println("Request header:")
+	fmt.Println(token.Octets)
+	fmt.Println(token.Rtype)
+	fmt.Println(token.Nbrpck)
+	fmt.Println(token.Numpck)
+	fmt.Println(token.IdMobile)
+	fmt.Println(token.Coord.Lon)
+	fmt.Println(token.Coord.Lat)
+	fmt.Println("Type request:")
+	switch token.Rtype {
+	case SYNC:
+		fmt.Println("Data base synchronisation, type 1")
+	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
+		fmt.Println(token.Spec.(Ballid).Id)
+	case POS, WORKBALL, MAGNET:
+	case TAKEN:
+		fmt.Println(token.Spec.(Taken).Id)
+		fmt.Println(token.Spec.(Taken).FlagMagnet)
+	case NEW_BALL:
+		fmt.Println(token.Spec.(New_ball).Title)
+		fmt.Println(token.Spec.(New_ball).Octets)
+		fmt.Println(token.Spec.(New_ball).Message)
+	case SEND_BALL:
+		fmt.Println(token.Spec.(Send_ball).Id)
+		fmt.Println(token.Spec.(Send_ball).Octets)
+		fmt.Println(token.Spec.(Send_ball).Message)
+	case ACK:
+		fmt.Println(token.Spec.(Ack).Atype)
+		fmt.Println(token.Spec.(Ack).Status)
+	case STATSUSER:
+	}
 }
