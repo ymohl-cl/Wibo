@@ -195,7 +195,7 @@ func RemoveUserFollower(usr *list.Element, eball *list.Element) bool {
 }
 
 /* Cut one packet most big than 1024 in multi packs to 1024 octets max */
-func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List) {
+/*func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List) {
 	listpack = list.New()
 	size := msg.Size
 	var copymsg ballon.Message
@@ -239,7 +239,7 @@ func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List)
 		listpack.PushBack(pack)
 	}
 	return listpack
-}
+}*/
 
 /* Checked if request list is completed */
 func (Data *Data) Check_lstrequest() bool {
@@ -413,13 +413,14 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		mes.idcity = msg.Idcity
 		mes.mess = msg.Content
 		mes.mtype = msg.Type
-		pck.head.octets += 16 + int16(msg.Size)
+		pck.head.octets += int16(16 + msg.Size)
 		pck.ptype.(*Contentball).messages.PushBack(mes)
 	}
 	pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
 	lstP.PushBack(pck)
 	Pnbr := lstP.Len()
+	fmt.Println("Nbr de packet dans contentBall: ", Pnbr)
 	for e := lstP.Front(); e != nil; e = e.Next() {
 		e.Value.(*Packet).head.pnbr = int32(Pnbr)
 	}
@@ -503,7 +504,7 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 	pck := new(Packet)
 	conn := new(Conn)
 
-	pck.head.octets = 24
+	pck.head.octets = SIZE_HEADER + 8
 	pck.head.rtype = CONN
 	conn.nbrball = 0
 	conn.infoballs = list.New()
@@ -518,7 +519,7 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 		} else {
 			myball.taken = 0
 		}
-		if pck.head.octets+16 > 1024 {
+		if pck.head.octets+16 > SIZE_PACKET {
 			pck.ptype = conn
 			plist.PushBack(pck)
 			pck = new(Packet)
@@ -782,20 +783,12 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == true {
 		user := Data.User.Value.(*users.User)
 		ball := eball.Value.(*ballon.Ball)
-		//		ball.Lock()
 
 		RemoveBallPossessed(eball, Data.User)
 		// Ajouter Le nouveau message.
 		ball.Possessed = nil
 		ball.Edited = true
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
-
-		//		checkpoint.Coord.Lon = rqt.Coord.Lon
-		//		checkpoint.Coord.Lat = rqt.Coord.Lat
-		//		checkpoint.Coord.
-		//		checkpoint.Date = time.Now()
-		//		ball.Coord = ball.Checkpoints.PushBack(checkpoint)
-		//		ball.Get_checkpointList(Tab_wd.Get_Paris())
 		var message ballon.Message
 		message.Id = int32(ball.Messages.Len())
 		message.Size = rqt.Spec.(protocol.Send_ball).Octets
@@ -803,7 +796,6 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		message.Type = 1
 		ball.Messages.PushBack(message)
 
-		//		ball.Unlock()
 		/* Begin stats ---- */
 		user.Stats.NbrMessage++
 		user.Stats.NbrSend++

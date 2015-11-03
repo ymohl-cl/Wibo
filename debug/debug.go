@@ -5,6 +5,7 @@ import (
 	"Wibo/owm"
 	"Wibo/users"
 	"container/list"
+	"fmt"
 	"time"
 )
 
@@ -90,21 +91,28 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 	message0.Id = 0
 	message0.Size = 34
 	message0.Content = "Coucou les gens, message0. ID 0..."
+	fmt.Println("Taille du message: ", len(message0.Content))
 	message0.Type = 1
 
 	message1.Id = 1
 	message1.Size = 33
 	message1.Content = "Coucou les gens, message1. Id 1.."
+	fmt.Println("Taille du message: ", len(message1.Content))
+	message0.Type = 1
 	message1.Type = 1
 
 	message2.Id = 2
 	message2.Size = 32
 	message2.Content = "Coucou les gens, message2. Id 2."
+	fmt.Println("Taille du message: ", len(message2.Content))
+	message0.Type = 1
 	message2.Type = 1
 
 	message3.Id = 3
 	message3.Size = 31
 	message3.Content = "Coucou les gens, message3. Id 3"
+	fmt.Println("Taille du message: ", len(message3.Content))
+	message0.Type = 1
 	message3.Type = 1
 
 	mmp.PushBack(message0)
