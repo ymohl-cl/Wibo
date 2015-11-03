@@ -6,14 +6,60 @@ import (
 	"Wibo/users"
 	"container/list"
 	"fmt"
+	//	"strconv"
 	"time"
 )
+
+/*func createMessage1000() *list.List {
+	lst := list.New()
+
+	return lst
+}
+
+func GetRandomCoord() *list.Element { // Checkpoint
+
+	return
+}
+
+func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data) {
+	lstmsg := createMessage1000()
+	usr := user.Value.(*users.User)
+
+	for i := 0; i < 1000; i++ {
+		ball := new(ballon.Ball)
+
+		ball.Id_ball = lball.Id_max
+		lball.Id_max++
+		ball.Edited = true
+		ball.Title = "TEST" + strconv.Itoa(int(ball.Id_ball))
+		ball.Messages = lstmsg
+		ball.Coord = GetRandomCoord()
+		ball.Itinerary = list.New()
+		ball.Itinerary.PushBack(ball.Coord.Value.(ballon.Checkpoint))
+		ball.Followers = list.New()
+		ball.Checkpoints = list.New()
+		ball.Date = time.Now()
+		ball.Possessed = nil
+		ball.Followers = list.New()
+		ball.Followers.PushFront(user)
+		ball.Creator = user
+		ball.Scoord = ball.Coord
+		ball.InitCoord(ball.Coord.Value.(ballon.Checkpoint).Coord.Lon, ball.Coord.Value.(ballon.Checkpoint).Coord.Lat, int16(0), wd, true)
+		eball := lball.Blist.PushBack(ball)
+		usr.NbrBallSend++
+		usr.Followed.PushBack(eball)
+	}
+}
+*/
 
 /* CREER UN BALLON POUR FAIRE DES TESTS */
 func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *owm.All_data) error {
 	lball.Id_max += 6
-	/* CREATE USER */
-
+	/* Get USER */
+	user := luser.Ulist.Front()
+	if user != nil {
+		//		createBall1000(lball, user, tabwd)
+	}
 	//	euser := luser.Ulist.Front()
 
 	/* END CREATE USER -- CREATE CHECKPOINT */
