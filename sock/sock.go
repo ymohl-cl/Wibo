@@ -48,7 +48,7 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 	Data.Logger = Logger
 	Data.Conn = Conn
 
-	Data.Logger.Println("New Conn.ction with (remote Address): ", Conn.RemoteAddr())
+	Data.Logger.Println("New Connection with (remote Address): ", Conn.RemoteAddr())
 	defer Conn.Close()
 	defer Data.Lst_req.Init()
 	defer Data.Lst_asw.Init()
@@ -56,16 +56,24 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 		buff := make([]byte, 1024)
 		size, er := Conn.Read(buff)
 		if er != nil && er == io.EOF {
+			fmt.Println("CONNECTION CLOSE BY CLIENT !")
+			Data.Logger.Println("Connection close with (remote Address): ",
+				Conn.RemoteAddr())
+			return
 		} else if er != nil {
-			Data.Logger.Printf("Read %d octets, error: %s\n", size, er)
+			Data.Logger.Printf("Read %d octets, error: %s, from: %s\n",
+				size, er, Conn.RemoteAddr())
 			return
 		} else {
-			Data.Logger.Printf("Packet received by (remote Address): %s\n", Conn.RemoteAddr())
-
+			fmt.Println("|....................................................................................|")
+			fmt.Println("|....................................................................................|")
+			Data.Logger.Printf("Packet received by (remote Address): %s\n",
+				Conn.RemoteAddr())
 			Token := new(protocol.Request)
 			er, er2 := Token.Get_request(buff)
 			if er != nil || er2 != nil {
-				Data.Logger.Printf("Remote Address: %s| Get_request error1: %s, Get_request_erro2: %s\n", Conn.RemoteAddr(), er, er2)
+				Data.Logger.Printf("Remote Address: %s| Get_request error1: %s, Get_request_erro2: %s\n",
+					Conn.RemoteAddr(), er, er2)
 				return
 			} else {
 				Token.Print_token_debug(Data.Logger, Conn)
@@ -74,28 +82,32 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 			if Data.Check_lstrequest() == true {
 				er = Data.Get_answer(Serv.Tab_wd, Db)
 				if er != nil {
-					Data.Logger.Printf("Remote Address: %s| Get_answer error: %s\n", Conn.RemoteAddr(), er)
+					Data.Logger.Printf("Remote Address: %s| Get_answer error: %s\n",
+						Conn.RemoteAddr(), er)
 					Front := Data.Lst_asw.Front()
 					if Front != nil {
 						size, er = Conn.Write(Front.Value.([]byte))
 						fmt.Printf("Write %d octets\n", size)
-						Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n", Conn.RemoteAddr(), size, er)
+						Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
+							Conn.RemoteAddr(), size, er)
 					}
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
-					fmt.Println("Answer sending:")    // Print Verification
-					fmt.Println(Front.Value.([]byte)) // Print Verification
+					//					fmt.Println("Answer sending:")    // Print Verification
+					//					fmt.Println(Front.Value.([]byte)) // Print Verification
 					size, er = Conn.Write(Front.Value.([]byte))
 					fmt.Printf("Write %d octets\n", size)
-					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n", Conn.RemoteAddr(), size, er)
+					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
+						Conn.RemoteAddr(), size, er)
 					Data.Lst_asw.Remove(Front)
 				}
 			} else {
 				awr := Data.Get_aknowledgement(Data.Lst_users)
 				size, er = Conn.Write(awr)
 				fmt.Printf("Write %d octets\n", size)
-				Data.Logger.Printf("Remote Address: %s| retour de Conn.Write (exhange multiple packets), size: %d, er: %s\n", Conn.RemoteAddr(), size, er)
+				Data.Logger.Printf("Remote Address: %s| retour de Conn.Write (exhange multiple packets), size: %d, er: %s\n",
+					Conn.RemoteAddr(), size, er)
 			}
 		}
 		buff = nil
@@ -109,15 +121,6 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 ** arriver a un etat close.
  */
 func Listen(Serv *server.Server, Db *sql.DB) {
-	var Logger *log.Logger
-
-	file, er := os.Create("Logsfile.txt")
-	if er != nil {
-		Serv.Logger.Println("os.Create error: ", er)
-		os.Exit(-1)
-	}
-	Logger = log.New(file, "logger: ", log.Llongfile|log.Ldate|log.Ltime)
-
 	ln, er := net.Listen("tcp", ":45899")
 	if er != nil {
 		Serv.Logger.Println("os.Create error: ", er)
@@ -130,6 +133,6 @@ func Listen(Serv *server.Server, Db *sql.DB) {
 		if er != nil {
 			Serv.Logger.Println("Accept error: ", er)
 		}
-		go handleConnection(Conn, Db, Logger, Serv)
+		go handleConnection(Conn, Db, Serv.Logger, Serv)
 	}
 }

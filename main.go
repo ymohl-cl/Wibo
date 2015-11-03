@@ -22,8 +22,10 @@ import (
 	"Wibo/server"
 	"Wibo/sock"
 	"Wibo/users"
-	//	"container/list"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -133,12 +135,26 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 	}
 }
 
+func ManageSignal(Serv *server.Server) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
+	s := <-c
+	Serv.Logger.Println("Get Signal: ", s)
+	Serv.Tab_wd.Logger = nil
+	Serv.Lst_users.Logger = nil
+	Serv.Lst_ball.Logger = nil
+	Serv.Lst_Devices.Logger = nil
+	Serv.Logger = nil
+	os.Exit(-1)
+}
+
 func main() {
 	Server := new(server.Server)
 	myDb := new(db.Env)
 
 	er := Server.InitServer()
 	if er != nil {
+		fmt.Println("Error on InitServer: ", er)
 		return
 	}
 	Db, er := myDb.OpenCo(er)
@@ -151,6 +167,7 @@ func main() {
 		Server.Logger.Println("Init_Data error: ", er)
 		return
 	}
+	go ManageSignal(Server)
 	go Manage_goroutines(Server, myDb)
 	go sock.Listen(Server, Db)
 

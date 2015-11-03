@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -23,7 +24,8 @@ type Device struct {
 }
 
 type All_Devices struct {
-	Dlist *list.List
+	Dlist  *list.List
+	Logger *log.Logger
 }
 
 func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *users.All_users) (dvc *list.Element, er error) {
@@ -88,9 +90,9 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 			dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New(), UserSpec: allUsers[idUserDefault]})
 			fmt.Printf("%v\n", allUsers[idUserDefault])
 			tmpDevicel := dlist.Dlist.Back()
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).Idbdd  , tmpDevicel.Value.(*Device).Idbdd  )
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).IdUserDefault  , tmpDevicel.Value.(*Device).IdUserDefault)
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User) , tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User))
+			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).Idbdd, tmpDevicel.Value.(*Device).Idbdd)
+			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).IdUserDefault, tmpDevicel.Value.(*Device).IdUserDefault)
+			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User), tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User))
 		}
 	}
 	return nil
