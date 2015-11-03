@@ -6,12 +6,12 @@ import (
 	"bytes"
 	"container/list"
 	"database/sql"
-	"errors"
+	_ "errors"
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	"golang.org/x/crypto/bcrypt"
 	"log"
-	"os"
+	_ "os"
 	"strconv"
 	"strings"
 	"time"
@@ -128,14 +128,13 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
-func (lu *All_users) Get_GlobalStat(base *db.Env) (er error) {
-	rows, lu.logUser.Err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
-	if lu.logUser.Err != nil {
-		lu.LogUser.Prob = "Update users fail:"
-		return lu.LogUser.Error()
+func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
+	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
+	if err != nil {
+		return &userError{Prob: "Get Global stat", Err: nil, Logf: Lu.Logger}
 	}
 	defer rows.Close()
-	rows.Scan(&lu.NbrUsers, &lu.GlobalStat.NbrFollow, &lu.GlobalStat.NbrMessage, &lu.GlobalStat.NbrSend, &lu.GlobalStat.NbrBallCreate)
+	rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate)
 	return nil
 }
 
@@ -146,10 +145,9 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 	u := lu.Ulist.Front()
 	for u != nil {
 		cu := u.Value.(*User)
-		trow, Lst_users.LogUser.Err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
-		if Lst_users.LogUser.Err != nil {
-			Lst_users.LogUser.Prob = "Update users fail:"
-			return Lst_users.LogUser.Error()
+		trow, err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
+		if err != nil {
+			return &userError{Prob: "Update users", Err: err, Logf: lu.Logger}
 		}
 
 		defer trow.Close()
@@ -175,7 +173,6 @@ func CheckValidMail(email string) bool {
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	var err error
-	passb := []byte(pass)
 	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
 	if err != nil {
 		fmt.Println(err)
@@ -189,9 +186,7 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 		var bpass []byte
 		err = rows.Scan(&idUser, &mailq, &bpass)
 
-		newpass, err := bcrypt.GenerateFromPassword(passb, 15)
 		if err != nil {
-			fmt.Println(err)
 			return nil
 		}
 		if t := bytes.Equal(bpass, pass); t != false {
@@ -207,11 +202,10 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 *	TODO: del device
 **/
 func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
-	stm, Lst_users.LogUser.Err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
+	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
 	defer stm.Close()
-	if Lst_users.LogUser.Err != nil {
-		Lst_users.LogUser.Prob = "Del user fail"
-		return false, Lst_users.LogUser
+	if err != nil {
+		return false, &userError{Prob: "Delete Users", Err: err, Logf: Lst_users.Logger}
 	}
 	_, Lst_users.LogUser.Err = stm.Exec(del_user.Id)
 	executed = true
@@ -244,15 +238,10 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte
 		/* really danger below */
 		Pass = []byte("ThisIsAPasswordDefault2015OP")
 	}
-	bpass, Lst_users.LogUser.Err := bcrypt.GenerateFromPassword(Pass, 15)
-	if Lst_users.LogUser.Err != nil {
-		Lst_users.LogUser.Prob = "Add new user fail"
-		return false, Lst_users.LogUser.Error()
-	}
 
 	if len(new_user.Mail) > 0 {
 		if valid.IsEmail(new_user.Mail) != true {
-			return false, errors.New("Wrong mail format")
+			return false, nil
 		}
 	}
 	Lst_users.LogUser.Err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
@@ -275,9 +264,10 @@ Insert user default
 	insert a user with default data
 */
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request) *list.Element {
-	bpass, Lst_users.LogUser.Err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
-	if Lst_users.LogUser.Err != nil {
+	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
+	if err != nil {
 		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
+		Lst_users.LogUser.Err = err
 		Lst_users.LogUser.Error()
 		return nil
 	}
@@ -311,9 +301,10 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
  */
 
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
-	rows, LstU.LogUser.Err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
-	if LstU.LogUser.Err != nil {
+	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
+	if err != nil {
 		LstU.LogUser.Prob = "GetDevicesByIdUser query"
+		LstU.LogUser.Err = err
 		LstU.LogUser.Error()
 		return nil
 	}
@@ -329,7 +320,7 @@ func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 				LstU.LogUser.Error()
 				return nil
 			}
-		return initUser(idUser, mailq)
+			return initUser(idUser, mailq)
 		}
 	}
 	return nil
@@ -376,12 +367,14 @@ func (Lusr *All_users) NewUser(mail string) *User {
 func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 
 	lDevice := list.New()
-	stm, Lusr.LogUser.Err := Db.Prepare("SELECT getDevicesByUserId($1)")
-	if Lusr.LogUser.Err != nil {
+	stm, err := Db.Prepare("SELECT getDevicesByUserId($1)")
+	defer stm.Close()
+	if err != nil {
 		Lusr.LogUser.Prob = "GetDevicesByIdUser query"
+		Lusr.LogUser.Err = err
 		Lusr.LogUser.Error()
 	}
-	rows, Lusr.LogUser.Err := stm.Query(idUser)
+	rows, err := stm.Query(idUser)
 	defer stm.Close()
 	if rows.Next() != false {
 		for rows.Next() {

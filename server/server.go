@@ -34,7 +34,7 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	Serv.Tab_wd.Print_weatherdata()
 
 	Serv.Lst_users.Ulist = list.New()
-	er = Serv.Lst_users.Get_users(base.Db, Serv.Logger)
+	er = Serv.Lst_users.Get_users(base.Db)
 	if er != nil {
 		return er
 	} // If possible print user List with Serv.Lst_users.Print_users()
