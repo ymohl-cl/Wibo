@@ -160,7 +160,7 @@ func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Coord.Lon
 	rlat := request.Value.(*protocol.Request).Coord.Lat
 
-	if ball.Coord != nil {
+	if ball.Coord != nil && ball.Possessed == nil {
 		if ball.GetDistance(rlon, rlat) < 1.0 {
 			return true
 		}
