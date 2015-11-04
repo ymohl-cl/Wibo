@@ -28,7 +28,7 @@ func GetRandomCoord() *list.Element { // Checkpoint
 func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data) {
 	usr := user.Value.(*users.User)
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		ball := new(ballon.Ball)
 
 		ball.Id_ball = lball.Id_max
@@ -50,9 +50,12 @@ func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data
 		ball.InitCoord(ball.Coord.Value.(*ballon.Checkpoint).Coord.Lon, ball.Coord.Value.(*ballon.Checkpoint).Coord.Lat, int16(0), wd, true)
 		ball.Stats = new(ballon.StatsBall)
 		eball := lball.Blist.PushBack(ball)
-		usr.NbrBallSend++
+		usr.Stats.NbrBallCreate++
 		usr.Followed.PushBack(eball)
 	}
+	usr.Stats.NbrSend = usr.Stats.NbrBallCreate
+	usr.Stats.NbrFollow = usr.Stats.NbrBallCreate
+	usr.Stats.NbrMessage = usr.Stats.NbrBallCreate
 }
 
 /* CREER UN BALLON POUR FAIRE DES TESTS */

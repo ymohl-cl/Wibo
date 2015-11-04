@@ -573,6 +573,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 			idMessageMax, er := getIdMessageMax(idBall, base)
 			if er != nil {
 				Lb.checkErr(er)
+				fmt.Println("1")
 				return er
 			}
 			j := 0
@@ -581,21 +582,25 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
 						stm, err := tx.Prepare("INSERT INTO message(content, containerid) values($1, (SELECT id from container where ianix = $2))")
 						if err != nil {
+							fmt.Println("2")
 							return err
 						}
 						defer stm.Close()
 						res, err := stm.Exec(f.Value.(Message).Content, idBall)
 						if err != nil {
+							fmt.Println("2")
 							return err
 						}
 						var rowsAffect int64
 						rowsAffect, err = res.RowsAffected()
 						if err != nil {
+							fmt.Println("3")
 							return err
 						}
 						rowsAffect = rowsAffect // SET BUT NOT USE
 						res = res               // SET BUT NOT USE
 						j++
+						fmt.Println("1")
 						return err
 					})
 					Lb.checkErr(err)

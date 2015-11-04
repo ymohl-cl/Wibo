@@ -122,6 +122,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 			}
 		case <-channelfuncupdatedata:
 			{
+				fmt.Println("UPDATE !!")
 				er := Serv.Lst_ball.Update_balls(Serv.Lst_ball, base)
 				if er != nil {
 					Serv.Logger.Println("Update_balls error: ", er)
