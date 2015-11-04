@@ -496,18 +496,18 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	return IdMax, err
 }
 
-func getIdBallMax(base *db.Env) (int64, error) {
+func getIdBallMax(base *db.Env) int64 {
 	var IdMax int64
 	IdMax = 0
 	rs, err := base.Db.Query("SELECT ianix FROM container ORDER BY ianix DESC LIMIT 1;")
 	if err != nil {
-		return IdMax, err
+		return IdMax
 	}
 	defer rs.Close()
 	if rs.Next() != false {
 		rs.Scan(&IdMax)
 	}
-	return IdMax, err
+	return IdMax
 }
 
 /*
@@ -565,7 +565,7 @@ CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec 
 AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
 \*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
-	IdMaxBase, _ := getIdBallMax(base)
+	IdMaxBase := getIdBallMax(base)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= IdMaxBase {
@@ -901,10 +901,7 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (er error) {
 	er = nil
 
-	Lb.Id_max, er = getIdBallMax(base)
-	if er != nil {
-		return er
-	}
+	Lb.Id_max = getIdBallMax(base)
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		tlst, er := Lb.GetListBallsByUser(e, base, LstU.Ulist)
 		if er != nil {
