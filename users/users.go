@@ -184,6 +184,7 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
+
 	}
 	defer rows.Close()
 	fmt.Printf("checkPassword :")
@@ -201,6 +202,7 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 			return nil
 		}
 		return user
+
 	}
 	fmt.Printf("is false\n")
 	return nil
@@ -243,25 +245,14 @@ func (e *userError) Error() string {
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte) (bool, error) {
 
-	if len(Pass) == 0 {
-		/* really danger below */
-		Pass = []byte("ThisIsAPasswordDefault2015OP")
-	}
-
 	if len(new_user.Mail) > 0 {
 		if valid.IsEmail(new_user.Mail) != true {
 			return false, nil
 		}
 	}
 	Lst_users.LogUser.Err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
-		1,
-		"user_particulier",
-		new_user.Coord.Lat,
-		new_user.Coord.Lon,
-		new_user.Stats.CreationDate,
-		new_user.Log,
-		new_user.Mail,
-		Pass).Scan(&new_user.Id)
+		1, "user_particulier", new_user.Coord.Lat, new_user.Coord.Lon,
+		new_user.Stats.CreationDate, new_user.Log, new_user.Mail, Pass).Scan(&new_user.Id)
 	if Lst_users.LogUser.Err != nil {
 		return false, Lst_users.LogUser.Err
 	}
