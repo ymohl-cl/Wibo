@@ -102,21 +102,15 @@ func hsin(theta float64) (result float64) {
 func (ball *Ball) GetDistance(lon_user float64, lat_user float64) float64 {
 	var lat1, lat2, lon1, lon2, rayon float64
 
-	fmt.Println("Get distance with ball id: ", ball.Id_ball)
 	lat1 = lat_user * math.Pi / 180
 	lon1 = lon_user * math.Pi / 180
 	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat
 	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon
-	fmt.Println("Latatitude ballon: ", lat2)
-	fmt.Println("Longititude ballon: ", lon2)
 	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat * math.Pi / 180
 	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon * math.Pi / 180
-	fmt.Println("Latatitude user: ", lat_user)
-	fmt.Println("Longititude user: ", lon_user)
 	rayon = 6378137
 
 	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
-	fmt.Println("Distance calcule en km: ", 2*rayon*math.Asin(math.Sqrt(hvsin)/1000))
 	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) / 1000
 }
 
@@ -160,7 +154,7 @@ func (ball *Ball) Check_nearbycoord(request *list.Element) bool {
 	rlon := request.Value.(*protocol.Request).Coord.Lon
 	rlat := request.Value.(*protocol.Request).Coord.Lat
 
-	if ball.Coord != nil {
+	if ball.Coord != nil && ball.Possessed == nil {
 		if ball.GetDistance(rlon, rlat) < 1.0 {
 			return true
 		}

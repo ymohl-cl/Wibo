@@ -4,7 +4,7 @@ import (
 	"Wibo/ballon"
 	"Wibo/ballonwork"
 	"Wibo/db"
-	//"Wibo/debug"
+	"Wibo/debug"
 	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/users"
@@ -58,13 +58,17 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	if er != nil {
 		return er
 	} // If possible print workball List with Serv.Lst_Work.Print_all_workball()
-
 	if er != nil {
 		return er
 	} // If possible comment this section. Data filled to debug.
 	er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
 	if er != nil {
 		Serv.Logger.Println("Create_checkpoint error: ", er)
+	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
+
+	er = debug.CreateDataToDebug(Serv.Lst_ball, Serv.Lst_users, Serv.Tab_wd)
+	if er != nil {
+		Serv.Logger.Println("Create DataToDebug error: ", er)
 	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
 
 	return nil
