@@ -190,7 +190,7 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
 			eball = eball.Next()
 		}
-		for eball != nil && eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false {
+		for eball != nil && (eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false) {
 			eball = eball.Next()
 			if eball == nil && flag == false {
 				flag = true
@@ -714,20 +714,24 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
 		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
-		defer stm.Close()
 		if errT != nil {
+			fmt.Println("1")
 			return errT
 		}
+		defer stm.Close()
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
 		if err != nil {
+			fmt.Println("2")
 			return err
 		} else if rows.Next() == false {
+			fmt.Println("3")
 			return nil
 		}
 		for rows.Next() {
 			var infoCont string
 			err = rows.Scan(&infoCont)
 			if err != nil {
+				fmt.Println("4")
 				return err
 			}
 			//			Lb.checkErr(err)
@@ -739,6 +743,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			idTmp, _ := strconv.Atoi(result[8])
 			possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
 			if er != nil {
+				fmt.Println("5")
 				return er
 			}
 			tmpBall := Lb.Get_ballbyid(int64(idTmp))
@@ -747,10 +752,12 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			} else {
 				lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
 				if err != nil {
+					fmt.Println("6")
 					return err
 				}
 				lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
 				if err != nil {
+					fmt.Println("7")
 					return err
 				}
 				lBallon.PushBack(
@@ -901,6 +908,7 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (er error) {
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		tlst, er := Lb.GetListBallsByUser(e, base, LstU.Ulist)
 		if er != nil {
+			fmt.Println("Deconne putain")
 			return er
 		}
 		Lb.Blist.PushBackList(tlst)

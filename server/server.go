@@ -46,6 +46,7 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	Serv.Lst_ball.Blist = list.New()
 	er = Serv.Lst_ball.Get_balls(Serv.Lst_users, base)
 	if er != nil {
+		fmt.Println("Erreur get ball")
 		return er
 	} // If possible print ball List with Serv.Lst_ball.Print_all_balls()
 	Serv.Lst_Devices.Dlist = list.New()
