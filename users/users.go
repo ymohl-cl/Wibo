@@ -11,7 +11,7 @@ import (
 	valid "github.com/asaskevich/govalidator"
 	"golang.org/x/crypto/bcrypt"
 	"log"
-	_ "os"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -176,25 +176,30 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
 	if err != nil {
 		fmt.Println(err)
-		//os.Exit(-1)
+		os.Exit(-1)
 	}
 	defer rows.Close()
-
+	fmt.Printf("checkPassword :")
 	if rows.Next() != false {
 		var idUser int64
 		var mailq string
 		var bpass []byte
 		err = rows.Scan(&idUser, &mailq, &bpass)
-
+		fmt.Printf("check password %T | %v \n", bpass, bpass)
+		fmt.Printf("check password %T | %v \n", pass, pass)
+		fmt.Printf("check password %T | %v \n", bytes.Compare(bpass, pass), bytes.Compare(bpass, pass))
 		if err != nil {
+			fmt.Printf("check password fail%T | %v \n", mailq, mailq)
 			return nil
 		}
-		if t := bytes.Equal(bpass, pass); t != false {
+		if t := bytes.Equal(bpass, pass); t != true {
 			fmt.Println("Wrong Password!")
 			return nil
 		}
+		return user
 	}
-	return user
+	fmt.Printf("is false\n")
+	return nil
 }
 
 /**
