@@ -905,7 +905,7 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (er error) {
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		tlst, er := Lb.GetListBallsByUser(e, base, LstU.Ulist)
 		if er != nil {
-			fmt.Println("Deconne putain")
+			fmt.Println("Get balls err")
 			return er
 		}
 		Lb.Blist.PushBackList(tlst)
