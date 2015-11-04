@@ -190,7 +190,7 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
 			eball = eball.Next()
 		}
-		for eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false {
+		for eball != nil && eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false {
 			eball = eball.Next()
 			if eball == nil && flag == false {
 				flag = true
@@ -595,7 +595,6 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 						}
 						rowsAffect = rowsAffect // SET BUT NOT USE
 						res = res               // SET BUT NOT USE
-						j++
 						fmt.Println("1")
 						stm.Close()
 						return err
