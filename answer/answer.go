@@ -723,6 +723,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	var mess ballon.Message
 	user := Data.User.Value.(*users.User)
 
+	fmt.Println("User Nbr: ", user.NbrBallSend)
 	if user.NbrBallSend < 10 {
 		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
 		ball.Id_ball = Data.Lst_ball.Id_max

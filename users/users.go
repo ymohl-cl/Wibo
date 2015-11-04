@@ -9,6 +9,7 @@ import (
 	_ "errors"
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
+	"github.com/op/go-logging"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"os"
@@ -70,6 +71,12 @@ type userError struct {
 	Err  error
 	Logf *log.Logger
 }
+
+// var log = logging.MustGetLogger("wiboLog")
+
+var format = logging.MustStringFormatter(
+	"%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}",
+)
 
 func (User *User) MagnetisValid() bool {
 	if time.Since(User.Magnet) > (1 * time.Minute) {
@@ -399,6 +406,14 @@ func GetCoord(position string) Coordinate {
 	return Coordinate{Lon: long, Lat: lat}
 }
 
+func (Lusr *All_users) setBackendLog() {
+	backendUser := logging.SetForeingLogBackend(Lusr.Logger)
+	backendFormatter := logging.NewBackendFormatter(backendUser, format)
+	backend1Leveled := logging.AddModuleLevel(backendUser)
+	backend1Leveled.SetLevel(logging.ERROR, "")
+	logging.SetBackend(backend1Leveled, backendFormatter)
+}
+
 /**
 * Get_users
 * Query the user table join device and create new *listList Pointer
@@ -406,6 +421,7 @@ func GetCoord(position string) Coordinate {
 func (Lusr *All_users) Get_users(Db *sql.DB) (err error) {
 	lUser := list.New()
 	Lusr.LogUser = &userError{"init error", nil, Lusr.Logger}
+	Lusr.setBackendLog()
 	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
 	if err != nil {
 		return err

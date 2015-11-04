@@ -545,11 +545,15 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 			NewBall.Title,
 			NewBall.Id_ball,
 			NewBall.Date).Scan(&IdC)
+		stm.Close()
 		return err
 	})
 	Lst_ball.checkErr(err)
 	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
-	Lst_ball.checkErr(err)
+	if err != nil {
+		Lst_ball.Logger.Println("Insert Ball fail")
+		return false, err
+	}
 	executed = true
 	return executed, err
 }
@@ -561,13 +565,10 @@ CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec 
 AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
 \*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
-	i := 0
-	fmt.Println("\x1b[31;1m coucou update\x1b[0m")
-	fmt.Printf("%v Id Max\n", ABalls.Id_max)
-
+	IdMaxBase, _ := getIdBallMax(base)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
-		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= ABalls.Id_max {
+		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < IdMaxBase {
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax, er := getIdMessageMax(idBall, base)
@@ -575,7 +576,6 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				Lb.checkErr(er)
 				return er
 			}
-			j := 0
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
@@ -583,30 +583,33 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 						if err != nil {
 							return err
 						}
-						defer stm.Close()
 						res, err := stm.Exec(f.Value.(Message).Content, idBall)
 						if err != nil {
 							return err
 						}
 						var rowsAffect int64
 						rowsAffect, err = res.RowsAffected()
+						fmt.Printf("rows affected: %T, %v\n", rowsAffect)
 						if err != nil {
 							return err
 						}
 						rowsAffect = rowsAffect // SET BUT NOT USE
 						res = res               // SET BUT NOT USE
 						j++
+						fmt.Println("1")
+						stm.Close()
 						return err
 					})
-					Lb.checkErr(err)
+					if err != nil {
+						Lb.Logger.Printf("Error: %s", err)
+					}
 				}
 			}
 			e.Value.(*Ball).Unlock()
-		} else if e.Value.(*Ball).Id_ball > ABalls.Id_max {
-			fmt.Printf("\x1b[31;1m insert ball  %d \x1b[0m\n", e.Value.(*Ball).Id_ball)
+		} else if e.Value.(*Ball).Id_ball > IdMaxBase {
+			fmt.Printf("\x1b[31;1m Insert ball  %d \x1b[0m\n", e.Value.(*Ball).Id_ball)
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
-		i++
 	}
 	return er
 }

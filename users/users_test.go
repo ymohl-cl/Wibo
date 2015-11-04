@@ -30,8 +30,5 @@ func TestUsers(t *testing.T) {
 	user1.Log = time.Now()
 	Lst_users.Ulist.PushBack(user1)
 
-	/* CREER UN BALLON POUR FAIRE DES TESTS */
-
-	result, _ := Lst_users.Add_new_user(user1, Db)
 	fmt.Println(result)
 }
