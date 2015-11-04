@@ -568,7 +568,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	IdMaxBase, _ := getIdBallMax(base)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
-		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < IdMaxBase {
+		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= IdMaxBase {
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax, er := getIdMessageMax(idBall, base)
@@ -606,7 +606,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 			}
 			e.Value.(*Ball).Unlock()
 		} else if e.Value.(*Ball).Id_ball > IdMaxBase {
-			fmt.Printf("\x1b[31;1m Insert ball  %d \x1b[0m\n", e.Value.(*Ball).Id_ball)
+			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
 	}
