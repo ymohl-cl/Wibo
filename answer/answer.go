@@ -304,9 +304,9 @@ func Write_conn(plist *list.List) (alist *list.List) {
 	for packet != nil {
 		pck := packet.Value.(*Packet)
 		Buffer := Write_header(*pck)
-		binary.Write(Buffer, binary.BigEndian, pck.ptype.(Conn).nbrball)
+		binary.Write(Buffer, binary.BigEndian, pck.ptype.(*Conn).nbrball)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-		iball := pck.ptype.(Conn).infoballs.Front()
+		iball := pck.ptype.(*Conn).infoballs.Front()
 		for iball != nil {
 			ball := iball.Value.(Infoball)
 			binary.Write(Buffer, binary.BigEndian, ball.id)
@@ -534,7 +534,7 @@ func (Data *Data) Manage_sync(Req *list.Element) {
 		conn.nbrball += 1
 		flwupball = flwupball.Next()
 	}
-	pck.ptype = *conn
+	pck.ptype = conn
 	plist.PushBack(pck)
 	pelem := plist.Front()
 	nbrpacket := int32(plist.Len())
@@ -819,10 +819,13 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	var answer []byte
 	var eball *list.Element
 
+	fmt.Println("Status Ballon")
+	fmt.Println(Data.Lst_ball.Id_max)
+	fmt.Println(Data.Lst_ball.Blist.Len())
 	if user.MagnetisValid() == true {
 		if Data.Lst_ball.Id_max > 0 {
 			for i := 0; i < 3; i++ {
-				tab[i] = rand.Int63n(Data.Lst_ball.Id_max) // Temporaire le temps que Id_nax != 0
+				tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
 			}
 			Data.User.Value.(*users.User).Magnet = time.Now()
 			list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
