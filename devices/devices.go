@@ -88,11 +88,6 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 		for rows.Next() {
 			rows.Scan(&idBase, &idclient, &idUserDefault)
 			dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New(), UserSpec: allUsers[idUserDefault]})
-			fmt.Printf("%v\n", allUsers[idUserDefault])
-			tmpDevicel := dlist.Dlist.Back()
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).Idbdd, tmpDevicel.Value.(*Device).Idbdd)
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).IdUserDefault, tmpDevicel.Value.(*Device).IdUserDefault)
-			fmt.Printf("%T, %v\n", tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User), tmpDevicel.Value.(*Device).UserDefault.Value.(*users.User))
 		}
 	}
 	return nil

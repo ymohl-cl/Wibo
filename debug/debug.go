@@ -60,7 +60,7 @@ func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data
 
 /* CREER UN BALLON POUR FAIRE DES TESTS */
 func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *owm.All_data) error {
-	lball.Id_max += 6
+	//	lball.Id_max += 6
 	/* Get USER */
 	user := luser.Ulist.Front()
 	if user != nil {
