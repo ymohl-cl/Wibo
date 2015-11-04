@@ -33,6 +33,18 @@ func TestUsers(t *testing.T) {
 	Lst_users.Ulist = list.New()
 	Lst_ball.Blist = list.New()
 	Db, err := myDb.OpenCo(err)
-	result := Lst_users.Add_new_user(88, Db)
+	user1 := new(users.User)
+	user1.Id = 125
+	user1.Mail = "Toto@Dr.fr"
+	user1.Log = time.Now()
+	user1.Followed = list.New()
+	user1.Stats = &users.StatsUser{}
+	user1.Stats.CreationDate = time.Now()
+	user1.Coord.Lat = 48.833086
+	user1.Coord.Lon = 2.316055
+	user1.Log = time.Now()
+	Lst_users.Ulist.PushBack(user1)
+
+	result := Lst_users.Add_new_user(user1, Db)
 	fmt.Println(result)
 }
