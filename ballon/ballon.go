@@ -730,7 +730,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			if err != nil {
 				return err
 			}
-			//			Lb.checkErr(err)
+			fmt.Printf("Getlist ball %v \n", infoCont)
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
 			tempCord := GetCord(result[7])
