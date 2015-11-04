@@ -10,9 +10,12 @@ import (
 	"time"
 )
 
-func createMessage1000() *list.List {
+func createMessage1000(titleBallon string) *list.List {
 	lst := list.New()
-	lst.PushBack(&ballon.Message{Idcountry: 0, Idcity: 2, Content: "coucou this is not a real message this is a cat", Type: 1, Size: 1})
+	var str string
+
+	str = "Message de " + titleBallon
+	lst.PushBack(ballon.Message{Idcountry: 0, Idcity: 2, Content: str, Type: 1, Size: int32(len(str))})
 	return lst
 }
 
@@ -23,7 +26,6 @@ func GetRandomCoord() *list.Element { // Checkpoint
 }
 
 func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data) {
-	lstmsg := createMessage1000()
 	usr := user.Value.(*users.User)
 
 	for i := 0; i < 1000; i++ {
@@ -33,7 +35,7 @@ func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data
 		lball.Id_max++
 		ball.Edited = true
 		ball.Title = "TEST" + strconv.Itoa(int(ball.Id_ball))
-		ball.Messages = lstmsg
+		ball.Messages = createMessage1000(ball.Title)
 		ball.Coord = GetRandomCoord()
 		ball.Itinerary = list.New()
 		ball.Itinerary.PushBack(ball.Coord.Value.(*ballon.Checkpoint))
@@ -45,7 +47,8 @@ func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data
 		ball.Followers.PushFront(user)
 		ball.Creator = user
 		ball.Scoord = ball.Coord
-		ball.InitCoord(ball.Coord.Value.(ballon.Checkpoint).Coord.Lon, ball.Coord.Value.(ballon.Checkpoint).Coord.Lat, int16(0), wd, true)
+		ball.InitCoord(ball.Coord.Value.(*ballon.Checkpoint).Coord.Lon, ball.Coord.Value.(*ballon.Checkpoint).Coord.Lat, int16(0), wd, true)
+		ball.Stats = new(ballon.StatsBall)
 		eball := lball.Blist.PushBack(ball)
 		usr.NbrBallSend++
 		usr.Followed.PushBack(eball)

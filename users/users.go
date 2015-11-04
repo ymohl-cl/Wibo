@@ -72,7 +72,7 @@ type userError struct {
 }
 
 func (User *User) MagnetisValid() bool {
-	if time.Since(User.Magnet) > (60 * time.Minute) {
+	if time.Since(User.Magnet) > (1 * time.Minute) {
 		return true
 	}
 	return false
