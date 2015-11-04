@@ -7,7 +7,7 @@ import (
 	"container/list"
 	"fmt"
 	_ "github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -17,6 +17,50 @@ func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func createMessage1000() *list.List {
+	lst := list.New()
+	lst.PushBack(&ballon.Message{Idcountry: 0, Idcity: 2, Content: "coucou this is not a real message this is a cat", Type: 1, Size: 1})
+	return lst
+}
+
+func GetRandomCoord() *list.Element { // Checkpoint
+	tmp := list.New()
+	tmp.PushBack(&ballon.Checkpoint{ballon.Coordinate{Lon: 42.42, Lat: 42.42}, time.Now(), 0})
+	return tmp.Back()
+}
+
+func createBall1000(lball *ballon.All_ball, user *list.Element, base *db.Env) {
+	lstmsg := createMessage1000()
+	usr := user.Value.(*users.User)
+
+	for i := 0; i < 1000; i++ {
+		ball := new(ballon.Ball)
+
+		ball.Id_ball = lball.Id_max
+		lball.Id_max++
+		ball.Edited = true
+		ball.Title = "TEST" + strconv.Itoa(int(ball.Id_ball))
+		ball.Messages = lstmsg
+		ball.Coord = GetRandomCoord()
+		ball.Itinerary = list.New()
+		ball.Itinerary.PushBack(ball.Coord.Value.(*ballon.Checkpoint))
+		ball.Followers = list.New()
+		ball.Checkpoints = list.New()
+		ball.Date = time.Now()
+		ball.Possessed = nil
+		ball.Followers = list.New()
+		ball.Followers.PushFront(user)
+		ball.Creator = user
+		ball.Scoord = ball.Coord
+		//	ball.InitCoord(ball.Coord.Value.(ballon.Checkpoint).Coord.Lon, ball.Coord.Value.(ballon.Checkpoint).Coord.Lat, int16(0), wd, true)
+		eball := lball.Blist.PushBack(ball)
+		usr.NbrBallSend++
+		usr.Followed.PushBack(eball)
+		lball.InsertBallon(ball, base)
+	}
+
 }
 
 func TestBallon(t *testing.T) {
@@ -33,8 +77,8 @@ func TestBallon(t *testing.T) {
 	fmt.Println(Db)
 
 	user1 := new(users.User)
-	user1.Id = 88
-	user1.Mail = "mailtest4@test.com"
+	user1.Id = 125
+	user1.Mail = "Toto@Dr.fr"
 	user1.Log = time.Now()
 	user1.Followed = list.New()
 	user1.Stats = &users.StatsUser{}
@@ -42,39 +86,11 @@ func TestBallon(t *testing.T) {
 	user1.Coord.Lat = 48.833086
 	user1.Coord.Lon = 2.316055
 	user1.Log = time.Now()
-	pass := []byte("Pass1Test")
-	fmt.Println("password test")
-	fmt.Println(pass)
-	bpass, err := bcrypt.GenerateFromPassword(pass, 15)
-	/*
-		fmt.Println(len(bpass))
-		if err != nil {
-			t.Fatalf("GenerateFromPassword error: %s", err)
-		}
-		if bcrypt.CompareHashAndPassword(bpass, pass) != nil {
-			t.Errorf("%v should hash %s correctly", bpass, pass)
-		}
-		Lst_users.Ulist.PushBack(user1)
-		b, err := Lst_users.Add_new_user(user1, Db, "Pass1Test")
-		if err != nil {
-			t.Fatalf("add user fail error: %s", err)
-		}
-		fmt.Println(b)
-	*/
-	rows, err := Db.Query("SELECT id_user, login, mail, passbyte FROM \"user\" WHERE id_user=$1;", 94)
-	for rows.Next() {
-		var idUser int64
-		var login string
-		var mailq string
-		var passbyte []byte
-		err = rows.Scan(&idUser, &login, &mailq, &passbyte)
-		if bcrypt.CompareHashAndPassword(bpass, passbyte) != nil {
-			t.Errorf("%v should hash %s correctly", bpass, passbyte)
-		}
-		fmt.Printf(" %v | %v", bpass, passbyte)
-	}
+	Lst_users.Ulist.PushBack(user1)
 
+	createBall1000(Lst_ball, Lst_users.Ulist.Front(), myDb)
 	/* CREER UN BALLON POUR FAIRE DES TESTS */
+
 	// tmp_lst := list.New()
 	// var check_test0 ballon.Checkpoint
 	// check_test0.Coord.Lon = 48.833086
