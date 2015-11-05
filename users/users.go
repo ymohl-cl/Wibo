@@ -12,7 +12,7 @@ import (
 	//	"github.com/op/go-logging"
 	"golang.org/x/crypto/bcrypt"
 	"log"
-//	"os"
+	//	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -185,40 +185,24 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	var err error
 	fmt.Println("Pass a checker:")
 	fmt.Println(pass)
-	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
 	if err != nil {
 		fmt.Println(err)
 		//os.Exit(-1)
-		return nil;
-
+		return nil
 	}
 	defer rows.Close()
 	fmt.Printf("checkPassword :")
 	if rows.Next() != false {
-		var idUser int64
-		var mailq string
-		var bpass []byte
-		err = rows.Scan(&idUser, &mailq, &bpass)
+		var answer bool
+		err = rows.Scan(&answer)
 		if err != nil {
-			fmt.Printf("check password fail%T | %v \n", mailq, mailq)
 			return nil
 		}
-		fmt.Println("Pass de la base de donnee")
-		fmt.Println(bpass)
-		err = bcrypt.CompareHashAndPassword(bpass, pass)
-		if err == nil {
-			fmt.Println("VASY LA TEUF !!!!!")
-			return user
-		} else {
-			fmt.Println("Wrong Password!")
+		if answer != true {
+			return nil
 		}
-//		if t := bytes.Equal(bpass, pass); t != true {
-//			fmt.Println("Wrong Password!")
-//			return nil
-//		}
-//		Warning
 		return user
-
 	}
 	fmt.Printf("is false\n")
 	return nil
@@ -285,7 +269,7 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	var err error
 	t := bytes.NewBufferString("1")
 	bpass := t.Bytes()
-//	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 4)
+	//	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 4)
 	if err != nil {
 		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
 		Lst_users.LogUser.Err = err
