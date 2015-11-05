@@ -10,7 +10,7 @@ import (
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	//	"github.com/op/go-logging"
-	"golang.org/x/crypto/bcrypt"
+	//"golang.org/x/crypto/bcrypt"
 	"log"
 	//	"os"
 	"strconv"
@@ -98,7 +98,7 @@ func (User *User) User_is_online() bool {
 func FoundUserOnListLvl2(lst *list.List, email string) *list.Element {
 	for euser := lst.Front(); euser != nil; euser = euser.Next() {
 		user := euser.Value.(*list.Element).Value.(*User)
-		if strings.Compare(user.Mail, email) != 0 {
+		if strings.Compare(user.Mail, email) == 0 {
 			return euser.Value.(*list.Element)
 		}
 	}
@@ -108,7 +108,7 @@ func FoundUserOnListLvl2(lst *list.List, email string) *list.Element {
 func FoundUserOnListLvl1(lst *list.List, email string) *list.Element {
 	for euser := lst.Front(); euser != nil; euser = euser.Next() {
 		user := euser.Value.(*User)
-		if strings.Compare(user.Mail, email) != 0 {
+		if strings.Compare(user.Mail, email) == 0 {
 			return euser
 		}
 	}
@@ -182,30 +182,58 @@ func CheckValidMail(email string) bool {
 }
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
-	var err error
+//	var err error
+//	var pass1 string
+//	var pass2 string
+	var tata bool
+	fmt.Println("user: ", user.Value.(*User))
 	fmt.Println("Pass a checker:")
 	fmt.Println(pass)
-	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-	if err != nil {
-		fmt.Println(err)
-		//os.Exit(-1)
+//	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+	rows, _ := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+	rows.Scan(&tata)
+	fmt.Println(tata)
+	if tata == false {
 		return nil
-	}
+	}	
 	defer rows.Close()
-	fmt.Printf("checkPassword :")
-	if rows.Next() != false {
-		var answer bool
-		err = rows.Scan(&answer)
-		if err != nil {
-			return nil
-		}
-		if answer != true {
-			return nil
-		}
-		return user
-	}
-	fmt.Printf("is false\n")
-	return nil
+	return user
+//	fmt.Println("pass bool: ", tata)
+//	if err != nil {
+//		fmt.Println(err)
+//		//os.Exit(-1)
+//		return nil
+//	}
+//	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
+//	fmt.Println("pass1: ", pass1)
+//	fmt.Println("pass2: ", pass2)
+//	pass1 = strings.Trim(pass1, "\x00")
+//	pass2 = strings.Trim(pass2, "\x00")
+//
+//	//if bytes.Equal(pass1, pass2) == true {
+//	if strings.Compare(pass1, pass2) == 0 {
+//		fmt.Println("CONTENT")
+//		return user
+//	} else {
+//		fmt.Println("PAS CONTENT")
+//		return nil
+//	}
+//
+//	fmt.Printf("checkPassword :")
+//	if rows.Next() != false {
+//		var answer bool
+//		err = rows.Scan(&answer)
+//		if err != nil {
+//			return nil
+//		}
+//		fmt.Println("Answer: ", answer)
+//		if answer != true {
+//			return nil
+//		}
+//		return user
+//	}
+//	fmt.Printf("is false\n")
+//	return nil*/
 }
 
 /**
