@@ -248,6 +248,7 @@ func (token *Request) Get_request(buff []byte) (err error, er error) {
 		er = errors.New("Get_request in protocol: Error binary.Read")
 		return err, er
 	}
+	fmt.Println(IdMobile)
 	token.IdMobile = string(IdMobile[:40])
 	token.IdMobile = strings.Trim(token.IdMobile, "\x00")
 	err = binary.Read(TypBuff, binary.BigEndian, &token.Coord.Lon)

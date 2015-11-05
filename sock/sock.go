@@ -69,6 +69,7 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 			fmt.Println("|....................................................................................|")
 			Data.Logger.Printf("Packet received by (remote Address): %s\n",
 				Conn.RemoteAddr())
+			fmt.Println(buff)
 			Token := new(protocol.Request)
 			er, er2 := Token.Get_request(buff)
 			if er != nil || er2 != nil {

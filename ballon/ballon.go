@@ -189,7 +189,7 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 		for eball != nil && eball.Value.(*Ball).Id_ball != tab[i] {
 			eball = eball.Next()
 		}
-		for eball != nil && (eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true && eball.Value.(*Ball).Check_userfollower(User) == false) {
+		for eball != nil && (eball.Value.(*Ball).Possessed != nil || EballAlreadyExist(list_tmp, eball) == true || eball.Value.(*Ball).Check_userCreated(User) == true || eball.Value.(*Ball).Check_userfollower(User) == true) {
 			eball = eball.Next()
 			if eball == nil && flag == false {
 				flag = true
@@ -220,15 +220,19 @@ func (Ball *Ball) GetCheckpoint(station owm.Weather_data) Checkpoint {
 		dir -= 360
 	}
 	dir = dir * (math.Pi / 180.0)
-	checkpoint.Lon = Ball.Coord.Value.(Checkpoint).Coord.Lon
-	checkpoint.Lat = Ball.Coord.Value.(Checkpoint).Coord.Lat
+	if Ball.Checkpoints.Len() == 0 {
+		checkpoint.Lon = Ball.Coord.Value.(Checkpoint).Coord.Lon
+		checkpoint.Lat = Ball.Coord.Value.(Checkpoint).Coord.Lat
+	} else {
+		checkpoint = ((Ball.Checkpoints.Back()).Value.(Checkpoint)).Coord
+	}
 	tmp_coord.Lon = checkpoint.Lon * (math.Pi / 180.0)
 	tmp_coord.Lat = checkpoint.Lat * (math.Pi / 180.0)
 	calc_coord.Lat = math.Asin(math.Sin(tmp_coord.Lat)*math.Cos(speed/r_world) + math.Cos(tmp_coord.Lat)*math.Sin(speed/r_world)*math.Cos(dir))
 	calc_coord.Lon = tmp_coord.Lon + math.Atan2(math.Sin(dir)*math.Sin(speed/r_world)*math.Cos(tmp_coord.Lat), math.Cos(speed/r_world)-math.Sin(tmp_coord.Lat)*math.Sin(calc_coord.Lat))
 	calc_coord.Lat = 180 * calc_coord.Lat / math.Pi
 	calc_coord.Lon = 180 * calc_coord.Lon / math.Pi
-	return Checkpoint{checkpoint, time.Now(), 0}
+	return Checkpoint{calc_coord, time.Now(), 0}
 }
 
 func (Ball *Ball) CreateCheckpoint(Lst_wd *owm.All_data) error {
@@ -293,13 +297,16 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
+		fmt.Println("Coord de ball avant move: ", ball.Coord.Value.(Checkpoint))
 		if ball.Possessed == nil {
 			ball.Lock()
 			if ball.Checkpoints.Len() == 0 {
+				fmt.Println("Checkpoint empty")
 				coord = ball.Coord.Value.(Checkpoint).Coord
 				ball.CreateCheckpoint(Lst_wd)
 				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
 			} else {
+				fmt.Println("Checkpoint no empty")
 				e := ball.Checkpoints.Front()
 				coord = e.Value.(Checkpoint).Coord
 				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
@@ -315,6 +322,7 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 			}
 			ball.Unlock()
 		}
+		fmt.Println("Coord de ball apres move: ", ball.Coord.Value.(Checkpoint))
 	}
 	return nil
 }
@@ -450,7 +458,8 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
-	Ball.Itinerary = list.New()
+	Itinerary := list.New()
+//	Ball.Itinerary = list.New()
 	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1 ORDER BY date DESC", Ball.Id_ball)
 	if err != nil {
 		log.Print(err)
@@ -463,13 +472,13 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 			var point string
 			rows.Scan(&tdate, &attm, &point)
 			tempCoord := GetCord(point)
-			Ball.Itinerary.PushBack(&Checkpoint{Date: tdate, Coord: tempCoord.Front().Value.(Coordinate)})
+			Itinerary.PushBack(&Checkpoint{Date: tdate, Coord: tempCoord.Front().Value.(Coordinate)})
 		}
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return 0, Ball.Itinerary
+	return int32(Itinerary.Len()), Itinerary
 }
 
 func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
@@ -564,6 +573,8 @@ AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, locat
 \*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	IdMaxBase := getIdBallMax(base)
+	fmt.Println("VALUE MAX DE BDD :D", IdMaxBase)
+	fmt.Println("VALUE MAX DE BDD :D", Lb.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= IdMaxBase {
@@ -595,7 +606,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				}
 			}
 			e.Value.(*Ball).Unlock()
-		} else if e.Value.(*Ball).Id_ball > IdMaxBase {
+		} else {
 			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
 			Lb.InsertBallon(e.Value.(*Ball), base)
 		}
@@ -719,15 +730,20 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					return nil
 				}
 				result := strings.Split(infoCont, ",")
+				fmt.Printf("%T | %v \n", infoCont, infoCont)
 				idBall := GetIdBall(result[0])
 				tempCord := GetCord(result[6])
 				lstIt := list.New()
 				lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
 				possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
+				if possessed == nil {
+					fmt.Println("IS NULL POSSESED")
+				}
 				if er != nil {
 					return er
 				}
 				tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
+				fmt.Printf("%v and %v \n", tmpBall, result[7])
 				if tmpBall != nil {
 					// Do Nothing
 				} else {

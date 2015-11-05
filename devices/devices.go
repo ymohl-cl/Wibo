@@ -29,6 +29,7 @@ type All_Devices struct {
 }
 
 func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *users.All_users) (dvc *list.Element, er error) {
+	fmt.Println("Number Device: ", Devices.Dlist.Len())
 	req := request.Value.(*protocol.Request)
 	ed := Devices.Dlist.Front()
 	er = nil
@@ -39,6 +40,8 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *
 		return nil, er
 	}
 	for ed != nil && strings.Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
+		fmt.Println("ID Device: ", ed.Value.(*Device).Id)
+		fmt.Println("Compare with: ", req.IdMobile)
 		ed = ed.Next()
 	}
 	if ed == nil {
@@ -47,7 +50,7 @@ func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *
 			fmt.Println("Echec add device on bdd")
 		}
 	}
-	fmt.Println(er)
+	fmt.Println("Found: ", ed)
 	return ed, er
 }
 
@@ -90,6 +93,7 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 			dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New(), UserSpec: allUsers[idUserDefault]})
 		}
 	}
+	fmt.Println("Nbr GetDevice: ", dlist.Dlist.Len())
 	return nil
 }
 

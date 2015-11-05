@@ -638,11 +638,15 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 			}
 			ball.Stats.NbrCatch++
 			ball.Stats.NbrFollow++
+			fmt.Println("OK pour ca haha")
 			ball.Stats.NbrKm += ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
 			// To check
+			fmt.Println("OK pour ca haha2")
 			ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
 			// Check - end
+			fmt.Println("OK pour ca haha3")
 			ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, rqt.Spec.(protocol.Taken).FlagMagnet, Wd, false)
+			fmt.Println("OK pour ca haha4")
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
 				ball.Stats.NbrMagnet++
 			}
@@ -743,7 +747,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Possessed = nil
 		ball.Followers.PushFront(Data.User)
 		ball.Creator = Data.User
-		ball.Scoord = new(list.Element)
+		//ball.Scoord = new(list.Element)
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		eball := Data.Lst_ball.Blist.PushBack(ball)
 		//		checkpoint.Coord.Lon = rqt.Coord.Lon
@@ -857,6 +861,7 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 	flag := true
 	var answer []byte
 
+	fmt.Println("Login with: ", req.IdMobile)
 	if req.Rtype != TYPELOG {
 		er = errors.New("Bad type to Manage_Login")
 		answer = Data.Manage_ack(TYPELOG, 0, int32(0))

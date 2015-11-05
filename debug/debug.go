@@ -62,16 +62,16 @@ func createBall1000(lball *ballon.All_ball, user *list.Element, wd *owm.All_data
 func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *owm.All_data) error {
 	//	lball.Id_max += 6
 	/* Get USER */
-	user := luser.Ulist.Front()
-	if user != nil {
-		createBall1000(lball, user, tabwd)
-	}
+//	user := luser.Ulist.Front()
+//	if user != nil {
+//		createBall1000(lball, user, tabwd)
+//	}
 	//	euser := luser.Ulist.Front()
 
 	/* END CREATE USER -- CREATE CHECKPOINT */
 
-	//	tmp_lst := list.New()
-	/*	var check_test0 ballon.Checkpoint
+		tmp_lst := list.New()
+		var check_test0 ballon.Checkpoint
 		var check_test1 ballon.Checkpoint
 		var check_test2 ballon.Checkpoint
 		var check_test3 ballon.Checkpoint
@@ -104,7 +104,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 		/* END CHECKPOINT -- BEGIN COORDINATE */
 
-	/*	var Coord0 ballon.Coordinate
+		var Coord0 ballon.Coordinate
 		var Coord1 ballon.Coordinate
 		var Coord2 ballon.Coordinate
 		var Coord3 ballon.Coordinate
@@ -132,7 +132,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 		/* END COORDINATE -- BEGIN MESSAGE */
 
-	/*	mmp2 := list.New()
+		mmp2 := list.New()
 		mmp := list.New()
 		mmp1 := list.New()
 		var message0 ballon.Message
@@ -177,7 +177,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 		/* END MESSAGE -- BEGIN BALLON */
 
-	/*	ball0 := new(ballon.Ball)
+		ball0 := new(ballon.Ball)
 		ball1 := new(ballon.Ball)
 		ball2 := new(ballon.Ball)
 		ball3 := new(ballon.Ball)
@@ -336,12 +336,12 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 			euser.Value.(*users.User).Stats.NbrBallCreate = 5
 			euser.Value.(*users.User).Stats.NbrSend = 5
 			euser.Value.(*users.User).Stats.NbrMessage = 5*/
-	//	lball.Blist.PushBack(ball0)
-	//	lball.Blist.PushBack(ball1)
-	//	lball.Blist.PushBack(ball2)
-	//	lball.Blist.PushBack(ball3)
-	//	lball.Blist.PushBack(ball4)
-	//	lball.Blist.PushBack(ball5)
+		lball.Blist.PushBack(ball0)
+		lball.Blist.PushBack(ball1)
+		lball.Blist.PushBack(ball2)
+		lball.Blist.PushBack(ball3)
+		lball.Blist.PushBack(ball4)
+		lball.Blist.PushBack(ball5)
 	// If possible print ball List with Serv.Lst_ball.Print_all_balls()
 	//	return er
 	return nil

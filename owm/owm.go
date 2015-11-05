@@ -65,7 +65,7 @@ func (Wd Weather_data) GetDistance(lon_user float64, lat_user float64) float64 {
 	lon1 = lon_user * math.Pi / 180
 	lat2 = Wd.Coord.Latitude * math.Pi / 180
 	lon2 = Wd.Coord.Longitude * math.Pi / 180
-	rayon = 6378137
+	rayon = 6378137.0
 
 	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
 	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) / 1000

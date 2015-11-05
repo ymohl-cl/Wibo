@@ -12,7 +12,7 @@ import (
 	//	"github.com/op/go-logging"
 	"golang.org/x/crypto/bcrypt"
 	"log"
-	"os"
+//	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -127,7 +127,10 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
 	}
 	if user != nil {
+		fmt.Println("Check_Password :D")
 		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
+	} else {
+		fmt.Println("User == nil !")
 	}
 	return user
 }
@@ -180,10 +183,13 @@ func CheckValidMail(email string) bool {
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	var err error
+	fmt.Println("Pass a checker:")
+	fmt.Println(pass)
 	rows, err := Db.Query("SELECT id_user, mail, passbyte FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(-1)
+		//os.Exit(-1)
+		return nil;
 
 	}
 	defer rows.Close()
@@ -197,10 +203,20 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 			fmt.Printf("check password fail%T | %v \n", mailq, mailq)
 			return nil
 		}
-		if t := bytes.Equal(bpass, pass); t != true {
+		fmt.Println("Pass de la base de donnee")
+		fmt.Println(bpass)
+		err = bcrypt.CompareHashAndPassword(bpass, pass)
+		if err == nil {
+			fmt.Println("VASY LA TEUF !!!!!")
+			return user
+		} else {
 			fmt.Println("Wrong Password!")
-			return nil
 		}
+//		if t := bytes.Equal(bpass, pass); t != true {
+//			fmt.Println("Wrong Password!")
+//			return nil
+//		}
+//		Warning
 		return user
 
 	}
@@ -244,7 +260,9 @@ func (e *userError) Error() string {
 **/
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte) (bool, error) {
-
+	fmt.Println("Pass avant insert")
+	fmt.Println(Pass)
+	fmt.Println(len(Pass))
 	if len(new_user.Mail) > 0 {
 		if valid.IsEmail(new_user.Mail) != true {
 			return false, nil
@@ -264,7 +282,10 @@ Insert user default
 	insert a user with default data
 */
 func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request) *list.Element {
-	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 15)
+	var err error
+	t := bytes.NewBufferString("1")
+	bpass := t.Bytes()
+//	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 4)
 	if err != nil {
 		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
 		Lst_users.LogUser.Err = err

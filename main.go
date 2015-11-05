@@ -75,7 +75,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 
 	go func() {
 		for {
-			time.Sleep(5 * time.Minute)
+			time.Sleep(2 * time.Minute)
 			channelfuncmoveball <- true
 		}
 	}()
@@ -87,7 +87,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 	}()
 	go func() {
 		for {
-			time.Sleep(5 * time.Minute)
+			time.Sleep(1 * time.Minute)
 			channelfuncupdatedata <- true
 		}
 	}()
