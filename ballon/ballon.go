@@ -576,6 +576,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				Lb.checkErr(er)
 				return er
 			}
+			Lb.SetStatsBallon(idBall, e.Value.(*Ball).Stats, base.Db)
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
@@ -713,13 +714,13 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
-		stm, errT := tx.Prepare("SELECT public.getContainersByUserId($1)")
+		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
 		if errT != nil {
 			fmt.Println("1")
 			return errT
 		}
-		defer stm.Close()
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
+		fmt.Printf("rows %T \n"rows);
 		if err != nil {
 			fmt.Println("2")
 			return err
@@ -727,57 +728,66 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			fmt.Println("3")
 			return nil
 		}
-		for rows.Next() {
-			var infoCont string
-			err = rows.Scan(&infoCont)
-			if err != nil {
-				fmt.Println("4")
-				return err
-			}
-			fmt.Printf("Getlist ball %v \n", infoCont)
-			result := strings.Split(infoCont, ",")
-			idBall := GetIdBall(result[0])
-			tempCord := GetCord(result[7])
-			lstIt := list.New()
-			lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
-			idTmp, _ := strconv.Atoi(result[8])
-			possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
-			if er != nil {
-				fmt.Println("5")
-				return er
-			}
-			tmpBall := Lb.Get_ballbyid(int64(idTmp))
-			if tmpBall != nil {
-				// Do Nothing
-			} else {
-				lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
+		if rows.Next() != false {
+			for rows.Next() {
+				var infoCont string
+				err = rows.Scan(&infoCont)
 				if err != nil {
-					fmt.Println("6")
+					fmt.Println("4")
 					return err
 				}
-				lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
-				if err != nil {
-					fmt.Println("7")
-					return err
+				fmt.Printf("Getlist ball %v \n", infoCont)
+				result := strings.Split(infoCont, ",")
+				idBall := GetIdBall(result[0])
+				tempCord := GetCord(result[7])
+				fmt.Println("result %v \n", result)
+				fmt.Println("tempCord %v \n", tempCord)
+				fmt.Println("ID BALL %v \n", idBall)
+				lstIt := list.New()
+				lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
+				idTmp, _ := strconv.Atoi(result[8])
+				fmt.Printf("get list ball id tmp %v \n", idTmp)
+				possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
+				if er != nil {
+					fmt.Println("5")
+					return er
 				}
-				lBallon.PushBack(
-					&Ball{
-						Title:       result[1],
-						Date:        GetDateFormat(result[5]),
-						Checkpoints: nil,
-						Itinerary:   lstIt,
-						Scoord:      tempCord.Front(),
-						Coord:       tempCord.Front(),
-						Wind:        GetWin(result[3], result[4]),
-						Messages:    lstMess,
-						Followers:   lstFols,
-						Possessed:   possessed,
-						Creator:     userE})
+				tmpBall := Lb.Get_ballbyid(int64(idTmp))
+				if tmpBall != nil {
+					// Do Nothing
+				} else {
+					lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
+					if err != nil {
+						fmt.Println("6")
+						return err
+					}
+					lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
+					if err != nil {
+						fmt.Println("7")
+						return err
+					}
+					lBallon.PushBack(
+						&Ball{
+							Title:       result[1],
+							Date:        GetDateFormat(result[5]),
+							Checkpoints: nil,
+							Itinerary:   lstIt,
+							Scoord:      tempCord.Front(),
+							Coord:       tempCord.Front(),
+							Wind:        GetWin(result[3], result[4]),
+							Messages:    lstMess,
+							Followers:   lstFols,
+							Possessed:   possessed,
+							Stats:       Lb.GetStatsBallon(int64(idBall), base.Db),
+							Creator:     userE})
+				}
 			}
 		}
+		stm.Close()
 		return err
 	})
 	if err == sql.ErrNoRows {
+		fmt.Printf("error transact \n")
 		err = nil
 	}
 	return lBallon, err
