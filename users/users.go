@@ -183,7 +183,7 @@ func CheckValidMail(email string) bool {
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	//	var err error
-	fmt.Println("CheckPassword")
+	fmt.Println("CheckPassword user: ", user.Value.(*User).Mail)
 	var pass1 string
 	var pass2 string
 	var flag bool
@@ -193,6 +193,10 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	rows.Scan(&flag)
 	if flag == false {
 		fmt.Println("DbQuery return flag:", flag)
+		fmt.Println("DbQuery return err:", er)
+//		return nil
+	}
+	if er != nil {
 		fmt.Println("DbQuery return err:", er)
 		return nil
 	}
