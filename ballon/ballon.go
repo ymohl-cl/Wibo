@@ -282,11 +282,11 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	check.Coord.Lat = Lat
 	check.Date = time.Now()
 	check.MagnetFlag = Magnet
-	Ball.Lock()
+//	Ball.Lock()
 	Ball.Coord = lst.PushBack(check)
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
-	Ball.Unlock()
+//	Ball.Unlock()
 	if CrtCK == true {
 		Ball.CreateCheckpoint(Wd)
 	}

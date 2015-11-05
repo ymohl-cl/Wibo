@@ -5,7 +5,7 @@ import (
 	"Wibo/owm"
 	"Wibo/users"
 	"container/list"
-	_ "fmt"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -70,7 +70,7 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 
 	/* END CREATE USER -- CREATE CHECKPOINT */
 
-		tmp_lst := list.New()
+//		tmp_lst := list.New()
 		var check_test0 ballon.Checkpoint
 		var check_test1 ballon.Checkpoint
 		var check_test2 ballon.Checkpoint
@@ -78,24 +78,24 @@ func CreateDataToDebug(lball *ballon.All_ball, luser *users.All_users, tabwd *ow
 		var check_test4 ballon.Checkpoint
 		var check_test5 ballon.Checkpoint
 
-		check_test0.Coord.Lon = 1.316055
-		check_test0.Coord.Lat = 49.833086
+		check_test0.Coord.Lon = 2.316055
+		check_test0.Coord.Lat = 48.833086
 		check_test0.Date = time.Now()
 
-		check_test1.Coord.Lon = 1.316065
-		check_test1.Coord.Lat = 49.833586
+		check_test1.Coord.Lon = 2.316065
+		check_test1.Coord.Lat = 48.833586
 		check_test1.Date = time.Now()
 
-		check_test2.Coord.Lon = 1.30810777
-		check_test2.Coord.Lat = 49.919253
+		check_test2.Coord.Lon = 2.30810777
+		check_test2.Coord.Lat = 48.919253
 		check_test2.Date = time.Now()
 
 		check_test3.Coord.Lon = 2.32386229
 		check_test3.Coord.Lat = 48.8851832
 		check_test3.Date = time.Now()
 
-		check_test4.Coord.Lon = 1.316045
-		check_test4.Coord.Lat = 49.833986
+		check_test4.Coord.Lon = 2.316045
+		check_test4.Coord.Lat = 48.833986
 		check_test4.Date = time.Now()
 
 		check_test5.Coord.Lon = 2.3080535

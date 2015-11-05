@@ -4,7 +4,7 @@ import (
 	"Wibo/ballon"
 	"Wibo/ballonwork"
 	"Wibo/db"
-	//"Wibo/debug"
+	"Wibo/debug"
 	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/users"
