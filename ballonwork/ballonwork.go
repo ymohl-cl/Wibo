@@ -4,6 +4,8 @@ import (
 	"Wibo/db"
 	"Wibo/protocol"
 	"container/list"
+	"strconv"
+	"strings"
 )
 
 type Coordinates struct {
@@ -41,6 +43,44 @@ func (workBall *WorkBall) Check_neirbycoord(request *list.Element) bool {
 /******************************** MERGE JAIME *********************************/
 /******************************************************************************/
 
+func GetCoord(position string) *Coordinates {
+	// Return true if 'value' char.
+	f := func(c rune) bool {
+		return c == '(' || c == '(' || c == ')' || c == '"' ||
+			c == 'P' || c == 'O' || c == 'I' || c == 'N' ||
+			c == 'T'
+	}
+	// Separate into fields with func.
+	fields := strings.FieldsFunc(position, f)
+	// Separate into cordinates  with Fields.
+	point := strings.Fields(fields[0])
+	long, err := strconv.ParseFloat(point[0], 15)
+	if err != nil {
+		return nil
+	}
+	var lat float64
+	lat, _ = strconv.ParseFloat(point[1], 15)
+	return &Coordinates{Lon: long, Lat: lat}
+}
+
 func (wlist *All_work) Get_workBall(base *db.Env) error {
+
+	wlist.Wlist = list.New()
+	rows, err := base.Db.Query("SELECT title, message, St_AsText(ballonwork.location_wk), link FROM  ballonwork;")
+	defer rows.Close()
+	if err != nil {
+		return err
+	}
+	if rows.Next() != false {
+		for rows.Next() {
+			var til, ms, pos, url string
+			err = rows.Scan(&til, &ms, &pos, &url)
+			if err != nil {
+				return err
+			}
+			cord := GetCoord(pos)
+			wlist.Wlist.PushBack(&WorkBall{Title: til, Message: ms, Coord: cord, Link: url})
+		}
+	}
 	return nil
 }
