@@ -539,10 +539,18 @@ func getIdBallMax(base *db.Env) int64 {
 func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bool, err error) {
 	var IdC int64
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT createcontainer($1, $2, $3, $4, $5, $6 , $7, $8)")
+		stm, err := tx.Prepare("INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES($1, $2 , ST_SetSRID(ST_MakePoint($3, $4), 4326), $5, $6, $7, $8) RETURNING id; ")
 		if err != nil {
 			return (err)
 		}
+		fmt.Println("insert ball  ", NewBall.Wind.Degress)
+		fmt.Println("insert ball  ", NewBall.Wind.Speed)
+		fmt.Println("insert ball  ", NewBall.Coord.Value.(Checkpoint).Coord.Lat)
+		fmt.Println("insert ball  ", NewBall.Coord.Value.(Checkpoint).Coord.Lat)
+		fmt.Println("insert ball  ", NewBall.Title)
+		fmt.Println("insert ball  ", NewBall.Id_ball)
+		fmt.Println("insert ball  ", NewBall.Date)
+		fmt.Println("insert ball  ", NewBall.Creator.Value.(*users.User).Id)
 		err = stm.QueryRow(NewBall.Wind.Degress, NewBall.Wind.Speed,
 			NewBall.Coord.Value.(Checkpoint).Coord.Lat,
 			NewBall.Coord.Value.(Checkpoint).Coord.Lon, NewBall.Creator.Value.(*users.User).Id,
