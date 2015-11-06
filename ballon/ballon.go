@@ -282,11 +282,11 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	check.Coord.Lat = Lat
 	check.Date = time.Now()
 	check.MagnetFlag = Magnet
-//	Ball.Lock()
+	//	Ball.Lock()
 	Ball.Coord = lst.PushBack(check)
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
-//	Ball.Unlock()
+	//	Ball.Unlock()
 	if CrtCK == true {
 		Ball.CreateCheckpoint(Wd)
 	}
@@ -459,7 +459,7 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
 	Itinerary := list.New()
-//	Ball.Itinerary = list.New()
+	//	Ball.Itinerary = list.New()
 	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1 ORDER BY date DESC", Ball.Id_ball)
 	if err != nil {
 		log.Print(err)
@@ -517,37 +517,27 @@ func getIdBallMax(base *db.Env) int64 {
 }
 
 /*
- FUNCTION insertContainer(
-	$1 idcreatorc integer,
-	$2 latitudec integer,
-	$3 longitudec integer,
-	$5 directionc float,
-	$6 speedc float,
-	$7 title text,
-	$8 idx integer)
-
-	public.insertcontainer(idcreatorc integer,
-	$1 latitudec double precision,
-	$2 longitudec double precision,
-	$3 directionc double precision,
-	$4 speedc double precision,
-	$5 title text,
-	$6 idx integer,
-	$7 creation date)
+	createcontainer(double precision,double precision,double precision,double precision,integer,character varying,integer,date)
+	createcontainer(directionc double precision,
+	speedc double precision,
+	latitudec double precision,
+	longitudec double precision,
+	idcreatorc integer,
+	title character varying,
+	idx integer,
+	creation date)
 */
 
 func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bool, err error) {
 	var IdC int64
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
-		stm, err := tx.Prepare("SELECT insertContainer($1, $2, $3, $4, $5, $6 , $7, $8)")
+		stm, err := tx.Prepare("SELECT createcontainer($1, $2, $3, $4, $5, $6 , $7, $8)")
 		if err != nil {
 			return (err)
 		}
-		err = stm.QueryRow(NewBall.Creator.Value.(*users.User).Id,
+		err = stm.QueryRow(NewBall.Wind.Degress, NewBall.Wind.Speed,
 			NewBall.Coord.Value.(Checkpoint).Coord.Lat,
-			NewBall.Coord.Value.(Checkpoint).Coord.Lon,
-			NewBall.Wind.Degress,
-			NewBall.Wind.Speed,
+			NewBall.Coord.Value.(Checkpoint).Coord.Lon, NewBall.Creator.Value.(*users.User).Id,
 			NewBall.Title,
 			NewBall.Id_ball,
 			NewBall.Date).Scan(&IdC)
