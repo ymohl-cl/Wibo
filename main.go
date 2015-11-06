@@ -145,6 +145,10 @@ func ManageSignal(Serv *server.Server) {
 	Serv.Lst_users.Logger = nil
 	Serv.Lst_ball.Logger = nil
 	Serv.Lst_Devices.Logger = nil
+	er := Serv.Lst_users.SaveUsersToFile()
+	if er != nil {
+		Serv.Logger.Println("Error on saveUsers, its a bad ! :(", er)
+	}
 	Serv.Logger = nil
 	os.Exit(-1)
 }

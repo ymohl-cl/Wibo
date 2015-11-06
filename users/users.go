@@ -12,7 +12,7 @@ import (
 	//	"github.com/op/go-logging"
 	//"golang.org/x/crypto/bcrypt"
 	"log"
-	//	"os"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -52,6 +52,7 @@ type User struct {
 	HistoricReq *list.List /* Liste d'interface History, compose l'historique des requetes utilisateurs */
 	Stats       *StatsUser /* Interface Stats, Statistique de la vie du ballon */
 	Magnet      time.Time
+	Psd         []byte
 	/* Les valeurs suivantes sont deprecated */
 	//Device      *list.List /* Value: Device */
 	//Password    string // pas utile car la comparaison sera faite avec la bdd
@@ -77,6 +78,19 @@ type userError struct {
 //var format = logging.MustStringFormatter(
 //	"%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}",
 //)
+
+func (Lst_users *All_users) SaveUsersToFile() error {
+	file, er := os.OpenFile("save", os.O_RDWR, 0666)
+	if er != nil {
+		return er
+	}
+	for e := Lst_users.Ulist.Front(); e != nil; e = e.Next() {
+		user := e.Value.(*User)
+		file.WriteString(user.Mail)
+		file.Write(user.Psd)
+	}
+	return nil
+}
 
 func (User *User) MagnetisValid() bool {
 	if time.Since(User.Magnet) > (1 * time.Minute) {
@@ -182,75 +196,81 @@ func CheckValidMail(email string) bool {
 }
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
-	//	var err error
-	fmt.Println("CheckPassword")
-	var pass1 string
-	var pass2 string
-	var flag bool
-
-	//	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-	rows, er := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-	rows.Scan(&flag)
-	if flag == false {
-		fmt.Println("DbQuery return flag:", flag)
-		fmt.Println("DbQuery return err:", er)
+	ref := user.Value.(*User).Psd
+	if len(ref) > 1 && bytes.Equal(ref, pass) == true {
+		return user
+	} else {
 		return nil
 	}
-	defer rows.Close()
-	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
-	pass1 = strings.Trim(pass1, "\x00")
-	pass2 = strings.Trim(pass2, "\x00")
+	//	var err error
+	/*	fmt.Println("CheckPassword")
+		var pass1 string
+		var pass2 string
+		var flag bool
 
-	fmt.Println("pass1: ", pass1)
-	fmt.Println("pass2: ", pass2)
-	//	if bytes.Equal(pass1, pass2) == true {
-	//		fmt.Println("Equal True")
-	//	}
-	if strings.Compare(pass1, pass2) == 0 {
-		fmt.Println("Compare true")
-		return user
-	}
-	return nil
+		//	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+		rows, er := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+		rows.Scan(&flag)
+		if er == nil {
+			fmt.Println("DbQuery return flag:", flag)
+			fmt.Println("DbQuery return err:", er)
+			return nil
+		}
+		defer rows.Close()
+		Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
+		pass1 = strings.Trim(pass1, "\x00")
+		pass2 = strings.Trim(pass2, "\x00")
 
-	//	if strings.Compare(pass1, pass2) == 0 {
+		fmt.Println("pass1: ", pass1)
+		fmt.Println("pass2: ", pass2)
+		//	if bytes.Equal(pass1, pass2) == true {
+		//		fmt.Println("Equal True")
+		//	}
+		if strings.Compare(pass1, pass2) == 0 {
+			fmt.Println("Compare true")
+			return user
+		}
+		return nil
 
-	//	return user
-	//	fmt.Println("pass bool: ", tata)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		//os.Exit(-1)
-	//		return nil
-	//	}
-	//	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
-	//	fmt.Println("pass1: ", pass1)
-	//	fmt.Println("pass2: ", pass2)
-	//	pass1 = strings.Trim(pass1, "\x00")
-	//	pass2 = strings.Trim(pass2, "\x00")
-	//
-	//	//if bytes.Equal(pass1, pass2) == true {
-	//	if strings.Compare(pass1, pass2) == 0 {
-	//		fmt.Println("CONTENT")
-	//		return user
-	//	} else {
-	//		fmt.Println("PAS CONTENT")
-	//		return nil
-	//	}
-	//
-	//	fmt.Printf("checkPassword :")
-	//	if rows.Next() != false {
-	//		var answer bool
-	//		err = rows.Scan(&answer)
-	//		if err != nil {
-	//			return nil
-	//		}
-	//		fmt.Println("Answer: ", answer)
-	//		if answer != true {
-	//			return nil
-	//		}
-	//		return user
-	//	}
-	//	fmt.Printf("is false\n")
-	//	return nil*/
+		//	if strings.Compare(pass1, pass2) == 0 {
+
+		//	return user
+		//	fmt.Println("pass bool: ", tata)
+		//	if err != nil {
+		//		fmt.Println(err)
+		//		//os.Exit(-1)
+		//		return nil
+		//	}
+		//	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
+		//	fmt.Println("pass1: ", pass1)
+		//	fmt.Println("pass2: ", pass2)
+		//	pass1 = strings.Trim(pass1, "\x00")
+		//	pass2 = strings.Trim(pass2, "\x00")
+		//
+		//	//if bytes.Equal(pass1, pass2) == true {
+		//	if strings.Compare(pass1, pass2) == 0 {
+		//		fmt.Println("CONTENT")
+		//		return user
+		//	} else {
+		//		fmt.Println("PAS CONTENT")
+		//		return nil
+		//	}
+		//
+		//	fmt.Printf("checkPassword :")
+		//	if rows.Next() != false {
+		//		var answer bool
+		//		err = rows.Scan(&answer)
+		//		if err != nil {
+		//			return nil
+		//		}
+		//		fmt.Println("Answer: ", answer)
+		//		if answer != true {
+		//			return nil
+		//		}
+		//		return user
+		//	}
+		//	fmt.Printf("is false\n")
+		//	return nil*/
 }
 
 /**
@@ -297,6 +317,7 @@ func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte
 			return false, nil
 		}
 	}
+
 	Lst_users.LogUser.Err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
 		1, "user_particulier", new_user.Coord.Lat, new_user.Coord.Lon,
 		new_user.Stats.CreationDate, new_user.Log, new_user.Mail, Pass).Scan(&new_user.Id)

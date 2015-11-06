@@ -918,6 +918,7 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 		User.HistoricReq = list.New()
 		User.Stats = new(users.StatsUser)
 		User.Stats.CreationDate = time.Now()
+		User.Psd = req.Spec.(protocol.Log).Pswd
 		flag, err := Data.Lst_users.Add_new_user(User, Db, req.Spec.(protocol.Log).Pswd)
 		er = err
 		if err != nil {
