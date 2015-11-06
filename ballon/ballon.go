@@ -242,7 +242,6 @@ func (Ball *Ball) CreateCheckpoint(Lst_wd *owm.All_data) error {
 	Lat := Ball.Coord.Value.(Checkpoint).Coord.Lat
 	station = Lst_wd.GetNearest(Lon, Lat)
 
-	Ball.Lock()
 	for i := 0; i < NBRCHECKPOINTLIST; i++ {
 		Ball.Checkpoints.PushBack(Ball.GetCheckpoint(station))
 	}
@@ -250,7 +249,6 @@ func (Ball *Ball) CreateCheckpoint(Lst_wd *owm.All_data) error {
 	Ball.Wind.Degress = station.Wind.Degress
 	Ball.Coord = Ball.Checkpoints.Front()
 	Ball.Checkpoints.Remove(Ball.Coord)
-	Ball.Unlock()
 	return nil
 }
 
@@ -258,7 +256,9 @@ func (Lst_ball *All_ball) Create_checkpoint(Lst_wd *owm.All_data) error {
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
 		if ball.Possessed == nil {
+			ball.Lock()
 			ball.CreateCheckpoint(Lst_wd)
+			ball.Unlock()
 		}
 	}
 	return nil
@@ -278,15 +278,15 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	var check Checkpoint
 	lst := list.New()
 
+	Ball.Lock()
 	check.Coord.Lon = Lon
 	check.Coord.Lat = Lat
 	check.Date = time.Now()
 	check.MagnetFlag = Magnet
-//	Ball.Lock()
 	Ball.Coord = lst.PushBack(check)
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
-//	Ball.Unlock()
+	Ball.Unlock()
 	if CrtCK == true {
 		Ball.CreateCheckpoint(Wd)
 	}
@@ -295,16 +295,20 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 	var coord Coordinate
 
+	fmt.Println("!!!! MOVE BAL !!!!")
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
-		fmt.Println("Coord de ball avant move: ", ball.Coord.Value.(Checkpoint))
 		if ball.Possessed == nil {
 			ball.Lock()
+			fmt.Println("Ball Title: ", ball.Title)
+			fmt.Println("Coord de ball avant move: ", ball.Coord.Value.(Checkpoint))
 			if ball.Checkpoints.Len() == 0 {
 				fmt.Println("Checkpoint empty")
 				coord = ball.Coord.Value.(Checkpoint).Coord
 				ball.CreateCheckpoint(Lst_wd)
+				fmt.Println("CreateCheckpoint")
 				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
+				fmt.Println("Get distance ok")
 			} else {
 				fmt.Println("Checkpoint no empty")
 				e := ball.Checkpoints.Front()
@@ -317,12 +321,13 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 			Lon := ball.Scoord.Value.(Checkpoint).Coord.Lon
 			Lat := ball.Scoord.Value.(Checkpoint).Coord.Lat
 			if ball.Itinerary.Len() == 0 || ball.GetDistance(Lon, Lat) > 1.0 {
+				fmt.Println("Add on Itinerary")
 				ball.Itinerary.PushBack(ball.Coord.Value.(Checkpoint))
 				ball.Scoord = ball.Coord
 			}
+			fmt.Println("Coord de ball apres move: ", ball.Coord.Value.(Checkpoint))
 			ball.Unlock()
 		}
-		fmt.Println("Coord de ball apres move: ", ball.Coord.Value.(Checkpoint))
 	}
 	return nil
 }
@@ -459,7 +464,7 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB) {
 func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	var err error
 	Itinerary := list.New()
-//	Ball.Itinerary = list.New()
+	//	Ball.Itinerary = list.New()
 	rows, err := Db.Query("SELECT date, attractbymagnet, ST_AsText(checkpoints.location_ckp) FROM checkpoints WHERE containerid=$1 ORDER BY date DESC", Ball.Id_ball)
 	if err != nil {
 		log.Print(err)
