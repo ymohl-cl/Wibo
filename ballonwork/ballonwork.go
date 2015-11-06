@@ -66,11 +66,11 @@ func GetCoord(position string) *Coordinates {
 func (wlist *All_work) Get_workBall(base *db.Env) error {
 
 	wlist.Wlist = list.New()
-	rows, err := base.Db.Query("SELECT title, message, St_AsText(ballonwork.location_wk), link FROM  ballonwork;")
-	defer rows.Close()
+	rows, err := base.Db.Query("SELECT title, message, ST_AsText(ballonwork.location_wk), link FROM  ballonwork;")
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 	if rows.Next() != false {
 		for rows.Next() {
 			var til, ms, pos, url string
