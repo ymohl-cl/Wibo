@@ -186,17 +186,13 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	fmt.Println("CheckPassword user: ", user.Value.(*User).Mail)
 	//	var pass1 string
 	//var pass2 bool
-	var flag bool
-	var flag2 bool
+	var flag int
 
 	rows, _ := Db.Query("SELECT login($1, $2)", user.Value.(*User).Id, pass)
 	rows.Scan(&flag)
 	fmt.Println("DbQuery return flag:", flag)
-	rows2, _ := Db.Query("SELECT bool_or(passbyte = tempass) FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
-	rows2.Scan(&flag2)
-	fmt.Println("WORK! DbQuery return flag:", flag2)
-	if flag2 == false {
-		fmt.Println("DbQuery return flag2:", flag2)
+	if flag == 0 {
+		fmt.Println("DbQuery verification:", flag)
 		return nil
 	}
 
