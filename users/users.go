@@ -184,37 +184,44 @@ func CheckValidMail(email string) bool {
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	//	var err error
 	fmt.Println("CheckPassword user: ", user.Value.(*User).Mail)
-	var pass1 string
-	var pass2 string
+	//	var pass1 string
+	//var pass2 bool
 	var flag bool
+	var flag2 bool
 
-	//	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-	rows, er := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+	rows, _ := Db.Query("SELECT login($1, $2)", user.Value.(*User).Id, pass)
 	rows.Scan(&flag)
-	if flag == false {
-		fmt.Println("DbQuery return flag:", flag)
-		fmt.Println("DbQuery return err:", er)
-//		return nil
-	}
-	if er != nil {
-		fmt.Println("DbQuery return err:", er)
+	fmt.Println("DbQuery return flag:", flag)
+	rows2, _ := Db.Query("SELECT bool_or(passbyte = tempass) FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id)
+	rows2.Scan(&flag2)
+	fmt.Println("WORK! DbQuery return flag:", flag2)
+	if flag2 == false {
+		fmt.Println("DbQuery return flag2:", flag2)
 		return nil
 	}
-	defer rows.Close()
-	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
-	pass1 = strings.Trim(pass1, "\x00")
-	pass2 = strings.Trim(pass2, "\x00")
 
-	fmt.Println("pass1: ", pass1)
-	fmt.Println("pass2: ", pass2)
+	//if er != nil {
+	//	fmt.Println("DbQuery return err:", er)
+	//	return nil
+	//}
+	//defer rows.Close()
+
+	//	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
+	//	pass1 = strings.Trim(pass1, "\x00")
+	//	pass2 = strings.Trim(pass2, "\x00")
+
+	//	fmt.Println("pass1: ", pass1)
+	//Db.QueryRow("select id_user CASE  WHEN tmpass = passbyte THEM TRUE  ELSE FALSE from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1)
+	//fmt.Println("pass2: ", pass2)
 	//	if bytes.Equal(pass1, pass2) == true {
 	//		fmt.Println("Equal True")
 	//	}
-	if strings.Compare(pass1, pass2) == 0 {
-		fmt.Println("Compare true")
-		return user
-	}
-	return nil
+	//	if strings.Compare(pass1, pass2) == 0 {
+	//	if bytes.Equal(pass1, pass2) == true {
+	//		fmt.Println("Compare true")
+	//		return user
+	//	}
+	return user
 
 	//	if strings.Compare(pass1, pass2) == 0 {
 
