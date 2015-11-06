@@ -7,12 +7,8 @@ Logsfile.txt
 Logsfile.*
 *.txt
 restart/
-db/*
-db/
 Wibo
 # Data base local config
-db/*
-db/db.go
 # Vim extensions
 *.swp
 *.swo
