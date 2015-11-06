@@ -223,54 +223,8 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 
 		fmt.Println("pass1: ", pass1)
 		fmt.Println("pass2: ", pass2)
-		//	if bytes.Equal(pass1, pass2) == true {
-		//		fmt.Println("Equal True")
-		//	}
-		if strings.Compare(pass1, pass2) == 0 {
-			fmt.Println("Compare true")
-			return user
-		}
-		return nil
 
-		//	if strings.Compare(pass1, pass2) == 0 {
-
-		//	return user
-		//	fmt.Println("pass bool: ", tata)
-		//	if err != nil {
-		//		fmt.Println(err)
-		//		//os.Exit(-1)
-		//		return nil
-		//	}
-		//	Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
-		//	fmt.Println("pass1: ", pass1)
-		//	fmt.Println("pass2: ", pass2)
-		//	pass1 = strings.Trim(pass1, "\x00")
-		//	pass2 = strings.Trim(pass2, "\x00")
-		//
-		//	//if bytes.Equal(pass1, pass2) == true {
-		//	if strings.Compare(pass1, pass2) == 0 {
-		//		fmt.Println("CONTENT")
-		//		return user
-		//	} else {
-		//		fmt.Println("PAS CONTENT")
-		//		return nil
-		//	}
-		//
-		//	fmt.Printf("checkPassword :")
-		//	if rows.Next() != false {
-		//		var answer bool
-		//		err = rows.Scan(&answer)
-		//		if err != nil {
-		//			return nil
-		//		}
-		//		fmt.Println("Answer: ", answer)
-		//		if answer != true {
-		//			return nil
-		//		}
-		//		return user
-		//	}
-		//	fmt.Printf("is false\n")
-		//	return nil*/
+		return nil*/
 }
 
 /**

@@ -78,6 +78,7 @@ type Ball struct {
 	Followers   *list.List    /* List d'insterface *list.Element.Value.(*users.User), Constitue la liste des utilisateurs qui suivents le ballon */
 	Creator     *list.Element /* Value: (*users.User), user qui a creer le ballon */
 	Stats       *StatsBall    /* Interface Stats: Statistiques de la vie du ballon */
+	FlagC       bool // Flag de creation to insert if true or update for false
 }
 
 type All_ball struct {
@@ -543,9 +544,10 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		NewBall.Coord.Value.(Checkpoint).Coord.Lat,
 		NewBall.Coord.Value.(Checkpoint).Coord.Lon,
 		NewBall.Wind.Degress, NewBall.Wind.Speed,
-		NewBall.Title,
+		strings.Trim(NewBall.Title, "\x00"),
 		NewBall.Id_ball,
-		time.Now()).Scan(&IdC)
+		NewBall.Stats.CreationDate).Scan(&IdC)
+	fmt.Println("Idc: ", IdC)
 	fmt.Println(err)
 	if err != nil {
 		return false, err
@@ -576,12 +578,12 @@ CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec 
 AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
 \*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
-	IdMaxBase := getIdBallMax(base)
-	fmt.Println("VALUE MAX DE BDD :D", IdMaxBase)
-	fmt.Println("VALUE MAX DE BDD :D", Lb.Id_max)
+//	IdMaxBase := getIdBallMax(base)
+//	fmt.Println("VALUE MAX DE BDD :D", IdMaxBase)
+//	fmt.Println("VALUE MAX DE BDD :D", Lb.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-
-		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball <= IdMaxBase {
+//		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < IdMaxBase {
+		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).FlagC == false {
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax, er := getIdMessageMax(idBall, base)
@@ -610,9 +612,10 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				}
 			}
 			e.Value.(*Ball).Unlock()
-		} else {
-			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
+		} else if e.Value.(*Ball).FlagC == true {
+//			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
 			Lb.InsertBallon(e.Value.(*Ball), base)
+			e.Value.(*Ball).FlagC = false
 		}
 	}
 	return er
@@ -626,6 +629,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 			Lst_ball.checkErr(err)
 			_, err = stm.Query(e.Value.(Message).Content, idBall)
 			i++
+			fmt.Println("YOLO", err)
 			Lst_ball.checkErr(err)
 			return err
 		})

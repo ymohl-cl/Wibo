@@ -732,6 +732,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
 		ball.Id_ball = Data.Lst_ball.Id_max
 		Data.Lst_ball.Id_max++
+		ball.FlagC = true
 		ball.Edited = true
 		ball.Title = newball.Title
 		ball.Messages = list.New()
