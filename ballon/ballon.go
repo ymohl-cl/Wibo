@@ -78,7 +78,7 @@ type Ball struct {
 	Followers   *list.List    /* List d'insterface *list.Element.Value.(*users.User), Constitue la liste des utilisateurs qui suivents le ballon */
 	Creator     *list.Element /* Value: (*users.User), user qui a creer le ballon */
 	Stats       *StatsBall    /* Interface Stats: Statistiques de la vie du ballon */
-	FlagC       bool // Flag de creation to insert if true or update for false
+	FlagC       bool          // Flag de creation to insert if true or update for false
 }
 
 type All_ball struct {
@@ -578,11 +578,11 @@ CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec 
 AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
 \*/
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
-//	IdMaxBase := getIdBallMax(base)
-//	fmt.Println("VALUE MAX DE BDD :D", IdMaxBase)
-//	fmt.Println("VALUE MAX DE BDD :D", Lb.Id_max)
+	//	IdMaxBase := getIdBallMax(base)
+	//	fmt.Println("VALUE MAX DE BDD :D", IdMaxBase)
+	//	fmt.Println("VALUE MAX DE BDD :D", Lb.Id_max)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
-//		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < IdMaxBase {
+		//		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).Id_ball < IdMaxBase {
 		if e.Value.(*Ball).Edited == true && e.Value.(*Ball).FlagC == false {
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
@@ -613,7 +613,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 			}
 			e.Value.(*Ball).Unlock()
 		} else if e.Value.(*Ball).FlagC == true {
-//			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
+			//			fmt.Printf("\x1b[31;1m Insert ball  %d | %v \x1b[0m\n", e.Value.(*Ball).Id_ball, IdMaxBase)
 			Lb.InsertBallon(e.Value.(*Ball), base)
 			e.Value.(*Ball).FlagC = false
 		}
@@ -722,20 +722,23 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 
 	err = base.Transact(base.Db, func(tx *sql.Tx) error {
 		var errT error
-		stm, errT := tx.Prepare("SELECT getContainersByUserId($1)")
+		stm, errT := tx.Prepare("SELECT getContainersByUserId($1);")
 		if errT != nil {
-			return errT
+			Lb.Logger.Println(err)
+			//return err
 		}
 		rows, err := stm.Query(userE.Value.(*users.User).Id)
 		if err != nil {
-			return nil
+			Lb.Logger.Println(err)
+			//	return err
 		}
 		if rows.Next() != false {
 			for rows.Next() {
 				var infoCont string
 				err = rows.Scan(&infoCont)
 				if err != nil {
-					return nil
+					Lb.Logger.Println(err)
+					//		return err
 				}
 				result := strings.Split(infoCont, ",")
 				fmt.Printf("%T | %v \n", infoCont, infoCont)
@@ -743,12 +746,11 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				tempCord := GetCord(result[6])
 				lstIt := list.New()
 				lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
-				possessed, er := GetWhomGotBall(idBall, Ulist, base.Db)
+				possessed, _ := GetWhomGotBall(idBall, Ulist, base.Db)
 				if possessed == nil {
-					fmt.Println("IS NULL POSSESED")
-				}
-				if er != nil {
-					return er
+					possessed = userE
+					Lb.Logger.Println("Possesed is null")
+					//		return er
 				}
 				tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
 				fmt.Printf("%v and %v \n", tmpBall, result[7])
@@ -757,11 +759,13 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				} else {
 					lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
 					if err != nil {
-						return err
+						Lb.Logger.Println(err)
+						//			return err
 					}
 					lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
 					if err != nil {
-						return err
+						Lb.Logger.Println(err)
+						//			return err
 					}
 					lBallon.PushBack(
 						&Ball{
@@ -785,7 +789,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		return err
 	})
 	if err != nil {
-		fmt.Println(err)
+		Lb.Logger.Println(err)
 		return nil, err
 	}
 	return lBallon, nil
