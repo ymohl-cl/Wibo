@@ -7,7 +7,6 @@ Logsfile.txt
 Logsfile.*
 *.txt
 restart/
-Wibo
 # Data base local config
 # Vim extensions
 *.swp
