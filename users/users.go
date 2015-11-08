@@ -204,12 +204,9 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	}
 	//	var err error
 	/*	fmt.Println("CheckPassword")
-		var pass1 string
-		var pass2 string
-		var flag bool
+		var flag int
 
-		//	rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-		rows, er := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
+		rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
 		rows.Scan(&flag)
 		if er == nil {
 			fmt.Println("DbQuery return flag:", flag)
@@ -217,13 +214,6 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 			return nil
 		}
 		defer rows.Close()
-		Db.QueryRow("SELECT passbyte, tmpass from \"user\" WHERE id_user = $1", user.Value.(*User).Id).Scan(&pass1, &pass2)
-		pass1 = strings.Trim(pass1, "\x00")
-		pass2 = strings.Trim(pass2, "\x00")
-
-		fmt.Println("pass1: ", pass1)
-		fmt.Println("pass2: ", pass2)
-
 		return nil*/
 }
 
