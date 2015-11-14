@@ -833,8 +833,10 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 			for i := 0; i < 3; i++ {
 				tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
 			}
-			Data.User.Value.(*users.User).Magnet = time.Now()
 			list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
+			if list_tmp_2.Len() > 0 {
+				Data.User.Value.(*users.User).Magnet = time.Now()
+			}
 			eball = list_tmp_2.Front()
 		}
 		for eball != nil {
@@ -938,6 +940,7 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(1))
 		} else {
 			fmt.Println("FLAG FLASE !")
+			er = nil
 			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(0))
 		}
 	} else {

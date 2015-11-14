@@ -2,11 +2,10 @@ package users
 
 import (
 	"database/sql"
-	"fmt"
+	_ "fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lib/pq"
 	_ "time"
-	// "log"
 )
 
 /*

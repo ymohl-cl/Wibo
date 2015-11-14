@@ -920,7 +920,8 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (er error) {
 	er = nil
 
-	Lb.Id_max = getIdBallMax(base)
+	Lb.Id_max = getIdBallMax(base) + 1
+	fmt.Println("Id max de ball: ", Lb.Id_max)
 
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		if e.Value.(*users.User) != nil {

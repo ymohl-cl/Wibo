@@ -87,6 +87,8 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 						Conn.RemoteAddr(), er)
 					Front := Data.Lst_asw.Front()
 					if Front != nil {
+						fmt.Println("1Answer sending:")   // Print Verification
+						fmt.Println(Front.Value.([]byte)) // Print Verification
 						size, er = Conn.Write(Front.Value.([]byte))
 						fmt.Printf("Write %d octets\n", size)
 						Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
@@ -95,7 +97,7 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
-					fmt.Println("Answer sending:")    // Print Verification
+					fmt.Println("2Answer sending:")   // Print Verification
 					fmt.Println(Front.Value.([]byte)) // Print Verification
 					size, er = Conn.Write(Front.Value.([]byte))
 					fmt.Printf("Write %d octets\n", size)
@@ -105,6 +107,8 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 				}
 			} else {
 				awr := Data.Get_aknowledgement(Data.Lst_users)
+				fmt.Println("3Answer sending:") // Print Verification
+				fmt.Println(awr)                // Print Verification
 				size, er = Conn.Write(awr)
 				fmt.Printf("Write %d octets\n", size)
 				Data.Logger.Printf("Remote Address: %s| retour de Conn.Write (exhange multiple packets), size: %d, er: %s\n",

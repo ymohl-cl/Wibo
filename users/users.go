@@ -93,7 +93,7 @@ func (Lst_users *All_users) SaveUsersToFile() error {
 }
 
 func (User *User) MagnetisValid() bool {
-	if time.Since(User.Magnet) > (1 * time.Minute) {
+	if time.Since(User.Magnet) > (1 * time.Hour) {
 		return true
 	}
 	return false
