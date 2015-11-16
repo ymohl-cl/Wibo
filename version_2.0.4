@@ -1,0 +1,1808 @@
+--
+-- PostgreSQL database dump
+--
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: tiger; Type: SCHEMA; Schema: -; Owner: wibo
+--
+
+CREATE SCHEMA tiger;
+
+
+ALTER SCHEMA tiger OWNER TO wibo;
+
+--
+-- Name: fuzzystrmatch; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION fuzzystrmatch; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION fuzzystrmatch IS 'determine similarities and distance between strings';
+
+
+--
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
+
+
+--
+-- Name: postgis_tiger_geocoder; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder WITH SCHEMA tiger;
+
+
+--
+-- Name: EXTENSION postgis_tiger_geocoder; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_tiger_geocoder IS 'PostGIS tiger geocoder and reverse geocoder';
+
+
+--
+-- Name: topology; Type: SCHEMA; Schema: -; Owner: wibo
+--
+
+CREATE SCHEMA topology;
+
+
+ALTER SCHEMA topology OWNER TO wibo;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: postgis_topology; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;
+
+
+--
+-- Name: EXTENSION postgis_topology; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_topology IS 'PostGIS topology spatial types and functions';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: addcontainer(double precision, double precision, double precision, double precision, integer, character varying, integer, date); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION addcontainer(directionc double precision, speedc double precision, latitudec double precision, longitudec double precision, idcreatorc integer, title character varying, idx integer, creation date) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$ BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;
+END;
+$$;
+
+
+ALTER FUNCTION public.addcontainer(directionc double precision, speedc double precision, latitudec double precision, longitudec double precision, idcreatorc integer, title character varying, idx integer, creation date) OWNER TO wibo;
+
+--
+-- Name: create_statsballon(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION create_statsballon() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+        --
+        -- Create a row in stats_container to reflect the operation performed on container,
+        -- make use of the special variable TG_OP to work out the operation.
+        --
+       
+        IF (TG_OP = 'INSERT') THEN
+            INSERT INTO stats_container VAlUES (NEW.id, 0, 0, 0, 0);
+            RETURN NEW;
+        END IF;
+        RETURN NULL; -- result is ignored since this is an AFTER trigger
+    END;
+$$;
+
+
+ALTER FUNCTION public.create_statsballon() OWNER TO wibo;
+
+--
+-- Name: create_statsuser(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION create_statsuser() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+        --
+        -- Create a row in stats_users to reflect the operation performed on user,
+        -- make use of the special variable TG_OP to work out the operation.
+        --
+       
+        IF (TG_OP = 'INSERT') THEN
+            INSERT INTO stats_users VAlUES (0, 0, 0, 0, NEW.id_user);
+            RETURN NEW;
+        END IF;
+        RETURN NULL; -- result is ignored since this is an AFTER trigger
+    END;
+$$;
+
+
+ALTER FUNCTION public.create_statsuser() OWNER TO wibo;
+
+--
+-- Name: createcontainer(double precision, double precision, double precision, double precision, integer, character varying, integer, date); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION createcontainer(directionc double precision, speedc double precision, latitudec double precision, longitudec double precision, idcreatorc integer, title character varying, idx integer, creation date) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$ BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;
+END;
+$$;
+
+
+ALTER FUNCTION public.createcontainer(directionc double precision, speedc double precision, latitudec double precision, longitudec double precision, idcreatorc integer, title character varying, idx integer, creation date) OWNER TO wibo;
+
+--
+-- Name: getalldevices(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getalldevices() RETURNS TABLE(deviceid integer, userid integer)
+    LANGUAGE plpgsql
+    AS $$ BEGIN RETURN QUERY EXECUTE 'SELECT device.id AS DeviceId, device.user_id_user AS UserId, FROM device LEFT OUTER JOIN "user" ON (device.user_id_user = "user".id_user)'; END  $$;
+
+
+ALTER FUNCTION public.getalldevices() OWNER TO wibo;
+
+--
+-- Name: getcontainers(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainers() RETURNS TABLE(idballon integer, idtype integer, direction numeric, speedcont integer, creationdate date, locationcont text)
+    LANGUAGE plpgsql
+    AS $$ 
+ BEGIN  RETURN  QUERY EXECUTE 'SELECT  container.id AS contIndex, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon, ST_AsText(container.location_ct) FROM container';  END$$;
+
+
+ALTER FUNCTION public.getcontainers() OWNER TO wibo;
+
+--
+-- Name: getcontainersbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersbyuserid(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction double precision, speedcont double precision, creationdate timestamp without time zone, locationcont text, ianix integer, magnet boolean, datalocation timestamp without time zone)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, date(container.creationdate) + interval '1 hour',   ST_AsText(container.location_ct), container.ianix, container.magnet, date(container.datalocation) + interval '1 hour' FROM container  WHERE idcreator = iduser;  END $$;
+
+
+ALTER FUNCTION public.getcontainersbyuserid(iduser integer) OWNER TO wibo;
+
+--
+-- Name: getcontainersbyuseridjson(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersbyuseridjson(iduser integer) RETURNS TABLE(idballon integer, titlename character varying, idtype integer, direction numeric, speedcont integer, creationdate date, locationcont text)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT container.id AS contIndex, container.titlename AS TitleName, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon,  ST_AsGeoJson(container.location_ct)  FROM container  WHERE idcreator = iduser;  END $$;
+
+
+ALTER FUNCTION public.getcontainersbyuseridjson(iduser integer) OWNER TO wibo;
+
+--
+-- Name: getcontainersjson(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getcontainersjson() RETURNS TABLE(idballon integer, idtype integer, direction numeric, speedcont integer, creationdate date, locationcont text)
+    LANGUAGE plpgsql
+    AS $$ 
+ BEGIN  RETURN  QUERY EXECUTE 'SELECT  container.id AS contIndex, container.id_type_c AS TypeCode, container.direction AS contDirection, container.speed AS contSpeed, container.creationdate as dateCreationCon, ST_AsGeoJson(container.location_ct) FROM container';  END$$;
+
+
+ALTER FUNCTION public.getcontainersjson() OWNER TO wibo;
+
+--
+-- Name: getdevicesbyuserid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getdevicesbyuserid(iduser integer) RETURNS TABLE(idclientdevice character varying)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT  device.idclient AS IdClientDevice FROM device WHERE user_id_user = iduser; END  $$;
+
+
+ALTER FUNCTION public.getdevicesbyuserid(iduser integer) OWNER TO wibo;
+
+--
+-- Name: getitenirarybycontainerid(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION getitenirarybycontainerid(idcont integer) RETURNS TABLE(date timestamp without time zone, magnet boolean, locationcont text)
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY SELECT date(checkpoints.date) + interval '1 hour', checkpoints.attractbymagnet,  ST_AsText(checkpoints.location_ckp) FROM checkpoints  WHERE checkpoints.containerid=idcont ORDER BY checkpoints.date DESC;  END $$;
+
+
+ALTER FUNCTION public.getitenirarybycontainerid(idcont integer) OWNER TO wibo;
+
+--
+-- Name: insertballonwork(character varying, double precision, double precision, character varying, character varying); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION insertballonwork(titlep character varying, latitudec double precision, longitudec double precision, mss character varying, lien character varying) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY INSERT INTO ballonwork (title, message, location_wk, link) VALUES(titlep, mss, ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), lien) RETURNING idbw;  END; $$;
+
+
+ALTER FUNCTION public.insertballonwork(titlep character varying, latitudec double precision, longitudec double precision, mss character varying, lien character varying) OWNER TO wibo;
+
+--
+-- Name: insertcheckpoints(date, double precision, double precision, integer, boolean); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION insertcheckpoints(cdate date, latitudec double precision, longitudec double precision, idcont integer, magnet boolean) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY INSERT INTO checkpoints (date, containerid, attractbymagnet, location_ckp) VALUES(cdate, idcont, magnet, ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326)) RETURNING id;  END; $$;
+
+
+ALTER FUNCTION public.insertcheckpoints(cdate date, latitudec double precision, longitudec double precision, idcont integer, magnet boolean) OWNER TO wibo;
+
+--
+-- Name: insertcontainer(integer, double precision, double precision, double precision, double precision, text, integer, date); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY INSERT INTO container (id_type_c, typename, direction, speed, location_ct, idcreator, titlename, ianix, creationdate, magnet, datalocation) VALUES(1, 'red', directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation, false, creation) RETURNING id;  END; $$;
+
+
+ALTER FUNCTION public.insertcontainer(idcreatorc integer, latitudec double precision, longitudec double precision, directionc double precision, speedc double precision, title text, idx integer, creation date) OWNER TO wibo;
+
+--
+-- Name: login(integer, bytea); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION login(_userid integer, _pwd bytea) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+done boolean:= false;
+BEGIN
+UPDATE "user" SET tempass =_pwd WHERE id_user=_userid;
+SELECT TRUE  into done  FROM "user" WHERE  id_user=_userid  AND passbyte IS NOT DISTINCT FROM tempass;
+IF done = true THEN
+    UPDATE "user" SET verification = 1 WHERE id_user =_userid;
+    RETURN 1;
+ ELSE
+    UPDATE "user" SET verification = 0 WHERE id_user =_userid;
+   RETURN 0;
+END IF;
+END;
+$$;
+
+
+ALTER FUNCTION public.login(_userid integer, _pwd bytea) OWNER TO wibo;
+
+--
+-- Name: login2(integer, text); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION login2(_userid integer, _pwd text, OUT _email text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+SELECT mail INTO _email FROM "user"
+    WHERE "user".iduser=_userid
+AND passbyte = _pwd;
+END;
+$$;
+
+
+ALTER FUNCTION public.login2(_userid integer, _pwd text, OUT _email text) OWNER TO wibo;
+
+--
+-- Name: login3(integer, bytea); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION login3(_userid integer, _pwd bytea, OUT _email text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+SELECT mail INTO _email FROM "user"
+    WHERE "user".id_user=_userid
+AND passbyte = _pwd;
+END;
+$$;
+
+
+ALTER FUNCTION public.login3(_userid integer, _pwd bytea, OUT _email text) OWNER TO wibo;
+
+--
+-- Name: login_insert(integer, character varying); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION login_insert(_userid integer, _pwd character varying, OUT _res boolean) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+BEGIN 
+update "user" set tempass =_pwd where id_user=_userid;
+SELECT true INTO _res FROM "user"
+WHERE "user".id_user=_userid
+AND "user".passbyte = "user".tempass;
+END;
+$$;
+
+
+ALTER FUNCTION public.login_insert(_userid integer, _pwd character varying, OUT _res boolean) OWNER TO wibo;
+
+--
+-- Name: make_uid(); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION make_uid() RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    new_uid text;
+done bool;
+BEGIN
+    done := false;
+    WHILE NOT done LOOP new_uid := stringify_bigint(pseudo_encrypt(cast(extract(epoch from now())::integer as int)));
+done := NOT exists(SELECT 1 FROM "user" WHERE mail=new_uid);
+END LOOP;
+    RETURN new_uid;
+END;
+$$;
+
+
+ALTER FUNCTION public.make_uid() OWNER TO wibo;
+
+--
+-- Name: pseudo_encrypt(integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION pseudo_encrypt(value integer) RETURNS integer
+    LANGUAGE plpgsql IMMUTABLE STRICT
+    AS $$
+DECLARE
+l1 int;
+l2 int;
+r1 int;
+r2 int;
+i int:=0;
+BEGIN
+ l1:= (VALUE >> 16) & 65535;
+ r1:= VALUE & 65535;
+ WHILE i < 3 LOOP
+   l2 := r1;
+   r2 := l1 # ((((1366 * r1 + 150889) % 714021) / 714021.0) * 32767)::int;
+   l1 := l2;
+   r1 := r2;
+   i := i + 1;
+ END LOOP;
+ RETURN ((r1 << 16) + l1);
+END;
+$$;
+
+
+ALTER FUNCTION public.pseudo_encrypt(value integer) OWNER TO wibo;
+
+--
+-- Name: setdatacontainer(double precision, double precision, double precision, double precision, integer, integer, date, boolean); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setdatacontainer(_degress double precision, _speed double precision, _lat double precision, _lon double precision, idball integer, idcurruser integer, _da date, mgt boolean) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+done boolean:= false;
+BEGIN
+ done :=  NOT exists(SELECT id FROM container WHERE id=idball);
+IF done = false THEN
+    UPDATE container SET(direction, speed, location_ct, idcurrentuser, datalocation, magnet) = (_degress, _speed, ST_SetSRID(ST_MakePoint(_lat, _lon), 4326), idcurruser, _da, mgt) WHERE id=idball;
+    RETURN TRUE;
+END IF;
+RETURN FALSE;
+END;
+$$;
+
+
+ALTER FUNCTION public.setdatacontainer(_degress double precision, _speed double precision, _lat double precision, _lon double precision, idball integer, idcurruser integer, _da date, mgt boolean) OWNER TO wibo;
+
+--
+-- Name: setsdefaultuserdata(double precision, double precision, date, date, bytea); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setsdefaultuserdata(latc double precision, lonc double precision, lastlog date, creation date, pass bytea) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+done boolean:= false;
+BEGIN
+IF done = false THEN
+    INSERT INTO "user"(id_type_g, groupname, passbyte, lastlogin, creationdate, mail, location_user) VALUES(2, 'user_default', pass, lastlog, creation, make_uid(), ST_SetSRID(ST_MakePoint(latc, lonc), 4326));
+    RETURN (SELECT currval('user_id_user_seq'));
+END IF;
+RETURN -1;
+END;
+$$;
+
+
+ALTER FUNCTION public.setsdefaultuserdata(latc double precision, lonc double precision, lastlog date, creation date, pass bytea) OWNER TO wibo;
+
+--
+-- Name: setstatballon(double precision, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setstatballon(n_km double precision, n_cath integer, n_follow integer, n_magnet integer, idball integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+done boolean:= false;
+BEGIN
+ done :=  NOT exists(SELECT idball_stats FROM stats_container WHERE idball_stats=idball);
+IF done = false THEN
+    UPDATE stats_container SET(num_km, num_catch, num_follow, num_magnet) = ($1, $2, $3, $4) WHERE idball_stats=idball;
+    RETURN TRUE;
+END IF;
+PERFORM 1 FROM stats_container WHERE idball_stats=idball LIMIT 1;
+IF NOT FOUND THEN
+INSERT INTO stats_container(num_km, num_catch, num_follow, num_magnet, idball_stats) VALUES(n_km, n_cath, n_follow, n_magnet, idball);
+RETURN TRUE;
+END IF;
+RETURN FALSE;
+END;
+$_$;
+
+
+ALTER FUNCTION public.setstatballon(n_km double precision, n_cath integer, n_follow integer, n_magnet integer, idball integer) OWNER TO wibo;
+
+--
+-- Name: setstatsuser(integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setstatsuser(n_cont integer, n_catch integer, n_follow integer, n_message integer, n_send integer, iduser integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+done boolean:= false;
+BEGIN
+ done :=  NOT exists(SELECT iduser_stats FROM stats_users WHERE iduser_stats=iduser);
+IF done = false THEN
+    UPDATE stats_users SET(num_owner, num_catch, num_follow, num_message, num_send) = ($1, $2, $3, $4, $5) WHERE iduser_stats=iduser;
+    RETURN TRUE;
+END IF;
+PERFORM 1 FROM stats_users WHERE iduser_stats=iduser LIMIT 1;
+IF NOT FOUND THEN 
+INSERT INTO stats_users(num_owner, num_catch, num_follow, num_message, num_send, iduser_stats) VALUES(n_cont, n_catch, n_follow, n_message, n_send, iduser);
+RETURN TRUE;
+END IF;
+RETURN FALSE;
+END;
+$_$;
+
+
+ALTER FUNCTION public.setstatsuser(n_cont integer, n_catch integer, n_follow integer, n_message integer, n_send integer, iduser integer) OWNER TO wibo;
+
+--
+-- Name: setsuserdata(integer, character varying, double precision, double precision, date, date, character varying, bytea); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setsuserdata(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+done boolean:= false;
+BEGIN
+ done :=  NOT exists(SELECT mail FROM "user");
+IF done = true THEN
+    INSERT INTO "user"(id_type_g, groupname, lastlogin, creationdate, mail, passbyte, location_user) VALUES(idtypeg, groupnamec, lastlog, creation, mailc, pass, ST_SetSRID(ST_MakePoint(latc, lonc), 4326));
+    RETURN TRUE;
+END IF;
+PERFORM 1 FROM "user" WHERE mail=mailc LIMIT 1;
+IF FOUND THEN
+UPDATE "user" SET(lastlogin, location_user) = (lastlog, ST_SetSRID(ST_MakePoint(latc, lonc), 4326)) WHERE mail = mailc;
+RETURN TRUE;
+END IF;
+RETURN FALSE;
+END;
+$$;
+
+
+ALTER FUNCTION public.setsuserdata(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea) OWNER TO wibo;
+
+--
+-- Name: setsuserdata2(integer, character varying, double precision, double precision, date, date, character varying, bytea); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION setsuserdata2(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+done boolean:= false;
+iduser integer := 0;
+BEGIN
+ done :=  NOT exists(SELECT mail FROM "user");
+IF done = false THEN
+    INSERT INTO "user"(id_type_g, groupname, lastlogin, creationdate, mail, passbyte, location_user) VALUES(idtypeg, groupnamec, lastlog, creation, mailc, pass, ST_SetSRID(ST_MakePoint(latc, lonc), 4326));
+    RETURN (SELECT currval('user_id_user_seq'));
+
+END IF;
+PERFORM 1 FROM "user" WHERE mail=mailc LIMIT 1;
+IF FOUND THEN
+ UPDATE "user" SET(lastlogin, location_user) = (lastlog, ST_SetSRID(ST_MakePoint(latc, lonc), 4326)) WHERE mail=mailc;
+RETURN (SELECT id_user FROM "user" WHERE mail=mailc);
+END IF;
+RETURN -1;
+END;
+$$;
+
+
+ALTER FUNCTION public.setsuserdata2(idtypeg integer, groupnamec character varying, latc double precision, lonc double precision, creation date, lastlog date, mailc character varying, pass bytea) OWNER TO wibo;
+
+--
+-- Name: stringify_bigint(bigint); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION stringify_bigint(n bigint) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE STRICT
+    AS $$
+DECLARE
+ alphabet text:='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+ base int:=length(alphabet); 
+ _n bigint:=abs(n);
+ output text:='';
+BEGIN
+ LOOP
+   output := output || substr(alphabet, 1+(_n%base)::int, 1);
+   _n := _n / base; 
+   EXIT WHEN _n=0;
+ END LOOP;
+ RETURN output;
+END $$;
+
+
+ALTER FUNCTION public.stringify_bigint(n bigint) OWNER TO wibo;
+
+--
+-- Name: updatelocationuser(integer, double precision, double precision); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION updatelocationuser(iduser integer, latitudec double precision, longitudec double precision) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY UPDATE "user" SET location_user = ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326) WHERE id_user = iduser RETURNING id_user;  END; $$;
+
+
+ALTER FUNCTION public.updatelocationuser(iduser integer, latitudec double precision, longitudec double precision) OWNER TO wibo;
+
+--
+-- Name: updateuser(integer, double precision, double precision, date); Type: FUNCTION; Schema: public; Owner: wibo
+--
+
+CREATE FUNCTION updateuser(iduser integer, latitudec double precision, longitudec double precision, log date) RETURNS SETOF integer
+    LANGUAGE plpgsql
+    AS $$  BEGIN RETURN QUERY UPDATE "user" SET location_user = ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), lastlogin = log WHERE id_user = iduser RETURNING id_user;  END; $$;
+
+
+ALTER FUNCTION public.updateuser(iduser integer, latitudec double precision, longitudec double precision, log date) OWNER TO wibo;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: ballonwork; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE ballonwork (
+    idbw integer NOT NULL,
+    title character varying(250) NOT NULL,
+    message character varying(510) NOT NULL,
+    location_wk geography(Point,4326),
+    link character varying(240) NOT NULL
+);
+
+
+ALTER TABLE ballonwork OWNER TO wibo;
+
+--
+-- Name: ballonwork_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE ballonwork_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE ballonwork_id_seq OWNER TO wibo;
+
+--
+-- Name: ballonwork_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE ballonwork_id_seq OWNED BY ballonwork.idbw;
+
+
+--
+-- Name: checkpoints; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE checkpoints (
+    id integer NOT NULL,
+    date date NOT NULL,
+    containerid integer NOT NULL,
+    attractbymagnet boolean NOT NULL,
+    location_ckp geography(Point,4326)
+);
+
+
+ALTER TABLE checkpoints OWNER TO wibo;
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE checkpoints_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE checkpoints_id_seq OWNER TO wibo;
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE checkpoints_id_seq OWNED BY checkpoints.id;
+
+
+--
+-- Name: type_container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_container (
+    id_type_c integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_container OWNER TO wibo;
+
+--
+-- Name: container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE container (
+    id integer NOT NULL,
+    direction double precision NOT NULL,
+    speed double precision NOT NULL,
+    location_ct geography(Point,4326),
+    idcreator integer,
+    titlename character varying(255),
+    ianix integer,
+    creationdate date NOT NULL,
+    idcurrentuser integer DEFAULT 0,
+    magnet boolean DEFAULT false,
+    datalocation date
+)
+INHERITS (type_container);
+
+
+ALTER TABLE container OWNER TO wibo;
+
+--
+-- Name: container_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE container_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE container_id_seq OWNER TO wibo;
+
+--
+-- Name: container_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE container_id_seq OWNED BY container.id;
+
+
+--
+-- Name: type_device; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_device (
+    id_type_d integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_device OWNER TO wibo;
+
+--
+-- Name: device; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE device (
+    id integer NOT NULL,
+    idclient character varying(40) NOT NULL,
+    user_id_user integer NOT NULL,
+    lastusemagnet date
+)
+INHERITS (type_device);
+
+
+ALTER TABLE device OWNER TO wibo;
+
+--
+-- Name: device_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE device_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE device_id_seq OWNER TO wibo;
+
+--
+-- Name: device_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE device_id_seq OWNED BY device.id;
+
+
+--
+-- Name: followed; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE followed (
+    id integer NOT NULL,
+    container_id integer NOT NULL,
+    device_id integer,
+    iduser integer
+);
+
+
+ALTER TABLE followed OWNER TO wibo;
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE followed_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE followed_id_seq OWNER TO wibo;
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE followed_id_seq OWNED BY followed.id;
+
+
+--
+-- Name: globalstats; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE globalstats (
+    num_users integer,
+    num_follow integer DEFAULT 0,
+    num_message integer DEFAULT 0,
+    num_send integer DEFAULT 0,
+    num_cont integer DEFAULT 0
+);
+
+
+ALTER TABLE globalstats OWNER TO wibo;
+
+--
+-- Name: type_message; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_message (
+    id_type_m integer NOT NULL,
+    typename character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_message OWNER TO wibo;
+
+--
+-- Name: message; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE message (
+    id integer NOT NULL,
+    content text NOT NULL,
+    containerid integer NOT NULL,
+    device_id integer,
+    creationdate timestamp with time zone DEFAULT now()
+)
+INHERITS (type_message);
+
+
+ALTER TABLE message OWNER TO wibo;
+
+--
+-- Name: message_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE message_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE message_id_seq OWNER TO wibo;
+
+--
+-- Name: message_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE message_id_seq OWNED BY message.id;
+
+
+--
+-- Name: reception; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE reception (
+    id integer NOT NULL,
+    receptiontime date NOT NULL,
+    location_rc geography(Point,4326),
+    idcontainer integer NOT NULL,
+    device_id integer NOT NULL
+);
+
+
+ALTER TABLE reception OWNER TO wibo;
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE reception_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE reception_id_seq OWNER TO wibo;
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE reception_id_seq OWNED BY reception.id;
+
+
+--
+-- Name: type_information; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_information (
+    id_type_info integer NOT NULL,
+    name_info character varying(255) NOT NULL
+);
+
+
+ALTER TABLE type_information OWNER TO wibo;
+
+--
+-- Name: shared; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE shared (
+    id integer NOT NULL,
+    type_shared integer NOT NULL,
+    device_id integer NOT NULL
+)
+INHERITS (type_information);
+
+
+ALTER TABLE shared OWNER TO wibo;
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE shared_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE shared_id_seq OWNER TO wibo;
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE shared_id_seq OWNED BY shared.id;
+
+
+--
+-- Name: stats_container_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE stats_container_id_seq
+    START WITH 21
+    INCREMENT BY 3
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE stats_container_id_seq OWNER TO wibo;
+
+--
+-- Name: stats_container; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE stats_container (
+    idball_stats integer NOT NULL,
+    num_km double precision,
+    num_cath integer,
+    num_follow integer,
+    num_magnet integer,
+    id_st integer DEFAULT nextval('stats_container_id_seq'::regclass) NOT NULL,
+    num_catch integer DEFAULT 0
+);
+
+
+ALTER TABLE stats_container OWNER TO wibo;
+
+--
+-- Name: stats_users; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE stats_users (
+    num_owner integer DEFAULT 0,
+    num_catch integer DEFAULT 0,
+    num_follow integer DEFAULT 0,
+    num_message integer DEFAULT 0,
+    iduser_stats integer,
+    id_stats integer NOT NULL,
+    num_send integer DEFAULT 0
+);
+
+
+ALTER TABLE stats_users OWNER TO wibo;
+
+--
+-- Name: stats_users_id_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE stats_users_id_seq
+    START WITH 29
+    INCREMENT BY 12
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE stats_users_id_seq OWNER TO wibo;
+
+--
+-- Name: stats_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE stats_users_id_seq OWNED BY stats_users.id_stats;
+
+
+--
+-- Name: type_group; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE type_group (
+    id_type_g integer NOT NULL,
+    groupname character varying(20) NOT NULL
+);
+
+
+ALTER TABLE type_group OWNER TO wibo;
+
+--
+-- Name: user; Type: TABLE; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE TABLE "user" (
+    id_user integer NOT NULL,
+    lastlogin date NOT NULL,
+    creationdate date NOT NULL,
+    mail character varying(510) DEFAULT make_uid() NOT NULL,
+    location_user geography(Point,4326),
+    tempass bytea,
+    passbyte bytea NOT NULL,
+    verification integer
+)
+INHERITS (type_group);
+
+
+ALTER TABLE "user" OWNER TO wibo;
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE; Schema: public; Owner: wibo
+--
+
+CREATE SEQUENCE user_id_user_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE user_id_user_seq OWNER TO wibo;
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wibo
+--
+
+ALTER SEQUENCE user_id_user_seq OWNED BY "user".id_user;
+
+
+--
+-- Name: idbw; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY ballonwork ALTER COLUMN idbw SET DEFAULT nextval('ballonwork_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY checkpoints ALTER COLUMN id SET DEFAULT nextval('checkpoints_id_seq'::regclass);
+
+
+--
+-- Name: id_type_c; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN id_type_c SET DEFAULT 1;
+
+
+--
+-- Name: typename; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN typename SET DEFAULT 'red'::character varying;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container ALTER COLUMN id SET DEFAULT nextval('container_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY device ALTER COLUMN id SET DEFAULT nextval('device_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed ALTER COLUMN id SET DEFAULT nextval('followed_id_seq'::regclass);
+
+
+--
+-- Name: id_type_m; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN id_type_m SET DEFAULT 1;
+
+
+--
+-- Name: typename; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN typename SET DEFAULT 'text'::character varying;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message ALTER COLUMN id SET DEFAULT nextval('message_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY reception ALTER COLUMN id SET DEFAULT nextval('reception_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY shared ALTER COLUMN id SET DEFAULT nextval('shared_id_seq'::regclass);
+
+
+--
+-- Name: id_stats; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY stats_users ALTER COLUMN id_stats SET DEFAULT nextval('stats_users_id_seq'::regclass);
+
+
+--
+-- Name: id_user; Type: DEFAULT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY "user" ALTER COLUMN id_user SET DEFAULT nextval('user_id_user_seq'::regclass);
+
+
+--
+-- Data for Name: ballonwork; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY ballonwork (idbw, title, message, location_wk, link) FROM stdin;
+6	test	mensaje	0101000020E6100000C0CCCCCCCC0C52406866666666E642C0	ulrada.com
+7	test	mensaje	0101000020E6100000C0CCCCCCCC0C52406866666666E642C0	ulrada.com
+8	test	mensaje	0101000020E6100000C0CCCCCCCC0C52406866666666E642C0	ulrada.com
+\.
+
+
+--
+-- Name: ballonwork_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('ballonwork_id_seq', 8, true);
+
+
+--
+-- Data for Name: checkpoints; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY checkpoints (id, date, containerid, attractbymagnet, location_ckp) FROM stdin;
+19	2015-11-16	313	f	0101000020E610000019E9A0A6F17602405948652F80744840
+20	2015-11-16	313	f	0101000020E610000019E9A0A6F17602405948652F80744840
+21	2015-11-16	313	f	0101000020E610000019E9A0A6F17602405948652F80744840
+22	2015-11-16	313	t	0101000020E610000022B4D43032970240624788974C714840
+23	2015-11-16	313	t	0101000020E610000022B4D43032970240624788974C714840
+24	2015-11-16	314	f	0101000020E6100000F2A8424D3E97024038F6ECB94C714840
+25	2015-11-16	314	f	0101000020E6100000F2A8424D3E97024038F6ECB94C714840
+26	2015-11-16	314	f	0101000020E6100000F2A8424D3E97024038F6ECB94C714840
+27	2015-11-16	314	t	0101000020E610000019E9A0A6F17602405948652F80744840
+28	2015-11-16	314	t	0101000020E610000019E9A0A6F17602405948652F80744840
+\.
+
+
+--
+-- Name: checkpoints_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('checkpoints_id_seq', 28, true);
+
+
+--
+-- Data for Name: container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY container (id_type_c, typename, id, direction, speed, location_ct, idcreator, titlename, ianix, creationdate, idcurrentuser, magnet, datalocation) FROM stdin;
+1	red	313	100	1.5	0101000020E6100000FFF89B2D69744840B9CEFD4A59830240	451	new	1	2015-11-16	0	f	2015-11-16
+1	red	314	144.503999999999991	1.57000000000000006	0101000020E610000012B3659EC2704840C1F78CF615960240	450	toto@gmail	2	2015-11-16	0	f	2015-11-16
+\.
+
+
+--
+-- Name: container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('container_id_seq', 314, true);
+
+
+--
+-- Data for Name: device; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY device (id_type_d, typename, id, idclient, user_id_user, lastusemagnet) FROM stdin;
+1	device_default	184	ffffffff-c6fe-db9f-ffff-fffffbfabffb	450	\N
+1	device_default	185	00000000-7d29-73d1-0000-00001385f72f	451	\N
+\.
+
+
+--
+-- Name: device_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('device_id_seq', 185, true);
+
+
+--
+-- Data for Name: followed; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY followed (id, container_id, device_id, iduser) FROM stdin;
+121	313	\N	453
+122	313	\N	456
+123	313	\N	451
+124	313	\N	450
+125	314	\N	453
+126	314	\N	456
+127	314	\N	450
+128	314	\N	451
+\.
+
+
+--
+-- Name: followed_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('followed_id_seq', 128, true);
+
+
+--
+-- Data for Name: globalstats; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY globalstats (num_users, num_follow, num_message, num_send, num_cont) FROM stdin;
+\.
+
+
+--
+-- Data for Name: message; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY message (id_type_m, typename, id, content, containerid, device_id, creationdate) FROM stdin;
+1	text	2309	new balloon	313	\N	2015-11-16 00:38:47.343658+01
+1	text	2310	tata	314	\N	2015-11-16 00:42:47.37728+01
+\.
+
+
+--
+-- Name: message_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('message_id_seq', 2310, true);
+
+
+--
+-- Data for Name: reception; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY reception (id, receptiontime, location_rc, idcontainer, device_id) FROM stdin;
+\.
+
+
+--
+-- Name: reception_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('reception_id_seq', 1, false);
+
+
+--
+-- Data for Name: shared; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY shared (id_type_info, name_info, id, type_shared, device_id) FROM stdin;
+\.
+
+
+--
+-- Name: shared_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('shared_id_seq', 1, false);
+
+
+--
+-- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
+\.
+
+
+--
+-- Data for Name: stats_container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY stats_container (idball_stats, num_km, num_cath, num_follow, num_magnet, id_st, num_catch) FROM stdin;
+313	0	0	1	0	5310	0
+314	0	0	1	0	5319	0
+\.
+
+
+--
+-- Name: stats_container_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('stats_container_id_seq', 5442, true);
+
+
+--
+-- Data for Name: stats_users; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY stats_users (num_owner, num_catch, num_follow, num_message, iduser_stats, id_stats, num_send) FROM stdin;
+0	0	0	0	456	4277	0
+0	0	0	0	455	4265	0
+0	0	0	0	454	4253	0
+0	0	0	0	453	4241	0
+0	0	0	0	452	4229	0
+1	1	2	1	450	4205	1
+1	1	2	1	451	4217	1
+\.
+
+
+--
+-- Name: stats_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('stats_users_id_seq', 4277, true);
+
+
+--
+-- Data for Name: type_container; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_container (id_type_c, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_device; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_device (id_type_d, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_group; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_group (id_type_g, groupname) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_information; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_information (id_type_info, name_info) FROM stdin;
+\.
+
+
+--
+-- Data for Name: type_message; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY type_message (id_type_m, typename) FROM stdin;
+\.
+
+
+--
+-- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: wibo
+--
+
+COPY "user" (id_type_g, groupname, id_user, lastlogin, creationdate, mail, location_user, tempass, passbyte, verification) FROM stdin;
+1	user_particulier	456	2015-11-16	2015-11-16	toto2@gmail2.com	0101000020E61000002194F7713497024038DC476E4D714840	\N	\\x5d6ccffbfcae992068085830562dc83760ce26514bffdf838986923f02171884dd70c9582c9761a45aa53289f05c43e233893f5537703aa737512a5775a1cb42	\N
+1	user_particulier	455	2015-11-16	2015-11-16	toto2@gmail.com	0101000020E61000002194F7713497024038DC476E4D714840	\N	\\x13c483ed86aabba5a196fdd87375f1361d04c6fd57907c418389f30272ff44bc4bc36602436d0c6a0c56cbed2fb0e25c7b3fcff526a060cf7139f794f904a218	\N
+1	user_particulier	454	2015-11-16	2015-11-16	ip@ip.com	0101000020E610000085F0C39CFB760240309BA50980744840	\N	\\x54972e038558a9936642ed7f81c88ad2070b3f7b84d290bf796825bac8b245f020f07b0be762233759dbc437d85a77b212b32fc19155ee61a9a3fe7c4a2c210a	\N
+1	user_particulier	453	2015-11-16	2015-11-16	p@p.com	0101000020E6100000F09D3D3CF07602405976775380744840	\N	\\xf933369b86d5b9362950e98c362082692562e47724989c46953bb93fb437807cd4d85589c82272192df6d53999c205f6e9bbf96e02fdd09b24f58b7592822773	\N
+1	user_particulier	452	2015-11-16	2015-11-16	toto@gmail.com	0101000020E6100000F2A8424D3E97024038F6ECB94C714840	\N	\\x2c64e57ffca8fdd5492ceae4cfea03f7d1e7fb0dcae406e144df88a1b369eef55a010f65278946d10f68262a3f5c86de7c98ddd904bc455e9a98dbb039939ac8	\N
+2	user_default	450	2015-11-16	2015-11-16	6kZBec	0101000020E610000007B64AB0387C0240B360E28FA26A4840	\N	\\x31	\N
+2	user_default	451	2015-11-16	2015-11-16	PIw5fc	0101000020E610000007B64AB0387C0240B360E28FA26A4840	\N	\\x31	\N
+\.
+
+
+--
+-- Name: user_id_user_seq; Type: SEQUENCE SET; Schema: public; Owner: wibo
+--
+
+SELECT pg_catalog.setval('user_id_user_seq', 456, true);
+
+
+SET search_path = tiger, pg_catalog;
+
+--
+-- Data for Name: geocode_settings; Type: TABLE DATA; Schema: tiger; Owner: wibo
+--
+
+COPY geocode_settings (name, setting, unit, category, short_desc) FROM stdin;
+debug_geocode_address	false	boolean	debug	outputs debug information in notice log such as queries when geocode_addresss is called if true
+debug_geocode_intersection	false	boolean	debug	outputs debug information in notice log such as queries when geocode_intersection is called if true
+debug_normalize_address	false	boolean	debug	outputs debug information in notice log such as queries and intermediate expressions when normalize_address is called if true
+debug_reverse_geocode	false	boolean	debug	if true, outputs debug information in notice log such as queries and intermediate expressions when reverse_geocode
+reverse_geocode_numbered_roads	0	integer	rating	For state and county highways, 0 - no preference in name, 1 - prefer the numbered highway name, 2 - prefer local state/county name
+use_pagc_address_parser	false	boolean	normalize	If set to true, will try to use the pagc_address normalizer instead of tiger built one
+\.
+
+
+--
+-- Data for Name: pagc_gaz; Type: TABLE DATA; Schema: tiger; Owner: wibo
+--
+
+COPY pagc_gaz (id, seq, word, stdword, token, is_custom) FROM stdin;
+\.
+
+
+--
+-- Data for Name: pagc_lex; Type: TABLE DATA; Schema: tiger; Owner: wibo
+--
+
+COPY pagc_lex (id, seq, word, stdword, token, is_custom) FROM stdin;
+\.
+
+
+--
+-- Data for Name: pagc_rules; Type: TABLE DATA; Schema: tiger; Owner: wibo
+--
+
+COPY pagc_rules (id, rule, is_custom) FROM stdin;
+\.
+
+
+SET search_path = topology, pg_catalog;
+
+--
+-- Data for Name: topology; Type: TABLE DATA; Schema: topology; Owner: wibo
+--
+
+COPY topology (id, name, srid, "precision", hasz) FROM stdin;
+\.
+
+
+--
+-- Data for Name: layer; Type: TABLE DATA; Schema: topology; Owner: wibo
+--
+
+COPY layer (topology_id, layer_id, schema_name, table_name, feature_column, feature_type, level, child_id) FROM stdin;
+\.
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: ballonwork_pkey; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY ballonwork
+    ADD CONSTRAINT ballonwork_pkey PRIMARY KEY (idbw);
+
+
+--
+-- Name: checkpoints_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY checkpoints
+    ADD CONSTRAINT checkpoints_pk PRIMARY KEY (id);
+
+
+--
+-- Name: container_ianix_key; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_ianix_key UNIQUE (ianix);
+
+
+--
+-- Name: container_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_pk PRIMARY KEY (id);
+
+
+--
+-- Name: device_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY device
+    ADD CONSTRAINT device_pk PRIMARY KEY (id);
+
+
+--
+-- Name: dist_iduser; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_users
+    ADD CONSTRAINT dist_iduser UNIQUE (iduser_stats);
+
+
+--
+-- Name: followed_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_pk PRIMARY KEY (id);
+
+
+--
+-- Name: message_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_pk PRIMARY KEY (id);
+
+
+--
+-- Name: reception_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY reception
+    ADD CONSTRAINT reception_pk PRIMARY KEY (id);
+
+
+--
+-- Name: shared_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY shared
+    ADD CONSTRAINT shared_pk PRIMARY KEY (id);
+
+
+--
+-- Name: st_user_id; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_users
+    ADD CONSTRAINT st_user_id PRIMARY KEY (id_stats);
+
+
+--
+-- Name: stats_container_idball_stats_key; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_container
+    ADD CONSTRAINT stats_container_idball_stats_key UNIQUE (idball_stats);
+
+
+--
+-- Name: stats_container_pkey; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY stats_container
+    ADD CONSTRAINT stats_container_pkey PRIMARY KEY (id_st);
+
+
+--
+-- Name: type_container_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_container
+    ADD CONSTRAINT type_container_pk PRIMARY KEY (id_type_c);
+
+
+--
+-- Name: type_device_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_device
+    ADD CONSTRAINT type_device_pk PRIMARY KEY (id_type_d);
+
+
+--
+-- Name: type_group_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_group
+    ADD CONSTRAINT type_group_pk PRIMARY KEY (id_type_g);
+
+
+--
+-- Name: type_information_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_information
+    ADD CONSTRAINT type_information_pk PRIMARY KEY (id_type_info);
+
+
+--
+-- Name: type_message_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY type_message
+    ADD CONSTRAINT type_message_pk PRIMARY KEY (id_type_m);
+
+
+--
+-- Name: user_pk; Type: CONSTRAINT; Schema: public; Owner: wibo; Tablespace: 
+--
+
+ALTER TABLE ONLY "user"
+    ADD CONSTRAINT user_pk PRIMARY KEY (id_user);
+
+
+--
+-- Name: checkpoints_container_id_idx; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE INDEX checkpoints_container_id_idx ON checkpoints USING btree (containerid, date);
+
+
+--
+-- Name: constraint_mail; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE UNIQUE INDEX constraint_mail ON "user" USING btree (mail);
+
+
+--
+-- Name: message_idx_container; Type: INDEX; Schema: public; Owner: wibo; Tablespace: 
+--
+
+CREATE INDEX message_idx_container ON message USING btree (containerid);
+
+
+--
+-- Name: stats_container; Type: TRIGGER; Schema: public; Owner: wibo
+--
+
+CREATE TRIGGER stats_container AFTER INSERT ON container FOR EACH ROW EXECUTE PROCEDURE create_statsballon();
+
+
+--
+-- Name: stats_users; Type: TRIGGER; Schema: public; Owner: wibo
+--
+
+CREATE TRIGGER stats_users AFTER INSERT ON "user" FOR EACH ROW EXECUTE PROCEDURE create_statsuser();
+
+
+--
+-- Name: checkpoints_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY checkpoints
+    ADD CONSTRAINT checkpoints_container FOREIGN KEY (containerid) REFERENCES container(id);
+
+
+--
+-- Name: container_user; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY container
+    ADD CONSTRAINT container_user FOREIGN KEY (idcreator) REFERENCES "user"(id_user);
+
+
+--
+-- Name: device_user; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY device
+    ADD CONSTRAINT device_user FOREIGN KEY (user_id_user) REFERENCES "user"(id_user);
+
+
+--
+-- Name: followed_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_container FOREIGN KEY (container_id) REFERENCES container(id);
+
+
+--
+-- Name: followed_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY followed
+    ADD CONSTRAINT followed_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: message_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_container FOREIGN KEY (containerid) REFERENCES container(id);
+
+
+--
+-- Name: message_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY message
+    ADD CONSTRAINT message_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: reception_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY reception
+    ADD CONSTRAINT reception_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: shared_device; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY shared
+    ADD CONSTRAINT shared_device FOREIGN KEY (device_id) REFERENCES device(id);
+
+
+--
+-- Name: stats_id_container; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY stats_container
+    ADD CONSTRAINT stats_id_container FOREIGN KEY (idball_stats) REFERENCES container(id);
+
+
+--
+-- Name: stats_users_user; Type: FK CONSTRAINT; Schema: public; Owner: wibo
+--
+
+ALTER TABLE ONLY stats_users
+    ADD CONSTRAINT stats_users_user FOREIGN KEY (iduser_stats) REFERENCES "user"(id_user);
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
