@@ -771,6 +771,7 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Stats.CoordCreated = new(ballon.Coordinate)
 		ball.Stats.CoordCreated.Lon = rqt.Coord.Lon
 		ball.Stats.CoordCreated.Lat = rqt.Coord.Lat
+		ball.Stats.NbrFollow++
 		// End Stats
 		answer := Data.Manage_ack(rqt.Rtype, ball.Id_ball, int32(1))
 		Data.Lst_asw.PushBack(answer)
