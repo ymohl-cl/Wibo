@@ -136,16 +136,26 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 	}
 }
 
-func ManageSignal(Serv *server.Server) {
+func ManageSignal(Serv *server.Server, myDb *db.Env) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 	s := <-c
 	Serv.Logger.Println("Get Signal: ", s)
+
+	fmt.Println("Save if possible begin crash")
+	er := Serv.Lst_ball.Update_balls(Serv.Lst_ball, myDb)
+	if er != nil {
+		Serv.Logger.Println("Update_balls error: ", er)
+	}
+	er = Serv.Lst_users.Update_users(myDb)
+	if er != nil {
+		Serv.Logger.Println("Update_users error: ", er)
+	}
 	Serv.Tab_wd.Logger = nil
 	Serv.Lst_users.Logger = nil
 	Serv.Lst_ball.Logger = nil
 	Serv.Lst_Devices.Logger = nil
-	er := Serv.Lst_users.SaveUsersToFile()
+	er = Serv.Lst_users.SaveUsersToFile()
 	if er != nil {
 		Serv.Logger.Println("Error on saveUsers, its a bad ! :(", er)
 	}
@@ -172,7 +182,7 @@ func main() {
 		Server.Logger.Println("Init_Data error: ", er)
 		return
 	}
-	go ManageSignal(Server)
+	go ManageSignal(Server, myDb)
 	go Manage_goroutines(Server, myDb)
 	go sock.Listen(Server, Db)
 

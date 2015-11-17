@@ -115,21 +115,11 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		strings.Trim(NewBall.Title, "\x00"),
 		NewBall.Id_ball,
 		NewBall.Stats.CreationDate).Scan(&IdC)
-	//	Lst_ball.Logger.Println("Idc: ", IdC)
 	Lst_ball.Logger.Println(err)
 	if err != nil {
 		return false, err
 	}
-	//	fmt.Println("insert ball  ", NewBall.Wind.Degress)
-	//	fmt.Println("insert ball  ", NewBall.Wind.Speed)
-	//	fmt.Println("insert ball  ", NewBall.Coord.Value.(Checkpoint).Coord.Lat)
-	//	fmt.Println("insert ball  ", NewBall.Coord.Value.(Checkpoint).Coord.Lat)
-	//	fmt.Println("insert ball  ", NewBall.Title)
-	//	fmt.Println("insert ball  ", NewBall.Id_ball)
-	//	fmt.Println("insert ball  ", NewBall.Date.String())
-	//	fmt.Println("insert ball  ", NewBall.Creator.Value.(*users.User).Id)
 	Lst_ball.checkErr(err)
-	//	fmt.Println("insert message")
 	Lst_ball.SetStatsBallon(IdC, NewBall.Stats, base.Db)
 	NewBall.SetCreationCoordOnItinerary(base.Db)
 	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
@@ -173,21 +163,17 @@ AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, locat
 \*/
 
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
-	//	IdMaxBase := getIdBallMax(base)
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 		if e.Value.(*Ball).FlagC == true {
-			fmt.Println("INSERT")
 			Lb.InsertBallon(e.Value.(*Ball), base)
 			e.Value.(*Ball).Edited = false
 			e.Value.(*Ball).FlagC = false
 		} else if e.Value.(*Ball).Edited == true {
-			fmt.Println("UPDATE")
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax, er := getIdMessageMax(idBall, base)
 			if er != nil {
 				Lb.Logger.Println(er)
-				//				return er
 			}
 			Lb.SetStatsBallon(idBall, e.Value.(*Ball).Stats, base.Db)
 			Lb.SetItinerary(base.Db, e)

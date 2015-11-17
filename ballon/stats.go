@@ -2,7 +2,7 @@ package ballon
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"time"
 )
 
@@ -29,30 +29,35 @@ func GetCreationCoordDateBall(idBall int64, Db *sql.DB) (*Coordinate, time.Time,
 	if err != nil {
 		return nil, time.Now(), err
 	}
+	defer rows.Close()
 	if rows.Next() != false {
 		rows.Scan(&postcreat, &datec)
-		coord = GetCord(postcreat)
+		coord, err = GetCord(postcreat)
+		if err != nil {
+			return nil, time.Now(), err
+		}
 	}
 	return coord, datec, nil
 }
 
-func (Lusr *All_ball) GetStatsBallon(idBall int64, Db *sql.DB) *StatsBall {
-	rows, err := Db.Query("SELECT num_km, num_cath, num_follow, num_magnet  FROM stats_container  WHERE idball_stats = $1;", idBall)
-	Lusr.checkErr(err)
-	defer rows.Close()
-	if rows.Next() != false {
-		for rows.Next() {
-			var nkm float64
-			var ncath, nfollow, nmagnet int64
-			err = rows.Scan(&nkm, &ncath, &nfollow, &nmagnet)
-			Lusr.checkErr(err)
-			coord, date, err := GetCreationCoordDateBall(idBall, Db)
-			if err != nil {
-				fmt.Println(err)
-				return nil
-			}
-			return &StatsBall{CreationDate: date, CoordCreated: coord, NbrKm: nkm, NbrFollow: nfollow, NbrCatch: ncath, NbrMagnet: nmagnet}
-		}
+func (Lusr *All_ball) GetStatsBallon(idBall int64, Db *sql.DB) (*StatsBall, error) {
+	rows, err := Db.Query("SELECT num_km, num_catch, num_follow, num_magnet  FROM stats_container  WHERE idball_stats=$1;", idBall)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	defer rows.Close()
+	if rows.Next() {
+		var nkm float64
+		var ncath, nfollow, nmagnet int64
+		err = rows.Scan(&nkm, &ncath, &nfollow, &nmagnet)
+		if err != nil {
+			return nil, err
+		}
+		coord, date, err := GetCreationCoordDateBall(idBall, Db)
+		if err != nil {
+			return nil, err
+		}
+		return &StatsBall{CreationDate: date, CoordCreated: coord, NbrKm: nkm, NbrFollow: nfollow, NbrCatch: ncath, NbrMagnet: nmagnet}, nil
+	}
+	return nil, err
 }

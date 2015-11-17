@@ -448,13 +448,10 @@ insert checkpoints(
 */
 /* Set on itinary list, creation point of ball */
 func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB) {
-	fmt.Println("COUCOU")
 	var Idb int64
 	coord := ball.Stats.CoordCreated
-	fmt.Println("Coord que je veux voir: ", coord)
 	row, err := Db.Query("SELECT id from container WHERE ianix = $1", ball.Id_ball)
 	if err != nil {
-		fmt.Println("Erreur HAHA!", err)
 		log.Print(err)
 	}
 	defer row.Close()
@@ -462,18 +459,15 @@ func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB) {
 		row.Scan(&Idb)
 		trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", ball.Stats.CreationDate, coord.Lon, coord.Lat, Idb, 0)
 		if err != nil {
-			fmt.Println("Erreur HAHA2!", err)
 			fmt.Println(err)
 		}
 		trow.Close()
 	} else {
-		fmt.Println("Erreur HAHA3!", err)
 		fmt.Println(err)
 	}
 }
 
 func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
-	//	for b := Lb.Blist.Front(); b != nil; b = b.Next() {
 	var Idb int64
 	row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
 	if err != nil {
@@ -526,18 +520,9 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 		checkp.MagnetFlag = ism
 		Itinerary.PushBack(checkp)
 	}
-	//		if err != nil {
-	//			fmt.Println(err)
-	//		}
-	//	}
-	// Delete first elem. First elem is a creation point
-	fmt.Println("elem ?", err)
 	elem := Itinerary.Front()
 	if elem != nil {
-		fmt.Println("Yes")
 		Itinerary.Remove(elem)
-	} else {
-		fmt.Println("No")
 	}
 	return int32(Itinerary.Len()), Itinerary
 }
@@ -647,7 +632,6 @@ func getExtraInfo(position string, date time.Time, magnet int16) *list.List {
 			c == 'T'
 	}
 	// Separate into fields with func.
-	fmt.Println("Warning, field: ", position)
 	fields := strings.FieldsFunc(position, f)
 	// Separate into cordinates  with Fields.
 	point := strings.Fields(fields[0])
@@ -659,9 +643,6 @@ func getExtraInfo(position string, date time.Time, magnet int16) *list.List {
 	lat, _ = strconv.ParseFloat(point[1], 15)
 	lc := list.New()
 	ch := Coordinate{Lon: long, Lat: lat}
-
-	//	newdate := GetDateFormat(date)
-	//	tmagnet, _ := strconv.Atoi(magnet)
 	lc.PushBack(Checkpoint{Coord: ch, Date: date, MagnetFlag: magnet})
 	return lc
 }
@@ -691,70 +672,68 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		var errT error
 		stm, errT := tx.Prepare("SELECT getcontainersbyuserid($1);")
 		if errT != nil {
-			Lb.Logger.Println(err)
-			//return err
+			Lb.Logger.Println(errT)
+			return errT
 		}
-		rows, err := stm.Query(userE.Value.(*users.User).Id)
-		if err != nil {
+		defer stm.Close()
+		rows, errT := stm.Query(userE.Value.(*users.User).Id)
+		if errT != nil {
 			Lb.Logger.Println(err)
-			//	return err
+			return errT
 		}
-		if rows.Next() != false {
-			for rows.Next() {
-				var infoCont string
-				err = rows.Scan(&infoCont)
-				if err != nil {
-					Lb.Logger.Println(err)
-					//		return err
+		defer rows.Close()
+		for rows.Next() {
+			var infoCont string
+			errT = rows.Scan(&infoCont)
+			if errT != nil {
+				Lb.Logger.Println(err)
+				return errT
+			}
+			result := strings.Split(infoCont, ",")
+			fmt.Printf("%T | %v \n", infoCont, infoCont)
+			idBall := GetIdBall(result[0])
+			magnet, _ := strconv.Atoi(result[8])
+			tempCord := getExtraInfo(result[6], GetDateFormat(result[9]), int16(magnet))
+			lstIt := list.New()
+			sStat, errT := Lb.GetStatsBallon(int64(idBall), base.Db) // Mettre errt ici
+			if errT != nil {
+				return errT
+			}
+			possessed, _ := GetWhomGotBall(idBall, Ulist, base.Db) // Mettre errt ici
+			if possessed == nil {
+				Lb.Logger.Println("Possesed is null")
+			}
+			tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
+			fmt.Printf("%v and %v \n", tmpBall, result[7])
+			if tmpBall != nil {
+				// Do Nothing
+			} else {
+				lstMess, errT := Lb.GetMessagesBall(idBall, base.Db)
+				if errT != nil {
+					return errT
 				}
-				result := strings.Split(infoCont, ",")
-				fmt.Printf("%T | %v \n", infoCont, infoCont)
-				idBall := GetIdBall(result[0])
-				magnet, _ := strconv.Atoi(result[8])
-				tempCord := getExtraInfo(result[6], GetDateFormat(result[9]), int16(magnet))
-				lstIt := list.New()
-				//lstIt.PushFront(tempCord.Front().Value.(Checkpoint))
-				possessed, _ := GetWhomGotBall(idBall, Ulist, base.Db)
-				if possessed == nil {
-					possessed = userE
-					Lb.Logger.Println("Possesed is null")
-					//		return er
+				lstFols, errT := Lb.GetFollowers(idBall, base.Db, Ulist)
+				if errT != nil {
+					return errT
 				}
-				tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
-				fmt.Printf("%v and %v \n", tmpBall, result[7])
-				if tmpBall != nil {
-					// Do Nothing
-				} else {
-					lstMess, err := Lb.GetMessagesBall(idBall, base.Db)
-					if err != nil {
-						Lb.Logger.Println(err)
-						//			return err
-					}
-					lstFols, err := Lb.GetFollowers(idBall, base.Db, Ulist)
-					if err != nil {
-						Lb.Logger.Println(err)
-						//			return err
-					}
-					lBallon.PushBack(
-						&Ball{
-							Id_ball:     GetIdBall(result[7]),
-							Title:       result[1],
-							Date:        GetDateFormat(result[5]),
-							Checkpoints: nil,
-							Itinerary:   lstIt,
-							Scoord:      tempCord.Front(),
-							Coord:       tempCord.Front(),
-							Wind:        GetWin(result[3], result[4]),
-							Messages:    lstMess,
-							Followers:   lstFols,
-							Possessed:   possessed,
-							Stats:       Lb.GetStatsBallon(int64(idBall), base.Db),
-							Creator:     userE})
-				}
+				lBallon.PushBack(
+					&Ball{
+						Id_ball:     GetIdBall(result[7]),
+						Title:       result[1],
+						Date:        GetDateFormat(result[5]),
+						Checkpoints: list.New(),
+						Itinerary:   lstIt,
+						Scoord:      tempCord.Front(),
+						Coord:       tempCord.Front(),
+						Wind:        GetWin(result[3], result[4]),
+						Messages:    lstMess,
+						Followers:   lstFols,
+						Possessed:   possessed,
+						Stats:       sStat,
+						Creator:     userE})
 			}
 		}
-		stm.Close()
-		return err
+		return errT
 	})
 	if err != nil {
 		Lb.Logger.Println(err)
@@ -802,8 +781,9 @@ func GetIdBall(idB string) int64 {
 * convert them to float
 * create and new Cooridantes element and return it
 **/
-func GetCord(position string) (coord *Coordinate) {
+func GetCord(position string) (*Coordinate, error) {
 	var err error
+	coord := new(Coordinate)
 	// Return true if 'value' char.
 	f := func(c rune) bool {
 		return c == '(' || c == '(' || c == ')' || c == '"' ||
@@ -816,10 +796,13 @@ func GetCord(position string) (coord *Coordinate) {
 	point := strings.Fields(fields[0])
 	coord.Lon, err = strconv.ParseFloat(point[0], 15)
 	if err != nil {
-		fmt.Println(err)
+		return coord, err
 	}
-	coord.Lat, _ = strconv.ParseFloat(point[1], 15)
-	return coord
+	coord.Lat, err = strconv.ParseFloat(point[1], 15)
+	if err != nil {
+		return coord, err
+	}
+	return coord, nil
 }
 
 /**
@@ -860,7 +843,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 		if err != nil {
 			return Mlist, err
 		}
-		Mlist.PushBack(&Message{Content: message, Type: idType, Id: idm})
+		Mlist.PushBack(Message{Content: message, Type: idType, Id: idm})
 	}
 	return Mlist, err
 }
@@ -871,17 +854,6 @@ func (Lball *All_ball) InsertListBallsFollow(Blist *list.List, Ulist *list.List,
 			f.Value.(*list.Element).Value.(*users.User).Followed.PushBack(b)
 		}
 	}
-
-	//	for u := Ulist.Front(); u != nil; u = u.Next() {
-	//		for b := Blist.Front(); b != nil; b = b.Next() {
-	//			for f := b.Value.(*Ball).Followers.Front(); f != nil; f = f.Next() {
-	//				if f.Value.(*users.User).Id == u.Value.(*users.User).Id {
-	//					base.Db.QueryRow("INSERT INTO followed(container_id, iduser) VALUES($1, $2);", b.Value.(*Ball).Id_ball, u.Value.(*users.User).Id)
-	//					u.Value.(*users.User).Followed.PushBack(b)
-	//				}
-	//			}
-	//		}
-	//	}
 }
 
 /**
@@ -892,7 +864,6 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (err error) {
 	err = nil
 
 	Lb.Id_max = getIdBallMax(base) + 1
-	fmt.Println("Id max de ball: ", Lb.Id_max)
 	Lb.Ftmp = af.MemFileCreate("testfile")
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		if e.Value.(*users.User) != nil {

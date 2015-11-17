@@ -20,8 +20,9 @@ error: Key (iduser_stats)=(28) already exists.
 */
 func (Lusr *All_users) SetStatsByUser(c_idUser int64, u_stats *StatsUser, Db *sql.DB) bool {
 	var err error
-	_, err = Db.Query("select setstatsuser($1, $2, $3, $4, $5, $6)", u_stats.NbrBallCreate, u_stats.NbrCatch, u_stats.NbrFollow, u_stats.NbrMessage, u_stats.NbrSend, c_idUser)
+	_, err = Db.Exec("select setstatsuser($1, $2, $3, $4, $5, $6);", u_stats.NbrBallCreate, u_stats.NbrCatch, u_stats.NbrFollow, u_stats.NbrMessage, u_stats.NbrSend, c_idUser)
 	if err != nil {
+		Lusr.Logger.Println(err)
 		return false
 	}
 	return true

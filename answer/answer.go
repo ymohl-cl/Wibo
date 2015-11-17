@@ -392,6 +392,7 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 	pck.head.pnum = 0
 	pck.ptype = new(Contentball)
 	pck.ptype.(*Contentball).messages = list.New()
+	fmt.Println("NbrFollow: ", ball.Stats.NbrFollow)
 	for em := ball.Messages.Front(); em != nil; em = em.Next() {
 		msg := em.Value.(ballon.Message)
 		if int16(msg.Size)+16+pck.head.octets > SIZE_PACKET {
@@ -416,6 +417,7 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		pck.head.octets += int16(16 + msg.Size)
 		pck.ptype.(*Contentball).messages.PushBack(mes)
 	}
+	fmt.Println("NbrFollow: ", ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
 	lstP.PushBack(pck)

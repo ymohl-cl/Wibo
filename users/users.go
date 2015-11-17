@@ -1,7 +1,7 @@
 package users
 
 import (
-	"Wibo/db"
+	_ "Wibo/db"
 	"Wibo/protocol"
 	"bytes"
 	"container/list"
@@ -152,37 +152,6 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 /********************************* MERGE JAIME ********************************/
 /******************************************************************************/
-func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
-	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
-	if err != nil {
-		return &userError{Prob: "Get Global stat", Err: nil, Logf: Lu.Logger}
-	}
-	defer rows.Close()
-	rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate)
-	return nil
-}
-
-// FUNCTION updatelocationuser(iduser integer, latitudec double precision, longitudec double precision)
-// FUNCTION public.updateuser(iduser integer, latitudec double precision, longitudec double precision, log date)
-
-func (lu *All_users) Update_users(base *db.Env) (err error) {
-	u := lu.Ulist.Front()
-	for u != nil {
-		cu := u.Value.(*User)
-		trow, err := base.Db.Query("SELECT updateuser($1, $2, $3, $4);", cu.Id, cu.Coord.Lon, cu.Coord.Lat, cu.Log)
-		if err != nil {
-			return &userError{Prob: "Update users", Err: err, Logf: lu.Logger}
-		}
-
-		defer trow.Close()
-		ex := lu.SetStatsByUser(cu.Id, cu.Stats, base.Db)
-		if ex != true {
-			fmt.Println("Fail to update user stats")
-		}
-		u = u.Next()
-	}
-	return nil
-}
 
 func CheckValidMail(email string) bool {
 	tmp := valid.IsEmail(email)
@@ -196,25 +165,35 @@ func CheckValidMail(email string) bool {
 }
 
 func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
-	ref := user.Value.(*User).Psd
+	/*ref := user.Value.(*User).Psd
 	if len(ref) > 1 && bytes.Equal(ref, pass) == true {
 		return user
 	} else {
 		return nil
-	}
-	//	var err error
-	/*	fmt.Println("CheckPassword")
-		var flag int
+	}*/
+	fmt.Println("CheckPassword")
+	fmt.Println("Check id ", user.Value.(*User).Id)
+	fmt.Println("CheckPass ", pass)
+	var flag int
 
-		rows, err := Db.Query("SELECT login($1, $2);", user.Value.(*User).Id, pass)
-		rows.Scan(&flag)
-		if er == nil {
-			fmt.Println("DbQuery return flag:", flag)
-			fmt.Println("DbQuery return err:", er)
-			return nil
+	err := Db.QueryRow("SELECT login($1, $2);", user.Value.(*User).Id, pass).Scan(&flag)
+	if err != nil {
+		fmt.Printf("DbQuery return flag %v and type %T:", flag, flag)
+		fmt.Println("DbQuery return err:", err)
+		//return nil
+	}
+	if flag == 1 {
+		return user
+	} else {
+		//second try
+		fmt.Println("Second try")
+		err = Db.QueryRow("SELECT \"user\".verification FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id).Scan(&flag)
+		//defer rows.Close()
+		if flag == 1 {
+			return user
 		}
-		defer rows.Close()
-		return nil*/
+	}
+	return nil
 }
 
 /**
