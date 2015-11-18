@@ -527,27 +527,6 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 	return int32(Itinerary.Len()), Itinerary
 }
 
-func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
-	var IdMax int32
-	err := base.Transact(base.Db, func(tx *sql.Tx) error {
-		var err error
-		stm, err := tx.Prepare("select id from message where id = (select max(id) from message) and containerid = $1;")
-		if err != nil {
-			return err
-		}
-		rs, err := stm.Query(idBall)
-		if err != nil {
-			return err
-		}
-		defer stm.Close()
-		if rs.Next() != false {
-			rs.Scan(&IdMax)
-		}
-		return err
-	})
-	return IdMax, err
-}
-
 func getIdBallMax(base *db.Env) int64 {
 	var IdMax int64
 	IdMax = 0
@@ -830,7 +809,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	var i int32
 	Mlist := list.New()
 
-	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
+	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m, size, index_m FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
 	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	if err != nil {
@@ -838,14 +817,14 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	}
 	i = 0
 	for rows.Next() {
-		var idm int32
 		var message string
-		var idType int32
-		err = rows.Scan(&idm, &message, &idType)
+		var idm, idType, _size, m_idx int32
+		err = rows.Scan(&idm, &message, &idType, &_size, &m_idx)
+		fmt.Printf("index message %v \n", m_idx)
 		if err != nil {
 			return Mlist, err
 		}
-		Mlist.PushBack(Message{Content: message, Type: idType, Id: i})
+		Mlist.PushBack(Message{Content: message, Type: idType, Id: i, Size: _size})
 		i++
 	}
 	return Mlist, err
