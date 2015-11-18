@@ -818,13 +818,13 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	i = 0
 	for rows.Next() {
 		var message string
-		var idm, idType, _size, m_idx int32
-		err = rows.Scan(&idm, &message, &idType, &_size, &m_idx)
+		var idm, idType, size, m_idx int32
+		err = rows.Scan(&idm, &message, &idType, &size, &m_idx)
 		fmt.Printf("index message %v \n", m_idx)
 		if err != nil {
 			return Mlist, err
 		}
-		Mlist.PushBack(Message{Content: message, Type: idType, Id: i, Size: _size})
+		Mlist.PushBack(Message{Content: message, Type: idType, Id: i, Size: size})
 		i++
 	}
 	return Mlist, err
