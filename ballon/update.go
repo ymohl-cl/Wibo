@@ -56,9 +56,9 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 	i := 0
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
-			stm, err := tx.Prepare("INSERT INTO message(content, containerid) VALUES ($1, $2)")
+			stm, err := tx.Prepare("INSERT INTO message(content, containerid, index_m, size) VALUES ($1, $2, $3, $4)")
 			Lst_ball.checkErr(err)
-			_, err = stm.Query(e.Value.(Message).Content, idBall)
+			_, err = stm.Query(e.Value.(Message).Content, idBall, e.Value.(Message).Id, e.Value.(Message).Size)
 			i++
 			fmt.Println("YOLO", err)
 			Lst_ball.checkErr(err)
@@ -91,6 +91,26 @@ func (Lstb *All_ball) SetFollowerBalls(curr_b *Ball, base *db.Env) {
 			Lstb.Logger.Println(err)
 		}
 	}
+}
+func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
+	var IdMax int32
+	err := base.Transact(base.Db, func(tx *sql.Tx) error {
+		var err error
+		stm, err := tx.Prepare("select id_m from message where id_m = (select max(id_m) from message) and containerid = $1;")
+		if err != nil {
+			return err
+		}
+		rs, err := stm.Query(idBall)
+		if err != nil {
+			return err
+		}
+		defer stm.Close()
+		if rs.Next() != false {
+			rs.Scan(&IdMax)
+		}
+		return err
+	})
+	return IdMax, err
 }
 
 /*
@@ -180,11 +200,11 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
 					err := base.Transact(base.Db, func(tx *sql.Tx) error {
-						stm, err := tx.Prepare("INSERT INTO message(content, containerid) values($1, (SELECT id from container where ianix = $2))")
+						stm, err := tx.Prepare("INSERT INTO message(content, containerid, index_m, size) VALUES ($1, (SELECT id FROM container WHERE ianix=$2), $3, $4)")
 						if err != nil {
 							return err
 						}
-						_, err = stm.Exec(f.Value.(Message).Content, idBall)
+						_, err = stm.Exec(f.Value.(Message).Content, idBall, f.Value.(Message).Id, f.Value.(Message).Size)
 						if err != nil {
 							return err
 						}
