@@ -6,7 +6,7 @@ import (
 )
 
 func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
-	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats;")
+	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont FROM globalStats ORDER BY lastupdate DESC LIMIT 1;")
 	if err != nil {
 		return &userError{Prob: "Get Global stat", Err: nil, Logf: Lu.Logger}
 	}
@@ -34,5 +34,19 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		}
 		u = u.Next()
 	}
+	lu.UpdateGlobal(base)
 	return nil
+}
+
+func (lu *All_users) UpdateGlobal(base *db.Env) (err error){
+	trow, err := base.Db.Query("INSERT INTO globalstats(num_users, num_follow, num_mesage, num_send, num_cont) VALUES($1, $2, $3, $4, $5);",
+					lu.NbrUsers,
+					lu.GlobalStat.Value.(*StatsUser).NbrFollow,
+					lu.GlobalStat.Value.(*StatsUser).NbrMessage,
+					lu.GlobalStat.Value.(*StatsUser).NbrSend,
+					lu.GlobalStat.Value.(*StatsUser).NbrBallCreate)
+	if err != nil {
+		return &userError{Prob: "Update global wibo", Err: err, Logf: lu.Logger}
+	}
+	defer trow.Close()
 }
