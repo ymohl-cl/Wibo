@@ -809,7 +809,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	var i int32
 	Mlist := list.New()
 
-	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m, size, index_m FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
+	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m, size, index_m FROM message WHERE containerid=($1) ORDER BY creationdate ASC")
 	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	if err != nil {

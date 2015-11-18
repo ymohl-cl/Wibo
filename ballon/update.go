@@ -58,7 +58,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
 			stm, err := tx.Prepare("INSERT INTO message(content, containerid, index_m, size) VALUES ($1, $2, $3, $4)")
 			Lst_ball.checkErr(err)
-			_, err = stm.Query(e.Value.(Message).Content, idBall, e.Value.(Message).Id, e.Value.(Message).Size)
+			_, err = stm.Query(e.Value.(Message).Content, idBall, i, e.Value.(Message).Size)
 			i++
 			fmt.Println("YOLO", err)
 			Lst_ball.checkErr(err)
