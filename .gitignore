@@ -1,4 +1,5 @@
 # Ignorer les objets et les archives
+Wibo
 *.[oa]i
 _vendor/**/*
 pkg/**/*
