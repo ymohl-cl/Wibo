@@ -827,6 +827,7 @@ func GetWin(speed string, direction string) Wind {
 **/
 
 func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, error) {
+	var i int32
 	Mlist := list.New()
 
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m  FROM message WHERE containerid=($1) ORDER BY creationdate DESC")
@@ -835,6 +836,7 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	if err != nil {
 		return Mlist, err
 	}
+	i = 0
 	for rows.Next() {
 		var idm int32
 		var message string
@@ -843,7 +845,8 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 		if err != nil {
 			return Mlist, err
 		}
-		Mlist.PushBack(Message{Content: message, Type: idType, Id: idm})
+		Mlist.PushBack(Message{Content: message, Type: idType, Id: i})
+		i++
 	}
 	return Mlist, err
 }
