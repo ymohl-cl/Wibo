@@ -415,6 +415,7 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		mes.mess = msg.Content
 		mes.mtype = msg.Type
 		pck.head.octets += int16(16 + msg.Size)
+		fmt.Println("Message: ", mes)
 		pck.ptype.(*Contentball).messages.PushBack(mes)
 	}
 	fmt.Println("NbrFollow: ", ball.Stats.NbrFollow)
