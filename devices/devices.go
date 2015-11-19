@@ -82,18 +82,16 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	}
 	rows, err := base.Db.Query("SELECT id, idclient, user_id_user FROM device;")
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	defer rows.Close()
-	if rows.Next() != false {
-		var idclient string
-		var idBase, idUserDefault int64
-		for rows.Next() {
-			rows.Scan(&idBase, &idclient, &idUserDefault)
-			dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New(), UserSpec: allUsers[idUserDefault]})
-		}
+	var idclient string
+	var idBase, idUserDefault int64
+	for rows.Next() {
+		rows.Scan(&idBase, &idclient, &idUserDefault)
+		dlist.Dlist.PushBack(&Device{Idbdd: idBase, Id: idclient, IdUserDefault: idUserDefault, UserDefault: allUsers[idUserDefault], Historic: list.New(), UserSpec: allUsers[idUserDefault]})
 	}
-	fmt.Println("Nbr GetDevice: ", dlist.Dlist.Len())
+	dlist.Logger.Println("Get number device: ", dlist.Dlist.Len())
 	return nil
 }
 

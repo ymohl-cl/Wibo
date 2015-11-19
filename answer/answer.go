@@ -800,7 +800,7 @@ func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Edited = true
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		var message ballon.Message
-		message.Id = int32(ball.Messages.Len())
+		message.Id = int32(ball.Messages.Len() + 1)
 		message.Size = rqt.Spec.(protocol.Send_ball).Octets
 		message.Content = rqt.Spec.(protocol.Send_ball).Message
 		message.Type = 1
@@ -1074,25 +1074,20 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 	eCheck := lst.Front()
 
 	for i := nbrPack; i > 0; i-- {
+		NbrItin = int32((SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL)
+		fmt.Println("number it on packet: ", NbrItin)
+		if nbrCheck > NbrItin {
+			nbrCheck -= NbrItin
+		} else {
+			NbrItin = nbrCheck
+		}
+		answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
+		fmt.Println("Size write: ", answer.head.octets)
 		if i == nbrPack {
-			NbrItin := int32((SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL)
-			if nbrCheck > NbrItin {
-				nbrCheck -= NbrItin
-			} else {
-				NbrItin = nbrCheck
-			}
-			answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
 			answer.head.rtype = STATSBALL
 			answer.head.pnbr = int32(nbrPack)
 			answer.head.pnum = 0
 		} else {
-			NbrItin = (SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL
-			if nbrCheck > NbrItin {
-				nbrCheck -= NbrItin
-			} else {
-				NbrItin = nbrCheck
-			}
-			answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
 			answer.head.pnum++
 		}
 		Buffer := Write_header(answer)
@@ -1104,10 +1099,11 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 		binary.Write(Buffer, binary.BigEndian, ball.Stats.NbrMagnet)
 		binary.Write(Buffer, binary.BigEndian, NbrItin)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
-		for i := int32(1); i <= NbrItin; i++ {
+		for j := int32(1); j <= NbrItin; j++ {
 			check := eCheck.Value.(*ballon.Checkpoint)
-			binary.Write(Buffer, binary.BigEndian, int64(i))
-			binary.Write(Buffer, binary.BigEndian, check.MagnetFlag)
+			binary.Write(Buffer, binary.BigEndian, int32(j))
+			binary.Write(Buffer, binary.BigEndian, int32(check.MagnetFlag))
+			fmt.Printf("Coordinate number %d, Lon: %f, Lat: %f", j, check.Coord.Lon, check.Coord.Lat)
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lon)
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lat)
 			eCheck = eCheck.Next()
@@ -1123,7 +1119,11 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	rqt := request.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
-	nbrCheckpoint, LstCheckpoint := ball.GetItinerary(Db)
+	nbrCheckpoint, LstCheckpoint := ball.GetItinerary(Db, Data.Lst_ball)
+	fmt.Println("Number checkpoint found: ", nbrCheckpoint)
+	for i := LstCheckpoint.Front(); i != nil; i = i.Next() {
+		fmt.Println(i)
+	}
 
 	sizeStat := (SIZE_PACKET - SIZE_STATBALL - SIZE_HEADER)
 	var tmpPacket float64

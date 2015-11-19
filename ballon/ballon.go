@@ -331,6 +331,7 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 			Lat := ball.Scoord.Value.(Checkpoint).Coord.Lat
 			if ball.Itinerary.Len() == 0 || ball.GetDistance(Lon, Lat) > 1.0 {
 				fmt.Println("Add on Itinerary")
+				ball.Edited = true
 				ball.Itinerary.PushBack(ball.Coord.Value.(Checkpoint))
 				ball.Scoord = ball.Coord
 			}
@@ -469,28 +470,32 @@ func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB) {
 
 func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 	var Idb int64
+	fmt.Println("Set itinerary")
 	row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
 	if err != nil {
-		log.Print(err)
+		Lb.Logger.Println(err)
+		return
 	}
 	defer row.Close()
+	fmt.Println("YOYOYOYOYO ")
 	if row.Next() != false {
 		row.Scan(&Idb)
+		fmt.Println("Idb: ", Idb)
 		for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
+			fmt.Println("Add elem's itinerary: ", i.Value.(Checkpoint))
 			trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
 			if err != nil {
 				fmt.Println(err)
 			}
 			trow.Close()
 		}
-		b.Value.(*Ball).Itinerary.Init()
+		b.Value.(*Ball).Itinerary = list.New()
 	} else {
-		fmt.Println(err)
+		Lb.Logger.Println(err)
 	}
-	b.Value.(*Ball).Itinerary = list.New()
 }
 
-func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
+func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 	var err error
 	Itinerary := list.New()
 	//	Ball.Itinerary = list.New()
@@ -508,7 +513,7 @@ func (Ball *Ball) GetItinerary(Db *sql.DB) (int32, *list.List) {
 		rows.Scan(&table)
 		result := strings.Split(table, ",")
 		ism = 0
-		tdate := GetDateFormat(result[0])
+		tdate := Lb.GetDateFormat(result[0])
 		if strings.ContainsRune(result[1], 't') == true {
 			ism = 1
 		}
@@ -572,7 +577,7 @@ func (Lb *All_ball) GetFollowers(idBall int64, Db *sql.DB, Ulist *list.List) (*l
 }
 
 func GetCurrentUserBall(LUser *list.List, idBall int64, Db *sql.DB) (*list.Element, error) {
-	stm, err := Db.Prepare("SELECT idcurrentuser  FROM container WHERE id=($1)")
+	stm, err := Db.Prepare("SELECT idcurrentuser  FROM container WHERE ianix=($1)")
 	if err != nil {
 		return nil, err
 	}
@@ -580,19 +585,17 @@ func GetCurrentUserBall(LUser *list.List, idBall int64, Db *sql.DB) (*list.Eleme
 	if err != nil {
 		return nil, err
 	}
-
+	defer rows.Close()
 	if rows.Next() != false {
 		var idPossesed int64
 		err = rows.Scan(&idPossesed)
 		if err != nil {
 			return nil, err
 		}
-		i := 0
 		for e := LUser.Front(); e != nil; e = e.Next() {
 			if e.Value.(*users.User).Id == idPossesed {
 				return e, err
 			}
-			i++
 		}
 	}
 	return nil, err
@@ -672,15 +675,15 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			fmt.Printf("%T | %v \n", infoCont, infoCont)
 			idBall := GetIdBall(result[0])
 			magnet, _ := strconv.Atoi(result[8])
-			tempCord := getExtraInfo(result[6], GetDateFormat(result[9]), int16(magnet))
+			tempCord := getExtraInfo(result[6], Lb.GetDateFormat(result[9]), int16(magnet))
 			lstIt := list.New()
 			sStat, errT := Lb.GetStatsBallon(int64(idBall), base.Db) // Mettre errt ici
 			if errT != nil {
 				return errT
 			}
-			possessed, _ := GetWhomGotBall(idBall, Ulist, base.Db) // Mettre errt ici
-			if possessed == nil {
-				Lb.Logger.Println("Possesed is null")
+			possessed, errT := GetWhomGotBall(idBall, Ulist, base.Db) // Mettre errt ici
+			if errT != nil {
+				Lb.Logger.Println("GetWhomGotBall error: ", errT)
 			}
 			tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
 			fmt.Printf("%v and %v \n", tmpBall, result[7])
@@ -699,7 +702,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					&Ball{
 						Id_ball:     GetIdBall(result[7]),
 						Title:       result[1],
-						Date:        GetDateFormat(result[5]),
+						Date:        Lb.GetDateFormat(result[5]),
 						Checkpoints: list.New(),
 						Itinerary:   lstIt,
 						Scoord:      tempCord.Front(),
@@ -722,7 +725,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 
 }
 
-func GetDateFormat(qdate string) (fdate time.Time) {
+func (Lb *All_ball) GetDateFormat(qdate string) (fdate time.Time) {
 	f := func(c rune) bool {
 		return c == '"'
 	}
@@ -730,7 +733,10 @@ func GetDateFormat(qdate string) (fdate time.Time) {
 	for _, value := range fields {
 		qdate = string(value)
 	}
-	fdate, _ = time.Parse("2006-01-02 15:04:05", qdate)
+	fdate, er := time.Parse("2006-01-02 15:04:05", qdate)
+	if er != nil {
+		Lb.Logger.Println("Error on date: ", er)
+	}
 	return fdate
 }
 
@@ -857,5 +863,6 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (err error) {
 		}
 	}
 	Lb.InsertListBallsFollow(Lb.Blist, LstU.Ulist, base)
+	Lb.Logger.Println("Get number ball: ", Lb.Blist.Len())
 	return err
 }

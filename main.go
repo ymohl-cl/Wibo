@@ -108,10 +108,6 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 				if er != nil {
 					Serv.Logger.Println("Update_weather error: ", er)
 				} // If possible print Weather data with Serv.Tab_wd.Print_weatherdata()
-				//				er = Serv.Lst_ball.Create_checkpoint(Serv.Tab_wd)
-				//				if er != nil {
-				//					Serv.Logger.Println("Create_checkpoint error: ", er)
-				//				} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
 			}
 		case <-channelfuncmoveball:
 			{
@@ -122,7 +118,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 			}
 		case <-channelfuncupdatedata:
 			{
-				fmt.Println("UPDATE !!")
+				fmt.Println("UPDATE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 				er := Serv.Lst_ball.Update_balls(Serv.Lst_ball, base)
 				if er != nil {
 					Serv.Logger.Println("Update_balls error: ", er)
@@ -140,9 +136,8 @@ func ManageSignal(Serv *server.Server, myDb *db.Env) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
 	s := <-c
-	Serv.Logger.Println("Get Signal: ", s)
+	Serv.Logger.Println("try save data_cach on bdd following Get Signal: ", s)
 
-	fmt.Println("Save if possible begin crash")
 	er := Serv.Lst_ball.Update_balls(Serv.Lst_ball, myDb)
 	if er != nil {
 		Serv.Logger.Println("Update_balls error: ", er)
@@ -155,10 +150,10 @@ func ManageSignal(Serv *server.Server, myDb *db.Env) {
 	Serv.Lst_users.Logger = nil
 	Serv.Lst_ball.Logger = nil
 	Serv.Lst_Devices.Logger = nil
-	er = Serv.Lst_users.SaveUsersToFile()
-	if er != nil {
-		Serv.Logger.Println("Error on saveUsers, its a bad ! :(", er)
-	}
+	//	er = Serv.Lst_users.SaveUsersToFile()
+	//	if er != nil {
+	//		Serv.Logger.Println("Error on saveUsers, its a bad ! :(", er)
+	//	}
 	Serv.Logger = nil
 	os.Exit(-1)
 }

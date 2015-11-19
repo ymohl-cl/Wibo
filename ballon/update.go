@@ -96,20 +96,21 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	var IdMax int32
 	err := base.Transact(base.Db, func(tx *sql.Tx) error {
 		var err error
-		stm, err := tx.Prepare("select id_m from message where id_m = (select max(id_m) from message) and containerid = $1;")
-		if err != nil {
-			return err
-		}
-		rs, err := stm.Query(idBall)
+		stm, err := tx.Prepare("select index_m from message where index_m = (select max(index_m) from message) and containerid=$1;")
 		if err != nil {
 			return err
 		}
 		defer stm.Close()
+		rs, err := stm.Query(idBall)
+		if err != nil {
+			return err
+		}
 		if rs.Next() != false {
 			rs.Scan(&IdMax)
 		}
 		return err
 	})
+	fmt.Println("IdMax message: ", IdMax)
 	return IdMax, err
 }
 
@@ -135,7 +136,7 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		strings.Trim(NewBall.Title, "\x00"),
 		NewBall.Id_ball,
 		NewBall.Stats.CreationDate).Scan(&IdC)
-	Lst_ball.Logger.Println(err)
+	//Lst_ball.Logger.Println(err)
 	if err != nil {
 		return false, err
 	}
@@ -182,13 +183,70 @@ CREATE OR REPLACE FUNCTION public.insertcontainer(idcreatorc integer, latitudec 
 AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, location_ct, idcreator, titlename, ianix, creationdate) VALUES(directionc, speedc , ST_SetSRID(ST_MakePoint(latitudec, longitudec), 4326), idcreatorc, title, idx, creation) RETURNING id;  END; $function$
 \*/
 
+func (ball *Ball) addMessage(base *db.Env) error {
+	idMessageMax, er := getIdMessageMax(ball.Id_ball, base)
+	if er != nil {
+		return er
+	}
+	for f := ball.Messages.Front(); f != nil; f = f.Next() {
+		mes := f.Value.(Message)
+		if mes.Id > idMessageMax {
+			err := base.Transact(base.Db, func(tx *sql.Tx) error {
+				stm, err := tx.Prepare("INSERT INTO message(content, containerid, index_m, size) VALUES ($1, (SELECT id FROM container WHERE ianix=$2), $3, $4)")
+				if err != nil {
+					return err
+				}
+				defer stm.Close()
+				_, err = stm.Exec(mes.Content, ball.Id_ball, f.Value.(Message).Id, f.Value.(Message).Size)
+				return err
+			})
+			if err != nil {
+				return er
+			}
+		}
+	}
+	return nil
+}
+
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+		ball := e.Value.(*Ball)
+		ball.Lock()
+		if ball.FlagC == true {
+			Lb.InsertBallon(e.Value.(*Ball), base)
+		} else if ball.Edited == true {
+			Lb.SetStatsBallon(ball.Id_ball, ball.Stats, base.Db)
+			Lb.SetItinerary(base.Db, e)
+			er := ball.addMessage(base)
+			if er != nil {
+				Lb.Logger.Println(er)
+			}
+			er = e.Value.(*Ball).UpdateLocation(base)
+			if er != nil {
+				Lb.Logger.Println(er)
+			}
+			Lb.SetFollowerBalls(e.Value.(*Ball), base)
+		}
+		ball.Edited = false
+		ball.FlagC = false
+		ball.Unlock()
+	}
+	return nil
+}
+
+/*func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
+	fmt.Println("Enter update")
+	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
+		fmt.Println("title ball: ", e.Value.(*Ball).Title)
+		fmt.Println("FlagcC ", e.Value.(*Ball).FlagC)
+		fmt.Println("Edited ", e.Value.(*Ball).Edited)
 		if e.Value.(*Ball).FlagC == true {
+			fmt.Println("try insert: ")
 			Lb.InsertBallon(e.Value.(*Ball), base)
 			e.Value.(*Ball).Edited = false
 			e.Value.(*Ball).FlagC = false
 		} else if e.Value.(*Ball).Edited == true {
+			fmt.Println("try update: ")
 			e.Value.(*Ball).Lock()
 			idBall := e.Value.(*Ball).Id_ball
 			idMessageMax, er := getIdMessageMax(idBall, base)
@@ -196,6 +254,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 				Lb.Logger.Println(er)
 			}
 			Lb.SetStatsBallon(idBall, e.Value.(*Ball).Stats, base.Db)
+			fmt.Println("Set itinerary ball id: ", idBall)
 			Lb.SetItinerary(base.Db, e)
 			for f := e.Value.(*Ball).Messages.Front(); f != nil; f = f.Next() {
 				if f.Value.(Message).Id > idMessageMax {
@@ -204,11 +263,11 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 						if err != nil {
 							return err
 						}
+						defer stm.Close()
 						_, err = stm.Exec(f.Value.(Message).Content, idBall, f.Value.(Message).Id, f.Value.(Message).Size)
 						if err != nil {
 							return err
 						}
-						stm.Close()
 						return err
 					})
 					if err != nil {
@@ -225,4 +284,4 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 		}
 	}
 	return er
-}
+}*/

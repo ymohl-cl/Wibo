@@ -184,14 +184,6 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 	}
 	if flag == 1 {
 		return user
-	} else {
-		//second try
-		fmt.Println("Second try")
-		err = Db.QueryRow("SELECT \"user\".verification FROM \"user\" WHERE id_user=$1;", user.Value.(*User).Id).Scan(&flag)
-		//defer rows.Close()
-		if flag == 1 {
-			return user
-		}
 	}
 	return nil
 }
@@ -421,18 +413,18 @@ func (Lusr *All_users) Get_users(Db *sql.DB) (err error) {
 		return err
 	}
 	defer rows.Close()
-	if rows.Next() != false {
-		for rows.Next() {
-			var idUser int64
-			var mailq, pos string
-			err = rows.Scan(&idUser, &mailq, &pos)
-			if err != nil {
-				return err
-			}
-			lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
+	for rows.Next() {
+		var idUser int64
+		var mailq, pos string
+		err = rows.Scan(&idUser, &mailq, &pos)
+		if err != nil {
+			return err
 		}
+		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 	}
-	Lusr.Ulist.Init()
+	//	Lusr.Ulist.Init()
+	Lusr.Ulist = list.New()
 	Lusr.Ulist.PushFrontList(lUser)
+	Lusr.Logger.Println("Get number user: ", Lusr.Ulist.Len())
 	return nil
 }
