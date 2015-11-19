@@ -962,53 +962,30 @@ func AddFollowed(euser *list.Element, euserDefault *list.Element) {
 	userDefault := euserDefault.Value.(*users.User)
 	var tball *list.Element
 
-	fmt.Println("AddFollowed")
 	for eball := userDefault.Followed.Front(); eball != nil; eball = eball.Next() {
-		fmt.Println("eball check")
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 		for tball = user.Followed.Front(); tball != nil; tball = tball.Next() {
-			fmt.Println("tball followed")
 			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
 			if idball == ball.Id_ball {
-				fmt.Println("idball == ball.Id_ball")
 				break
 			}
 		}
 		if tball == nil {
-			fmt.Println("tball == nil")
 			user.Followed.PushBack(eball.Value.(*list.Element))
 			ball.Followers.PushFront(euser)
 		}
 	}
-	fmt.Println("fin Add Followed")
 }
 
 func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 	user := euser.Value.(*users.User)
 	userDefault := euserDefault.Value.(*users.User)
-	var tball *list.Element
 
-	fmt.Println("GetPossessed")
-	for eball := userDefault.Followed.Front(); eball != nil; eball = eball.Next() {
-		//		fmt.Println("eball found")
+	for eball := userDefault.Possessed.Front(); eball != nil; eball = eball.Next() {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
-		for tball := user.Followed.Front(); tball != nil; tball = tball.Next() {
-			//			fmt.Println("tball followed")
-			idball := tball.Value.(*list.Element).Value.(*ballon.Ball).Id_ball
-			if idball == ball.Id_ball {
-				//				fmt.Println("idball == ball.Id_ball")
-				break
-			}
-		}
-		if tball == nil {
-			//			fmt.Println("tball == nil")
-			//			user.Followed.PushFront(eball)
-			//			ball.Followers.PushFront(euser)
-			user.Possessed.PushFront(eball.Value.(*list.Element))
-			ball.Possessed = euser
-		}
+		user.Possessed.PushBack(userDefault.Possessed.Remove(eball))
+		ball.Possessed = euser
 	}
-	fmt.Println("end GetPossessed")
 }
 
 func (Data *Data) Manage_SyncAccount(request *list.Element, Db *sql.DB) (er error) {
