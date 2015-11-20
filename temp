@@ -1,5 +1,0 @@
-[wibo@sd-75574 Wibo]$ cat LogsBddBall.txt
-BddBall: 2015/11/20 07:57:21 ballon.go:434: pq: sorry, too many clients already
-BddBall: 2015/11/20 07:57:21 update.go:232: pq: sorry, too many clients already
-BddBall: 2015/11/20 07:57:21 update.go:236: pq: sorry, too many clients already
-BddBall: 2015/11/20 07:57:21 update.go:99: pq: sorry, too many clients already
