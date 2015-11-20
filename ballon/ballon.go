@@ -86,7 +86,6 @@ type All_ball struct {
 	Blist  *list.List /* Value: *Ball */
 	Id_max int64      /* Set by bdd and incremented by server */
 	Logger *log.Logger
-	//	Ftmp   *af.InMemoryFile
 }
 
 /*
