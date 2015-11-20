@@ -118,7 +118,6 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 			}
 		case <-channelfuncupdatedata:
 			{
-				fmt.Println("UPDATE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 				er := Serv.Lst_ball.Update_balls(Serv.Lst_ball, base)
 				if er != nil {
 					Serv.Logger.Println("Update_balls error: ", er)
@@ -146,14 +145,14 @@ func ManageSignal(Serv *server.Server, myDb *db.Env) {
 	if er != nil {
 		Serv.Logger.Println("Update_users error: ", er)
 	}
+	er = myDb.Db.Close()
+	if er != nil {
+		Serv.Logger.Println("Erreur on closing bdd: ", er)
+	}
 	Serv.Tab_wd.Logger = nil
 	Serv.Lst_users.Logger = nil
 	Serv.Lst_ball.Logger = nil
 	Serv.Lst_Devices.Logger = nil
-	//	er = Serv.Lst_users.SaveUsersToFile()
-	//	if er != nil {
-	//		Serv.Logger.Println("Error on saveUsers, its a bad ! :(", er)
-	//	}
 	Serv.Logger = nil
 	os.Exit(-1)
 }
@@ -162,12 +161,16 @@ func main() {
 	Server := new(server.Server)
 	myDb := new(db.Env)
 
+	if len(os.Args) != 5 {
+		fmt.Println("./Usage 'name bdd' 'pass bdd' 'user bdd' 'port bdd'")
+		return
+	}
 	er := Server.InitServer()
 	if er != nil {
 		fmt.Println("Error on InitServer: ", er)
 		return
 	}
-	Db, er := myDb.OpenCo(er)
+	Db, er := myDb.OpenCo(os.Args)
 	if er != nil {
 		Server.Logger.Println("OpenCo error: ", er)
 		return

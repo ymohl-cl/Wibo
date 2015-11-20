@@ -4,7 +4,6 @@ import (
 	"Wibo/ballon"
 	"Wibo/ballonwork"
 	"Wibo/db"
-	//	"Wibo/debug"
 	"Wibo/devices"
 	"Wibo/owm"
 	"Wibo/users"
@@ -66,12 +65,10 @@ func (Serv *Server) Init_Data(base *db.Env) error {
 	if er != nil {
 		Serv.Logger.Println("Create_checkpoint error: ", er)
 	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
-
 	//	er = debug.CreateDataToDebug(Serv.Lst_ball, Serv.Lst_users, Serv.Tab_wd)
 	//	if er != nil {
 	//		Serv.Logger.Println("Create DataToDebug error: ", er)
 	//	} // If possible print Checkpoint list with Serv.Lst_ball.Print_all_balls()
-
 	return nil
 }
 
@@ -116,6 +113,12 @@ func (Serv *Server) InitServer() error {
 		return er
 	}
 	Serv.Lst_Devices.Logger = log.New(file5, "BddDevice: ", log.Lshortfile|log.Ldate|log.Ltime)
+	file6, er := os.Create("LogsBddBallWork.txt")
+	if er != nil {
+		fmt.Println("Erreur to create LogsBddBallWork.txt: ", er)
+		return er
+	}
+	Serv.Lst_workBall.Logger = log.New(file6, "BddWorkBall: ", log.Lshortfile|log.Ldate|log.Ltime)
 	Serv.Logger.Println("Init Server Done")
 	return er
 }

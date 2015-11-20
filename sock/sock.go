@@ -18,7 +18,6 @@ import (
 	"Wibo/server"
 	"container/list"
 	"database/sql"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -56,7 +55,6 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 		buff := make([]byte, 1024)
 		size, er := Conn.Read(buff)
 		if er != nil && er == io.EOF {
-			fmt.Println("CONNECTION CLOSE BY CLIENT !")
 			Data.Logger.Println("Connection close with (remote Address): ",
 				Conn.RemoteAddr())
 			return
@@ -65,20 +63,14 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 				size, er, Conn.RemoteAddr())
 			return
 		} else {
-			fmt.Println("|....................................................................................|")
-			fmt.Println("|....................................................................................|")
-			Data.Logger.Printf("Packet received by (remote Address): %s\n",
-				Conn.RemoteAddr())
-			fmt.Println(buff)
 			Token := new(protocol.Request)
 			er, er2 := Token.Get_request(buff)
 			if er != nil || er2 != nil {
 				Data.Logger.Printf("Remote Address: %s| Get_request error1: %s, Get_request_erro2: %s\n",
 					Conn.RemoteAddr(), er, er2)
 				return
-			} else {
-				Token.Print_token_debug(Data.Logger, Conn)
 			}
+			Token.Print_token_debug(Data.Logger, Conn)
 			Data.Lst_req.PushBack(Token)
 			if Data.Check_lstrequest() == true {
 				er = Data.Get_answer(Serv.Tab_wd, Db)
@@ -87,30 +79,21 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 						Conn.RemoteAddr(), er)
 					Front := Data.Lst_asw.Front()
 					if Front != nil {
-						fmt.Println("1Answer sending:")   // Print Verification
-						fmt.Println(Front.Value.([]byte)) // Print Verification
 						size, er = Conn.Write(Front.Value.([]byte))
-						fmt.Printf("Write %d octets\n", size)
 						Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
 							Conn.RemoteAddr(), size, er)
 					}
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
-					fmt.Println("2Answer sending:")   // Print Verification
-					fmt.Println(Front.Value.([]byte)) // Print Verification
 					size, er = Conn.Write(Front.Value.([]byte))
-					fmt.Printf("Write %d octets\n", size)
 					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
 						Conn.RemoteAddr(), size, er)
 					Data.Lst_asw.Remove(Front)
 				}
 			} else {
 				awr := Data.Get_aknowledgement(Data.Lst_users)
-				fmt.Println("3Answer sending:") // Print Verification
-				fmt.Println(awr)                // Print Verification
 				size, er = Conn.Write(awr)
-				fmt.Printf("Write %d octets\n", size)
 				Data.Logger.Printf("Remote Address: %s| retour de Conn.Write (exhange multiple packets), size: %d, er: %s\n",
 					Conn.RemoteAddr(), size, er)
 			}

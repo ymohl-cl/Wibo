@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/lib/pq"
-	"log"
 )
 
 type Env struct {
@@ -19,10 +18,13 @@ type Env struct {
 * param: error
 * return *Env, error
 **/
-func (dbp *Env) OpenCo(error) (*sql.DB, error) {
-
+func (dbp *Env) OpenCo(args []string) (*sql.DB, error) {
 	var err error
-	db, err := sql.Open("postgres", "user=wibo  password='wibo' dbname=wibo_base sslmode=disable host=localhost port=5432")
+	str_connect := "user=" + args[3] + " password=" + args[2] + " dbname=" + args[1] + " sslmode=disable host=localhost port=" + args[4]
+	db, err := sql.Open("postgres", str_connect)
+	if err != nil {
+		return nil, err
+	}
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
@@ -31,20 +33,6 @@ func (dbp *Env) OpenCo(error) (*sql.DB, error) {
 	}
 	dbp.Db = db
 	return db, err
-}
-
-/**
-* PingMyBase
-* Ping on Database returns without error.
-* If ping returns an error that means the connection to the Database is not existing at all.
-* Which will require further error checking steps.
-* return bool and err message
- */
-func (dbp *Env) PingMyBase(Db *sql.DB) (connected bool, err error) {
-	if err := Db.Ping(); err != nil {
-		return false, err
-	}
-	return true, err
 }
 
 func (dbp *Env) Transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
@@ -68,12 +56,4 @@ func (dbp *Env) Transact(db *sql.DB, txFunc func(*sql.Tx) error) (err error) {
 		err = tx.Commit()
 	}()
 	return txFunc(tx)
-}
-
-func (dbp *Env) BeginTr() (tx *sql.Tx) {
-	tx, err := dbp.Db.Begin()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return tx
 }

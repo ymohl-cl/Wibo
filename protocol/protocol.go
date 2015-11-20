@@ -23,18 +23,17 @@ import (
 )
 
 const (
-	_          = iota
-	ACK        = 32767
-	SYNC       = 1
-	MAJ        = 2
-	POS        = 3
-	TAKEN      = 4
-	FOLLOW_ON  = 5
-	FOLLOW_OFF = 6
-	NEW_BALL   = 7
-	SEND_BALL  = 8
-	MAGNET     = 9
-	// Itinerary is depreacated
+	_             = iota
+	ACK           = 32767
+	SYNC          = 1
+	MAJ           = 2
+	POS           = 3
+	TAKEN         = 4
+	FOLLOW_ON     = 5
+	FOLLOW_OFF    = 6
+	NEW_BALL      = 7
+	SEND_BALL     = 8
+	MAGNET        = 9
 	WORKBALL      = 10
 	TYPELOG       = 11
 	CREATEACCOUNT = 12
@@ -208,7 +207,6 @@ func (tkn *Request) Request_Log(TypBuff *bytes.Buffer) (err error, er error) {
 		return
 	}
 	log.Pswd = pswd[:64]
-	//	log.Pswd = string(pswd[:64])
 	tkn.Spec = log
 	return
 }
@@ -289,37 +287,40 @@ func (token *Request) Get_request(buff []byte) (err error, er error) {
 
 /* Print request to debug */
 func (token *Request) Print_token_debug(Log *log.Logger, Conn net.Conn) {
-	Log.Printf("Request from: %s| %v | type: %d\n", Conn.RemoteAddr(), token, token.Rtype)
-	fmt.Println("Request: ", token)
-	fmt.Println("Request header:")
-	fmt.Println(token.Octets)
-	fmt.Println(token.Rtype)
-	fmt.Println(token.Nbrpck)
-	fmt.Println(token.Numpck)
-	fmt.Println(token.IdMobile)
-	fmt.Println(token.Coord.Lon)
-	fmt.Println(token.Coord.Lat)
-	fmt.Println("Type request:")
-	switch token.Rtype {
-	case SYNC:
-		fmt.Println("Data base synchronisation, type 1")
-	case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
-		fmt.Println(token.Spec.(Ballid).Id)
-	case POS, WORKBALL, MAGNET:
-	case TAKEN:
-		fmt.Println(token.Spec.(Taken).Id)
-		fmt.Println(token.Spec.(Taken).FlagMagnet)
-	case NEW_BALL:
-		fmt.Println(token.Spec.(New_ball).Title)
-		fmt.Println(token.Spec.(New_ball).Octets)
-		fmt.Println(token.Spec.(New_ball).Message)
-	case SEND_BALL:
-		fmt.Println(token.Spec.(Send_ball).Id)
-		fmt.Println(token.Spec.(Send_ball).Octets)
-		fmt.Println(token.Spec.(Send_ball).Message)
-	case ACK:
-		fmt.Println(token.Spec.(Ack).Atype)
-		fmt.Println(token.Spec.(Ack).Status)
-	case STATSUSER:
+	if Log != nil {
+		Log.Printf("Request from: %s| %v | type: %d\n", Conn.RemoteAddr(), token, token.Rtype)
+	} else {
+		fmt.Println("Request: ", token)
+		fmt.Println("Request header:")
+		fmt.Println(token.Octets)
+		fmt.Println(token.Rtype)
+		fmt.Println(token.Nbrpck)
+		fmt.Println(token.Numpck)
+		fmt.Println(token.IdMobile)
+		fmt.Println(token.Coord.Lon)
+		fmt.Println(token.Coord.Lat)
+		fmt.Println("Type request:")
+		switch token.Rtype {
+		case SYNC:
+			fmt.Println("Data base synchronisation, type 1")
+		case MAJ, FOLLOW_ON, FOLLOW_OFF, STATSBALL:
+			fmt.Println(token.Spec.(Ballid).Id)
+		case POS, WORKBALL, MAGNET:
+		case TAKEN:
+			fmt.Println(token.Spec.(Taken).Id)
+			fmt.Println(token.Spec.(Taken).FlagMagnet)
+		case NEW_BALL:
+			fmt.Println(token.Spec.(New_ball).Title)
+			fmt.Println(token.Spec.(New_ball).Octets)
+			fmt.Println(token.Spec.(New_ball).Message)
+		case SEND_BALL:
+			fmt.Println(token.Spec.(Send_ball).Id)
+			fmt.Println(token.Spec.(Send_ball).Octets)
+			fmt.Println(token.Spec.(Send_ball).Message)
+		case ACK:
+			fmt.Println(token.Spec.(Ack).Atype)
+			fmt.Println(token.Spec.(Ack).Status)
+		case STATSUSER:
+		}
 	}
 }

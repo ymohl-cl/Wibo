@@ -8,7 +8,6 @@ import (
 	"container/list"
 	"database/sql"
 	"fmt"
-	af "github.com/spf13/afero"
 	"log"
 	"math"
 	"strconv"
@@ -20,10 +19,6 @@ import (
 const (
 	NBRCHECKPOINTLIST = 3
 )
-
-var SubDir = "/tmp/MeMapUsers"
-var fileUsers = "mmu.txt"
-var Fss = []af.Fs{&af.MemMapFs{}, &af.OsFs{}}
 
 /* Type is message type. Only type 1 is use now and described a text */
 /*
@@ -91,7 +86,7 @@ type All_ball struct {
 	Blist  *list.List /* Value: *Ball */
 	Id_max int64      /* Set by bdd and incremented by server */
 	Logger *log.Logger
-	Ftmp   *af.InMemoryFile
+	//	Ftmp   *af.InMemoryFile
 }
 
 /*
@@ -418,7 +413,7 @@ func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB, logg *log.Logger) {
 	defer row.Close()
 	if row.Next() != false {
 		row.Scan(&Idb)
-		trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", ball.Stats.CreationDate, coord.Lon, coord.Lat, Idb, 0)
+		trow, err := Db.Query("SELECT public.insertcheckpoints($1, $2, $3, $4, $5);", ball.Stats.CreationDate, coord.Lon, coord.Lat, Idb, false)
 		if err != nil {
 			logg.Println(err)
 		}
@@ -428,20 +423,14 @@ func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB, logg *log.Logger) {
 
 func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 	var Idb int64
-	fmt.Println("Set itinerary")
-	row, err := Db.Query("SELECT id from container WHERE ianix = $1", b.Value.(*Ball).Id_ball)
+	err := Db.QueryRow("SELECT container.id FROM container WHERE container.ianix=$1;", b.Value.(*Ball).Id_ball).Scan(&Idb)
 	if err != nil {
 		Lb.Logger.Println(err)
 		return
 	}
-	defer row.Close()
-	fmt.Println("YOYOYOYOYO ")
-	if row.Next() != false {
-		row.Scan(&Idb)
-		fmt.Println("Idb: ", Idb)
+	if Idb != 0 {
 		for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
-			fmt.Println("Add elem's itinerary: ", i.Value.(Checkpoint))
-			trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
+			trow, err := Db.Query("SELECT public.insertcheckpoints($1, $2, $3, $4, $5);", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
 			if err != nil {
 				fmt.Println(err)
 			} else {
@@ -457,7 +446,6 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 	var err error
 	Itinerary := list.New()
-	//	Ball.Itinerary = list.New()
 	var idB int64
 	Db.QueryRow("SELECT id FROM container WHERE ianix=$1;", Ball.Id_ball).Scan(&idB)
 	rows, err := Db.Query("SELECT getitenirarybycontainerid($1);", idB)
@@ -465,7 +453,6 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 		log.Print(err)
 	} else {
 		defer rows.Close()
-		//	if rows.Next() != false {
 		for rows.Next() {
 			var table string
 			var ism int16
@@ -510,11 +497,11 @@ func getIdBallMax(base *db.Env) int64 {
 * CheckErr
 * Verify err value to stop execution by panic
 **/
-func (Lst_ball *All_ball) checkErr(err error) {
-	if err != nil {
-		Lst_ball.Logger.Printf("Error: %s", err)
-	}
-}
+//func (Lst_ball *All_ball) checkErr(err error) {
+//	if err != nil {
+//		Lst_ball.Logger.Printf("Error: %s", err)
+//	}
+//}
 
 func (Lb *All_ball) GetFollowers(idBall int64, Db *sql.DB, Ulist *list.List) (*list.List, error) {
 	lstFollow := list.New()
@@ -633,30 +620,32 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				return errT
 			}
 			result := strings.Split(infoCont, ",")
-			fmt.Printf("%T | %v \n", infoCont, infoCont)
 			idBall := GetIdBall(result[0])
 			magnet, _ := strconv.Atoi(result[8])
 			tempCord := getExtraInfo(result[6], Lb.GetDateFormat(result[9]), int16(magnet))
 			lstIt := list.New()
-			sStat, errT := Lb.GetStatsBallon(int64(idBall), base.Db) // Mettre errt ici
+			sStat, errT := Lb.GetStatsBallon(int64(idBall), base.Db)
 			if errT != nil {
+				Lb.Logger.Println("GetStatsBallon: ", errT)
 				return errT
 			}
-			possessed, errT := GetWhomGotBall(idBall, Ulist, base.Db) // Mettre errt ici
+			possessed, errT := GetWhomGotBall(idBall, Ulist, base.Db)
 			if errT != nil {
 				Lb.Logger.Println("GetWhomGotBall error: ", errT)
+				return errT
 			}
 			tmpBall := Lb.Get_ballbyid(GetIdBall(result[7]))
-			fmt.Printf("%v and %v \n", tmpBall, result[7])
 			if tmpBall != nil {
 				// Do Nothing
 			} else {
 				lstMess, errT := Lb.GetMessagesBall(idBall, base.Db)
 				if errT != nil {
+					Lb.Logger.Println("GetMessageBall error: ", errT)
 					return errT
 				}
 				lstFols, errT := Lb.GetFollowers(idBall, base.Db, Ulist)
 				if errT != nil {
+					Lb.Logger.Println("GetFollowers error: ", errT)
 					return errT
 				}
 				lBallon.PushBack(
@@ -679,7 +668,6 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 		return errT
 	})
 	if err != nil {
-		Lb.Logger.Println(err)
 		return nil, err
 	}
 	return lBallon, nil
@@ -791,7 +779,6 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 		var message string
 		var idm, idType, size, m_idx int32
 		err = rows.Scan(&idm, &message, &idType, &size, &m_idx)
-		fmt.Printf("index message %v \n", m_idx)
 		if err != nil {
 			return Mlist, err
 		}
@@ -817,11 +804,11 @@ func (Lb *All_ball) Get_balls(LstU *users.All_users, base *db.Env) (err error) {
 	err = nil
 
 	Lb.Id_max = getIdBallMax(base) + 1
-	Lb.Ftmp = af.MemFileCreate("testfile")
 	for e := LstU.Ulist.Front(); e != nil; e = e.Next() {
 		if e.Value.(*users.User) != nil {
 			tlst, err := Lb.GetListBallsByUser(e, base, LstU.Ulist)
 			if err != nil {
+				Lb.Logger.Println("Error on GetListBallsByUser: ", err)
 				return err
 			}
 			Lb.Blist.PushBackList(tlst)

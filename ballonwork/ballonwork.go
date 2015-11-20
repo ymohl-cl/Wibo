@@ -4,6 +4,7 @@ import (
 	"Wibo/db"
 	"Wibo/protocol"
 	"container/list"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -21,7 +22,8 @@ type WorkBall struct {
 }
 
 type All_work struct {
-	Wlist *list.List
+	Wlist  *list.List
+	Logger *log.Logger
 }
 
 func (workBall *WorkBall) Check_neirbycoord(request *list.Element) bool {
@@ -68,19 +70,19 @@ func (wlist *All_work) Get_workBall(base *db.Env) error {
 	wlist.Wlist = list.New()
 	rows, err := base.Db.Query("SELECT title, message, ST_AsText(ballonwork.location_wk), link FROM  ballonwork;")
 	if err != nil {
+		wlist.Logger.Println("Error Query on Get_workBall: ", err)
 		return err
 	}
 	defer rows.Close()
-	if rows.Next() != false {
-		for rows.Next() {
-			var til, ms, pos, url string
-			err = rows.Scan(&til, &ms, &pos, &url)
-			if err != nil {
-				return err
-			}
-			cord := GetCoord(pos)
-			wlist.Wlist.PushBack(&WorkBall{Title: til, Message: ms, Coord: cord, Link: url})
+	for rows.Next() {
+		var til, ms, pos, url string
+		err = rows.Scan(&til, &ms, &pos, &url)
+		if err != nil {
+			wlist.Logger.Println("Error Scan on Get_workBall: ", err)
+			return err
 		}
+		cord := GetCoord(pos)
+		wlist.Wlist.PushBack(&WorkBall{Title: til, Message: ms, Coord: cord, Link: url})
 	}
 	return nil
 }

@@ -72,18 +72,6 @@ func (Wd Weather_data) GetDistance(lon_user float64, lat_user float64) float64 {
 }
 
 func (Data *All_data) GetNearest(Lon float64, Lat float64) Weather_data {
-	/**
-	 ** To BETA TEST
-	 **/
-	/**
-		for _, elem := range Tab_wd.Tab_wd {
-			if elem.Station_name == "Paris" {
-				station = elem
-				break
-			}
-		}
-		return station
-	**/
 	var es Weather_data
 	Data.Lock()
 	var best float64
@@ -100,19 +88,6 @@ func (Data *All_data) GetNearest(Lon float64, Lat float64) Weather_data {
 	}
 	return save
 }
-
-/*
-** For BetaVersionONLY
- */
-/*func (Tab_wd *All_data) Get_Paris() (station Weather_data) {
-	for _, elem := range Tab_wd.Tab_wd {
-		if elem.Station_name == "Paris" {
-			station = elem
-			break
-		}
-	}
-	return station
-}*/
 
 /* Update_weather_data with api openWeatherMap */
 func (Tab_wd *All_data) Update_weather_data() error {

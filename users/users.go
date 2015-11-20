@@ -1,18 +1,13 @@
 package users
 
 import (
-	_ "Wibo/db"
 	"Wibo/protocol"
 	"bytes"
 	"container/list"
 	"database/sql"
-	_ "errors"
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
-	//	"github.com/op/go-logging"
-	//"golang.org/x/crypto/bcrypt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -53,43 +48,13 @@ type User struct {
 	Stats       *StatsUser /* Interface Stats, Statistique de la vie du ballon */
 	Magnet      time.Time
 	Psd         []byte
-	/* Les valeurs suivantes sont deprecated */
-	//Device      *list.List /* Value: Device */
-	//Password    string // pas utile car la comparaison sera faite avec la bdd
-	//Login string Not use, not login
 }
 
 type All_users struct {
 	Ulist      *list.List
 	GlobalStat *StatsUser /* Stats globale a tous les utilisateur de WIbo */
 	NbrUsers   int64
-	LogUser    *userError
 	Logger     *log.Logger
-}
-
-type userError struct {
-	Prob string
-	Err  error
-	Logf *log.Logger
-}
-
-// var log = logging.MustGetLogger("wiboLog")
-
-//var format = logging.MustStringFormatter(
-//	"%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}",
-//)
-
-func (Lst_users *All_users) SaveUsersToFile() error {
-	file, er := os.OpenFile("save", os.O_RDWR, 0666)
-	if er != nil {
-		return er
-	}
-	for e := Lst_users.Ulist.Front(); e != nil; e = e.Next() {
-		user := e.Value.(*User)
-		file.WriteString(user.Mail)
-		file.Write(user.Psd)
-	}
-	return nil
 }
 
 func (User *User) MagnetisValid() bool {
@@ -141,10 +106,7 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 		user = FoundUserOnListLvl1(ulist.Ulist, req.Spec.(protocol.Log).Email)
 	}
 	if user != nil {
-		fmt.Println("Check_Password :D")
-		user = CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
-	} else {
-		fmt.Println("User == nil !")
+		user = ulist.CheckPasswordUser(user, req.Spec.(protocol.Log).Pswd, Db)
 	}
 	return user
 }
@@ -154,60 +116,21 @@ func (ulist *All_users) Check_user(request *list.Element, Db *sql.DB, History *l
 /******************************************************************************/
 
 func CheckValidMail(email string) bool {
-	tmp := valid.IsEmail(email)
-	if tmp == true {
-		fmt.Println("Email ok:")
-	} else {
-		fmt.Println("Email KO:")
-	}
-	fmt.Println(email)
-	return tmp
+	flag_bool := valid.IsEmail(email)
+	return flag_bool
 }
 
-func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
-	/*ref := user.Value.(*User).Psd
-	if len(ref) > 1 && bytes.Equal(ref, pass) == true {
-		return user
-	} else {
-		return nil
-	}*/
-	fmt.Println("CheckPassword")
-	fmt.Println("Check id ", user.Value.(*User).Id)
-	fmt.Println("CheckPass ", pass)
+func (ulist *All_users) CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Element {
 	var flag int
 
 	err := Db.QueryRow("SELECT login($1, $2);", user.Value.(*User).Id, pass).Scan(&flag)
 	if err != nil {
-		fmt.Printf("DbQuery return flag %v and type %T:", flag, flag)
-		fmt.Println("DbQuery return err:", err)
-		//return nil
+		ulist.Logger.Println("DbQuery return err:", err)
 	}
 	if flag == 1 {
 		return user
 	}
 	return nil
-}
-
-/**
-* Delete user from id and mail
-*	TODO: del device
-**/
-func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
-	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
-	if err != nil {
-		return false, &userError{Prob: "Delete Users", Err: err, Logf: Lst_users.Logger}
-	}
-	defer stm.Close()
-	_, Lst_users.LogUser.Err = stm.Exec(del_user.Id)
-	executed = true
-	return executed, Lst_users.LogUser.Err
-}
-
-func (e *userError) Error() string {
-	if e.Err != nil {
-		e.Logf.Println(e.Err)
-	}
-	return fmt.Sprintf("%s - %v", e.Prob, e.Err)
 }
 
 /**
@@ -224,20 +147,15 @@ func (e *userError) Error() string {
 **/
 
 func (Lst_users *All_users) Add_new_user(new_user *User, Db *sql.DB, Pass []byte) (bool, error) {
-	fmt.Println("Pass avant insert")
-	fmt.Println(Pass)
-	fmt.Println(len(Pass))
 	if len(new_user.Mail) > 0 {
 		if valid.IsEmail(new_user.Mail) != true {
 			return false, nil
 		}
 	}
-
-	Lst_users.LogUser.Err = Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);",
-		1, "user_particulier", new_user.Coord.Lat, new_user.Coord.Lon,
-		new_user.Stats.CreationDate, new_user.Log, new_user.Mail, Pass).Scan(&new_user.Id)
-	if Lst_users.LogUser.Err != nil {
-		return false, Lst_users.LogUser.Err
+	err := Db.QueryRow("SELECT  setsuserdata2($1, $2, $3, $4, $5, $6, $7, $8);", 1, "user_particulier", new_user.Coord.Lat, new_user.Coord.Lon, new_user.Stats.CreationDate, new_user.Log, new_user.Mail, Pass).Scan(&new_user.Id)
+	if err != nil {
+		Lst_users.Logger.Println("Add_new_user: ", err)
+		return false, err
 	}
 	return true, nil
 }
@@ -250,13 +168,6 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	var err error
 	t := bytes.NewBufferString("1")
 	bpass := t.Bytes()
-	//	bpass, err := bcrypt.GenerateFromPassword([]byte("Password_default2015"), 4)
-	if err != nil {
-		Lst_users.LogUser.Prob = "GetDevicesByIdUser query"
-		Lst_users.LogUser.Err = err
-		Lst_users.LogUser.Error()
-		return nil
-	}
 	tmpUser := new(User)
 	tmpUser.Log = time.Now()
 	tmpUser.Followed = list.New()
@@ -271,9 +182,9 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 	tmpUser.Stats.NbrSend = 0
 	tmpUser.Stats.NbrFollow = 0
 	tmpUser.Stats.NbrMessage = 0
-	Lst_users.LogUser.Err = Db.QueryRow("SELECT setsdefaultuserdata($1, $2, $3, $4, $5);", tmpUser.Coord.Lat, tmpUser.Coord.Lon, tmpUser.Log, tmpUser.Stats.CreationDate, bpass).Scan(&tmpUser.Id)
-	if Lst_users.LogUser.Err != nil {
-		Lst_users.LogUser.Error()
+	err = Db.QueryRow("SELECT setsdefaultuserdata($1, $2, $3, $4, $5);", tmpUser.Coord.Lat, tmpUser.Coord.Lon, tmpUser.Log, tmpUser.Stats.CreationDate, bpass).Scan(&tmpUser.Id)
+	if err != nil {
+		Lst_users.Logger.Println(err)
 		return nil
 	}
 	Lst_users.Ulist.PushBack(tmpUser)
@@ -289,25 +200,19 @@ func (Lst_users *All_users) AddNewDefaultUser(Db *sql.DB, req *protocol.Request)
 func (LstU *All_users) SelectUser(idUser int64, Db *sql.DB) *User {
 	rows, err := Db.Query("SELECT id_user, mail FROM \"user\" WHERE id_user=$1;", idUser)
 	if err != nil {
-		LstU.LogUser.Prob = "GetDevicesByIdUser query"
-		LstU.LogUser.Err = err
-		LstU.LogUser.Error()
+		LstU.Logger.Println("Error Query on SelectUser: ", err)
 		return nil
 	}
 	defer rows.Close()
-
-	if rows.Next() != false {
-		for rows.Next() {
-			var idUser int64
-			var mailq string
-			LstU.LogUser.Err = rows.Scan(&idUser, &mailq)
-			if LstU.LogUser.Err != nil {
-				LstU.LogUser.Prob = "Select User fail"
-				LstU.LogUser.Error()
-				return nil
-			}
-			return initUser(idUser, mailq)
+	for rows.Next() {
+		var idUser int64
+		var mailq string
+		err = rows.Scan(&idUser, &mailq)
+		if err != nil {
+			LstU.Logger.Println("Error Scan on SelectUser: ", err)
+			return nil
 		}
+		return initUser(idUser, mailq)
 	}
 	return nil
 }
@@ -328,7 +233,6 @@ func (LstU *All_users) Print_users() {
 * InitUser
 * initialisation of new user instance with custom data
  */
-//func initUser(uid int64, login string, mail string) *User {
 func initUser(uid int64, mail string) *User {
 	t := new(User)
 	t.Id = uid
@@ -365,14 +269,12 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 		return lDevice
 	}
 	defer rows.Close()
-	if rows.Next() != false {
-		for rows.Next() {
-			var idDevice string
-			Lusr.LogUser.Err = rows.Scan(&idDevice)
-			if Lusr.LogUser.Err != nil {
-				Lusr.LogUser.Prob = "GetDevicesByIdUser Query rows fail"
-				fmt.Printf(Lusr.LogUser.Error())
-			}
+	for rows.Next() {
+		var idDevice string
+		err = rows.Scan(&idDevice)
+		if err != nil {
+			Lusr.Logger.Println("GetDevicesByIdUser scan error: ", err)
+		} else {
 			lDevice.PushBack(idDevice)
 		}
 	}
@@ -409,10 +311,9 @@ func GetCoord(position string) Coordinate {
 **/
 func (Lusr *All_users) Get_users(Db *sql.DB) (err error) {
 	lUser := list.New()
-	Lusr.LogUser = &userError{"init error", nil, Lusr.Logger}
-	//	Lusr.setBackendLog()
 	rows, err := Db.Query("SELECT id_user, mail, ST_AsText(location_user) FROM \"user\";")
 	if err != nil {
+		Lusr.Logger.Println("GetUser query error: ", err)
 		return err
 	}
 	defer rows.Close()
@@ -421,11 +322,11 @@ func (Lusr *All_users) Get_users(Db *sql.DB) (err error) {
 		var mailq, pos string
 		err = rows.Scan(&idUser, &mailq, &pos)
 		if err != nil {
+			Lusr.Logger.Println("Get_users scan error: ", err)
 			return err
 		}
 		lUser.PushBack(&User{Id: idUser, Mail: mailq, Followed: list.New(), Stats: Lusr.GetStatsByUser(idUser, Db), HistoricReq: list.New(), Possessed: list.New(), Coord: GetCoord(pos)})
 	}
-	//	Lusr.Ulist.Init()
 	Lusr.Ulist = list.New()
 	Lusr.Ulist.PushFrontList(lUser)
 	Lusr.Logger.Println("Get number user: ", Lusr.Ulist.Len())
