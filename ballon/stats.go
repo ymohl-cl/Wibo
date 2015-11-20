@@ -12,11 +12,12 @@ func (Lusr *All_ball) SetStatsBallon(c_idBall int64, b_stats *StatsBall, Db *sql
 	if err != nil {
 		return false
 	}
-	_, err = stm.Query(b_stats.NbrKm, b_stats.NbrCatch, b_stats.NbrFollow, b_stats.NbrMagnet, c_idBall)
-
+	defer stm.Close()
+	row, err := stm.Query(b_stats.NbrKm, b_stats.NbrCatch, b_stats.NbrFollow, b_stats.NbrMagnet, c_idBall)
 	if err != nil {
 		return false
 	}
+	defer row.Close()
 	return true
 }
 

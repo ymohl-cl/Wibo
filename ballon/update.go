@@ -57,11 +57,18 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 	for e := messages.Front(); e != nil; e = e.Next() {
 		err = base.Transact(base.Db, func(tx *sql.Tx) error {
 			stm, err := tx.Prepare("INSERT INTO message(content, containerid, index_m, size) VALUES ($1, $2, $3, $4)")
-			Lst_ball.checkErr(err)
-			_, err = stm.Query(e.Value.(Message).Content, idBall, i, e.Value.(Message).Size)
+			if err != nil {
+				Lst_ball.Logger.Println("Erreur tx prepare: ", err)
+				return err
+			}
+			defer stm.Close()
+			row, err := stm.Query(e.Value.(Message).Content, idBall, i, e.Value.(Message).Size)
+			if err != nil {
+				Lst_ball.Logger.Println("Erreur Query: ", err)
+				return err
+			}
+			defer row.Close()
 			i++
-			fmt.Println("YOLO", err)
-			Lst_ball.checkErr(err)
 			return err
 		})
 	}
@@ -80,6 +87,7 @@ func (Lstb *All_ball) SetFollowerBalls(curr_b *Ball, base *db.Env) {
 				Lstb.Logger.Println(err)
 				return err
 			}
+			defer stm.Close()
 			_, err = stm.Exec(idB, f.Value.(*list.Element).Value.(*users.User).Id)
 			if err != nil {
 				Lstb.Logger.Println(err)
@@ -105,6 +113,7 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 		if err != nil {
 			return err
 		}
+		defer rs.Close()
 		if rs.Next() != false {
 			rs.Scan(&IdMax)
 		}
@@ -164,6 +173,7 @@ func (b *Ball) UpdateLocation(base *db.Env) error {
 		if err != nil {
 			return err
 		}
+		defer stm.Close()
 		_, err = stm.Exec(b.Wind.Degress, b.Wind.Speed, b.Coord.Value.(Checkpoint).Coord.Lat, b.Coord.Value.(Checkpoint).Coord.Lon, b.Id_ball, id, b.Coord.Value.(Checkpoint).Date, b.Coord.Value.(Checkpoint).MagnetFlag)
 		if err != nil {
 			return err

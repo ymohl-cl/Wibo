@@ -444,8 +444,9 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 			trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
 			if err != nil {
 				fmt.Println(err)
+			} else {
+				trow.Close()
 			}
-			trow.Close()
 		}
 		b.Value.(*Ball).Itinerary = list.New()
 	} else {
@@ -462,26 +463,27 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 	rows, err := Db.Query("SELECT getitenirarybycontainerid($1);", idB)
 	if err != nil {
 		log.Print(err)
-	}
-	defer rows.Close()
-	//	if rows.Next() != false {
-	for rows.Next() {
-		var table string
-		var ism int16
-		rows.Scan(&table)
-		result := strings.Split(table, ",")
-		ism = 0
-		tdate := Lb.GetDateFormat(result[0])
-		if strings.ContainsRune(result[1], 't') == true {
-			ism = 1
+	} else {
+		defer rows.Close()
+		//	if rows.Next() != false {
+		for rows.Next() {
+			var table string
+			var ism int16
+			rows.Scan(&table)
+			result := strings.Split(table, ",")
+			ism = 0
+			tdate := Lb.GetDateFormat(result[0])
+			if strings.ContainsRune(result[1], 't') == true {
+				ism = 1
+			}
+			tempCoord := getExtraInfo(result[2], tdate, ism)
+			checkp := new(Checkpoint)
+			checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lon
+			checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lat
+			checkp.Date = tempCoord.Front().Value.(Checkpoint).Date
+			checkp.MagnetFlag = ism
+			Itinerary.PushBack(checkp)
 		}
-		tempCoord := getExtraInfo(result[2], tdate, ism)
-		checkp := new(Checkpoint)
-		checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lon
-		checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lat
-		checkp.Date = tempCoord.Front().Value.(Checkpoint).Date
-		checkp.MagnetFlag = ism
-		Itinerary.PushBack(checkp)
 	}
 	elem := Itinerary.Front()
 	if elem != nil {
@@ -539,6 +541,7 @@ func GetCurrentUserBall(LUser *list.List, idBall int64, Db *sql.DB) (*list.Eleme
 	if err != nil {
 		return nil, err
 	}
+	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	if err != nil {
 		return nil, err
@@ -774,11 +777,15 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 	Mlist := list.New()
 
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m, size, index_m FROM message WHERE containerid=($1) ORDER BY creationdate ASC")
+	if err != nil {
+		return Mlist, err
+	}
 	defer stm.Close()
 	rows, err := stm.Query(idBall)
 	if err != nil {
 		return Mlist, err
 	}
+	defer rows.Close()
 	i = 0
 	for rows.Next() {
 		var message string

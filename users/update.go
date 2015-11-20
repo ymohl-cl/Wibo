@@ -38,7 +38,6 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 		if err != nil {
 			return &userError{Prob: "Update users", Err: err, Logf: lu.Logger}
 		}
-
 		defer trow.Close()
 		ex := lu.SetStatsByUser(cu.Id, cu.Stats, base.Db)
 		if ex != true {

@@ -194,10 +194,10 @@ func CheckPasswordUser(user *list.Element, pass []byte, Db *sql.DB) *list.Elemen
 **/
 func (Lst_users *All_users) Del_user(del_user *User, Db *sql.DB) (executed bool, err error) {
 	stm, err := Db.Prepare("DELETE FROM  \"user\" WHERE id_user=$1")
-	defer stm.Close()
 	if err != nil {
 		return false, &userError{Prob: "Delete Users", Err: err, Logf: Lst_users.Logger}
 	}
+	defer stm.Close()
 	_, Lst_users.LogUser.Err = stm.Exec(del_user.Id)
 	executed = true
 	return executed, Lst_users.LogUser.Err
@@ -354,14 +354,17 @@ func (Lusr *All_users) GetDevicesByIdUser(idUser int64, Db *sql.DB) *list.List {
 
 	lDevice := list.New()
 	stm, err := Db.Prepare("SELECT getDevicesByUserId($1)")
-	defer stm.Close()
 	if err != nil {
-		Lusr.LogUser.Prob = "GetDevicesByIdUser query"
-		Lusr.LogUser.Err = err
-		Lusr.LogUser.Error()
+		Lusr.Logger.Println("GetDevicesByIdUser query error: ", err)
+		return lDevice
 	}
-	rows, err := stm.Query(idUser)
 	defer stm.Close()
+	rows, err := stm.Query(idUser)
+	if err != nil {
+		Lusr.Logger.Println("GetDevicesByIdUser query error: ", err)
+		return lDevice
+	}
+	defer rows.Close()
 	if rows.Next() != false {
 		for rows.Next() {
 			var idDevice string
