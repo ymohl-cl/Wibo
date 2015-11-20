@@ -275,9 +275,6 @@ func (Data *Data) Manage_ack(Type int16, IdBallon int64, value int32) (answer []
 	binary.Write(Buffer, binary.BigEndian, IdBallon)
 	binary.Write(Buffer, binary.BigEndian, make([]byte, 1024-tpack.head.octets))
 	answer = Buffer.Bytes()
-	if value == 0 {
-		Data.Logger.Printf("Answer negative to: %s | %X \n", Data.Conn.RemoteAddr(), answer)
-	}
 	return answer
 }
 
