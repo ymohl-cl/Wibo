@@ -142,7 +142,7 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 	}
 	Lst_ball.checkErr(err)
 	Lst_ball.SetStatsBallon(IdC, NewBall.Stats, base.Db)
-	NewBall.SetCreationCoordOnItinerary(base.Db)
+	NewBall.SetCreationCoordOnItinerary(base.Db, Lst_ball.Logger)
 	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
 	if err != nil {
 		Lst_ball.Logger.Println("Insert Ball fail")

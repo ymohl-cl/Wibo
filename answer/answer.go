@@ -24,7 +24,6 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -46,10 +45,10 @@ const (
 	SEND_BALL     = 8
 	MAGNET        = 9
 	WORKBALL      = 10
-	TYPELOG       = 11 // Identification du device et de l'user si pre-enregistre.
-	CREATEACCOUNT = 12 // Creation d'un compte. // Confirmation par email en suspend
+	TYPELOG       = 11 // Account connexion
+	CREATEACCOUNT = 12 // Account creation without mail confirm
 	SYNCROACCOUNT = 13
-	DELOG         = 14 // Deconnexion d'un compte et retablissement de luser par defautl.
+	DELOG         = 14 // Account diconnect
 	STATSUSER     = 15
 	STATSBALL     = 16
 	// DEFINE SERVER
@@ -75,8 +74,8 @@ type Posball struct {
 	FlagPoss int16
 	lon      float64
 	lat      float64
-	wins     float64
-	wind     float64
+	wins     float64 //winSpeed
+	wind     float64 //winDegress
 }
 
 type Nearby struct {
@@ -89,7 +88,7 @@ type Message struct {
 	size      int32
 	idcountry int32
 	idcity    int32
-	mess      string // []byte
+	mess      string
 	mtype     int32
 }
 
@@ -123,15 +122,15 @@ type Packet struct {
 }
 
 type Data struct {
-	Lst_req     *list.List /* Value: (*protocol.Request) which defines list request */
-	Lst_asw     *list.List /* Value: ([]byte) which defines list answer */
-	Lst_ball    *ballon.All_ball
-	Lst_users   *users.All_users
-	Lst_devices *devices.All_Devices
-	Lst_work    *ballonwork.All_work
-	Logged      int16
-	Device      *list.Element /* *list.Element.Value.(*device.device) */
-	User        *list.Element /* Value: (*users.User) */
+	Lst_req     *list.List           /* Value: (*protocol.Request) which defines list request */
+	Lst_asw     *list.List           /* Value: ([]byte) which defines list answer */
+	Lst_ball    *ballon.All_ball     /* Value: *ballon.Ball */
+	Lst_users   *users.All_users     /* Value: *users.User */
+	Lst_devices *devices.All_Devices /* Value: *devices.Device */
+	Lst_work    *ballonwork.All_work /* Value: *ballonwork.WorkBall */
+	Logged      int16                /* Define status connexion */
+	Device      *list.Element        /* Value: (*list.Element).Value.(*device.Device) */
+	User        *list.Element        /* Value: (*list.Element).Value.(*users.User) */
 	Logger      *log.Logger
 	Conn        net.Conn
 }
@@ -151,11 +150,7 @@ func RemoveBallFollowed(eball *list.Element, usr *list.Element) bool {
 	user := usr.Value.(*users.User)
 	for e := user.Followed.Front(); e != nil; e = e.Next() {
 		if e.Value.(*list.Element) == eball {
-			fmt.Println("RemoveBallFollowed")
-			test := user.Followed.Remove(e)
-			if test != nil {
-				fmt.Println("Cool: ", test)
-			}
+			user.Followed.Remove(e)
 			return true
 		}
 	}
@@ -167,11 +162,7 @@ func RemoveBallPossessed(eball *list.Element, usr *list.Element) bool {
 	user := usr.Value.(*users.User)
 	for e := user.Possessed.Front(); e != nil; e = e.Next() {
 		if e.Value.(*list.Element) == eball {
-			fmt.Println("RemoveBallPossessed")
-			test := user.Possessed.Remove(e)
-			if test != nil {
-				fmt.Println("Cool: ", test)
-			}
+			user.Possessed.Remove(e)
 			return true
 		}
 	}
@@ -183,63 +174,12 @@ func RemoveUserFollower(usr *list.Element, eball *list.Element) bool {
 	ball := eball.Value.(*ballon.Ball)
 	for e := ball.Followers.Front(); e != nil; e = e.Next() {
 		if e.Value.(*list.Element) == usr {
-			fmt.Println("RemoveUserFollower")
-			test := ball.Followers.Remove(e)
-			if test != nil {
-				fmt.Println("Cool: ", test)
-			}
+			ball.Followers.Remove(e)
 			return true
 		}
 	}
 	return false
 }
-
-/* Cut one packet most big than 1024 in multi packs to 1024 octets max */
-/*func Cut_messagemultipack(pack Packet, msg ballon.Message) (listpack *list.List) {
-	listpack = list.New()
-	size := msg.Size
-	var copymsg ballon.Message
-
-	copymsg = msg
-	for size != 0 {
-		if 16+pack.head.octets >= 1024 {
-			listpack.PushBack(pack)
-			pack = Packet{}
-			typesp := Contentball{}
-			pack.head.octets = 24
-			typesp.messages = list.New()
-			pack.ptype = typesp
-		} else {
-			newMess := Message{}
-			if int16(copymsg.Size)+16+pack.head.octets < 1024 {
-				pack.head.octets += 16 + (int16)(copymsg.Size)
-				newMess.size = copymsg.Size
-				newMess.id = copymsg.Id
-				newMess.idcountry = copymsg.Idcountry
-				newMess.idcity = copymsg.Idcity
-				newMess.mess = copymsg.Content
-				newMess.mtype = copymsg.Type
-				pack.ptype.(Contentball).messages.PushBack(newMess)
-				size -= copymsg.Size
-			} else {
-				newMess.size = 1024 - int32(pack.head.octets) - 16
-				size = size - newMess.size
-				pack.head.octets += 16 + int16(newMess.size)
-				newMess.id = copymsg.Id
-				newMess.idcountry = copymsg.Idcountry
-				newMess.idcity = copymsg.Idcity
-				newMess.mess, copymsg.Content = Str_cut_n(copymsg.Content, int(newMess.size))
-				newMess.mtype = copymsg.Type
-				pack.ptype.(Contentball).messages.PushBack(newMess)
-			}
-		}
-	}
-	epack := listpack.Back()
-	if epack != nil && epack.Value.(Packet) != pack {
-		listpack.PushBack(pack)
-	}
-	return listpack
-}*/
 
 /* Checked if request list is completed */
 func (Data *Data) Check_lstrequest() bool {
@@ -392,7 +332,6 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 	pck.head.pnum = 0
 	pck.ptype = new(Contentball)
 	pck.ptype.(*Contentball).messages = list.New()
-	fmt.Println("NbrFollow: ", ball.Stats.NbrFollow)
 	for em := ball.Messages.Front(); em != nil; em = em.Next() {
 		msg := em.Value.(ballon.Message)
 		if int16(msg.Size)+16+pck.head.octets > SIZE_PACKET {
@@ -415,15 +354,12 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		mes.mess = msg.Content
 		mes.mtype = msg.Type
 		pck.head.octets += int16(16 + msg.Size)
-		fmt.Println("Message: ", mes)
 		pck.ptype.(*Contentball).messages.PushBack(mes)
 	}
-	fmt.Println("NbrFollow: ", ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
 	lstP.PushBack(pck)
 	Pnbr := lstP.Len()
-	fmt.Println("Nbr de packet dans contentBall: ", Pnbr)
 	for e := lstP.Front(); e != nil; e = e.Next() {
 		e.Value.(*Packet).head.pnbr = int32(Pnbr)
 	}
@@ -641,15 +577,8 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 			}
 			ball.Stats.NbrCatch++
 			ball.Stats.NbrFollow++
-			fmt.Println("OK pour ca haha")
 			ball.Stats.NbrKm += ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
-			// To check
-			fmt.Println("OK pour ca haha2")
-			ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
-			// Check - end
-			fmt.Println("OK pour ca haha3")
 			ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, rqt.Spec.(protocol.Taken).FlagMagnet, Wd, false)
-			fmt.Println("OK pour ca haha4")
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
 				ball.Stats.NbrMagnet++
 			}
@@ -703,11 +632,9 @@ func (Data *Data) Manage_followoff(request *list.Element) {
 	if eball != nil &&
 		eball.Value.(*ballon.Ball).Check_userfollower(Data.User) == true {
 		RemoveUserFollower(Data.User, eball)
-		//		eball.Value.(*ballon.Ball).Followers.Remove(Data.User)
 		eball.Value.(*ballon.Ball).Edited = true
 		user := Data.User.Value.(*users.User)
 		RemoveBallFollowed(eball, Data.User)
-		//		user.Followed.Remove(eball)
 		user.Stats.NbrFollow--
 		if eball.Value.(*ballon.Ball).Followers.Len() == 0 {
 			Data.Lst_users.GlobalStat.NbrFollow--
@@ -725,12 +652,10 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 	ball := new(ballon.Ball)
 	ball.Stats = new(ballon.StatsBall)
 	rqt := requete.Value.(*protocol.Request)
-	//	var checkpoint ballon.Checkpoint
 	var newball protocol.New_ball
 	var mess ballon.Message
 	user := Data.User.Value.(*users.User)
 
-	fmt.Println("User Nbr: ", user.NbrBallSend)
 	if user.NbrBallSend < 10 {
 		newball = requete.Value.(*protocol.Request).Spec.(protocol.New_ball)
 		ball.Id_ball = Data.Lst_ball.Id_max
@@ -751,13 +676,8 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 		ball.Possessed = nil
 		ball.Followers.PushFront(Data.User)
 		ball.Creator = Data.User
-		//ball.Scoord = new(list.Element)
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		eball := Data.Lst_ball.Blist.PushBack(ball)
-		//		checkpoint.Coord.Lon = rqt.Coord.Lon
-		//		checkpoint.Coord.Lat = rqt.Coord.Lat
-		//		eball.Value.(*ballon.Ball).Coord = eball.Value.(*ballon.Ball).Checkpoints.PushBack(checkpoint)
-		//		eball.Value.(*ballon.Ball).Get_checkpointList(Tab_wd.Get_Paris())
 		user := Data.User.Value.(*users.User)
 		user.Followed.PushBack(eball)
 		user.NbrBallSend++
@@ -787,25 +707,21 @@ func (Data *Data) Manage_newball(requete *list.Element, Tab_wd *owm.All_data) {
 func (Data *Data) Manage_sendball(requete *list.Element, Tab_wd *owm.All_data) {
 	rqt := requete.Value.(*protocol.Request)
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Send_ball).Id)
-	//	var checkpoint ballon.Checkpoint
 	var answer []byte
 
 	if eball != nil && eball.Value.(*ballon.Ball).Check_userPossessed(Data.User) == true {
 		user := Data.User.Value.(*users.User)
 		ball := eball.Value.(*ballon.Ball)
-
 		RemoveBallPossessed(eball, Data.User)
-		// Ajouter Le nouveau message.
 		ball.Possessed = nil
 		ball.Edited = true
 		ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, int16(0), Tab_wd, true)
 		var message ballon.Message
-		message.Id = int32(ball.Messages.Len() + 1)
+		message.Id = int32(ball.Messages.Len())
 		message.Size = rqt.Spec.(protocol.Send_ball).Octets
 		message.Content = rqt.Spec.(protocol.Send_ball).Message
 		message.Type = 1
 		ball.Messages.PushBack(message)
-
 		/* Begin stats ---- */
 		user.Stats.NbrMessage++
 		user.Stats.NbrSend++
@@ -829,9 +745,6 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 	var answer []byte
 	var eball *list.Element
 
-	fmt.Println("Status Ballon")
-	fmt.Println(Data.Lst_ball.Id_max)
-	fmt.Println(Data.Lst_ball.Blist.Len())
 	if user.MagnetisValid() == true {
 		if Data.Lst_ball.Id_max > 0 {
 			for i := 0; i < 3; i++ {
@@ -868,7 +781,6 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 	flag := true
 	var answer []byte
 
-	fmt.Println("Login with: ", req.IdMobile)
 	if req.Rtype != TYPELOG {
 		er = errors.New("Bad type to Manage_Login")
 		answer = Data.Manage_ack(TYPELOG, 0, int32(0))
@@ -903,7 +815,6 @@ func (Data *Data) Manage_Login(request *list.Element, Db *sql.DB, Dlist *devices
 			answer = Data.Manage_ack(TYPELOG, 0, int32(1))
 		}
 	}
-	fmt.Println("Fin de manage Login")
 	Data.Lst_asw.PushBack(answer)
 	return er
 }
@@ -929,11 +840,9 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 		flag, err := Data.Lst_users.Add_new_user(User, Db, req.Spec.(protocol.Log).Pswd)
 		er = err
 		if err != nil {
-			fmt.Println("Add_new_user pas content")
-			fmt.Println(err)
+			Data.Logger.Println("Error Add_new_user: ", err)
 		}
 		if flag == true {
-			fmt.Println("FLAG TRUE !")
 			eUser := Data.Lst_users.Ulist.PushFront(User)
 			Data.Device.Value.(*devices.Device).Historic.PushFront(eUser)
 			/* Begin Stats */
@@ -943,16 +852,12 @@ func (Data *Data) Manage_CreateAccount(request *list.Element, Db *sql.DB) (er er
 			/* End Stats */
 			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(1))
 		} else {
-			fmt.Println("FLAG FLASE !")
 			er = nil
 			answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(0))
 		}
 	} else {
-		fmt.Println("WHY ?")
 		answer = Data.Manage_ack(CREATEACCOUNT, 0, int32(0))
 	}
-	fmt.Println("err:")
-	fmt.Println(er)
 	Data.Lst_asw.PushBack(answer)
 	return er
 }
@@ -981,7 +886,7 @@ func GetPossessed(euser *list.Element, euserDefault *list.Element) {
 	user := euser.Value.(*users.User)
 	userDefault := euserDefault.Value.(*users.User)
 
-	for eball := userDefault.Possessed.Front(); eball != nil; eball = eball.Next() {
+	for eball := userDefault.Possessed.Front(); eball != nil; eball = userDefault.Possessed.Front() {
 		ball := eball.Value.(*list.Element).Value.(*ballon.Ball)
 		user.Possessed.PushBack(userDefault.Possessed.Remove(eball))
 		ball.Possessed = euser
@@ -1052,14 +957,12 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 
 	for i := nbrPack; i > 0; i-- {
 		NbrItin = int32((SIZE_PACKET - (SIZE_HEADER + SIZE_STATBALL)) / SIZE_COORDSTATBALL)
-		fmt.Println("number it on packet: ", NbrItin)
 		if nbrCheck > NbrItin {
 			nbrCheck -= NbrItin
 		} else {
 			NbrItin = nbrCheck
 		}
 		answer.head.octets = int16(SIZE_HEADER + SIZE_STATBALL + (NbrItin * SIZE_COORDSTATBALL))
-		fmt.Println("Size write: ", answer.head.octets)
 		if i == nbrPack {
 			answer.head.rtype = STATSBALL
 			answer.head.pnbr = int32(nbrPack)
@@ -1080,7 +983,6 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 			check := eCheck.Value.(*ballon.Checkpoint)
 			binary.Write(Buffer, binary.BigEndian, int32(j))
 			binary.Write(Buffer, binary.BigEndian, int32(check.MagnetFlag))
-			fmt.Printf("Coordinate number %d, Lon: %f, Lat: %f", j, check.Coord.Lon, check.Coord.Lat)
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lon)
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lat)
 			eCheck = eCheck.Next()
@@ -1097,10 +999,6 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	eball := Data.Lst_ball.Get_ballbyid(rqt.Spec.(protocol.Ballid).Id)
 	ball := eball.Value.(*ballon.Ball)
 	nbrCheckpoint, LstCheckpoint := ball.GetItinerary(Db, Data.Lst_ball)
-	fmt.Println("Number checkpoint found: ", nbrCheckpoint)
-	for i := LstCheckpoint.Front(); i != nil; i = i.Next() {
-		fmt.Println(i)
-	}
 
 	sizeStat := (SIZE_PACKET - SIZE_STATBALL - SIZE_HEADER)
 	var tmpPacket float64
@@ -1109,7 +1007,6 @@ func (Data *Data) Manage_StatBall(request *list.Element, Db *sql.DB) {
 	if float64(nbrPacket) < tmpPacket || nbrPacket == 0 {
 		nbrPacket++
 	}
-	fmt.Println("NbrPacket: ", nbrPacket)
 	lst_asw := Write_StatBall(LstCheckpoint, nbrCheckpoint, nbrPacket, ball)
 	if lst_asw == nil {
 		answer := Data.Manage_ack(STATSBALL, 0, int32(0))
@@ -1160,9 +1057,6 @@ func (Data *Data) Manage_WorkBall(request *list.Element) {
 	}
 }
 
-/*
-**
- */
 func (Data *Data) Get_answer(Tab_wd *owm.All_data, Db *sql.DB) (er error) {
 	request := Data.Lst_req.Front()
 	er = nil

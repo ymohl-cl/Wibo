@@ -213,7 +213,6 @@ func (balls *All_ball) Get_ballbyid_tomagnet(tab [3]int64, User *list.Element) *
 /**
 ** Implementation a grande echelle
 **/
-
 func (Ball *Ball) GetCheckpoint(station owm.Weather_data) Checkpoint {
 	r_world := 6378137.0
 	var tmp_coord Coordinate
@@ -304,22 +303,15 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 	var coord Coordinate
 
-	fmt.Println("!!!! MOVE BAL !!!!")
 	for eb := Lst_ball.Blist.Front(); eb != nil; eb = eb.Next() {
 		ball := eb.Value.(*Ball)
 		if ball.Possessed == nil {
 			ball.Lock()
-			fmt.Println("Ball Title: ", ball.Title)
-			fmt.Println("Coord de ball avant move: ", ball.Coord.Value.(Checkpoint))
 			if ball.Checkpoints.Len() == 0 {
-				fmt.Println("Checkpoint empty")
 				coord = ball.Coord.Value.(Checkpoint).Coord
 				ball.CreateCheckpoint(Lst_wd)
-				fmt.Println("CreateCheckpoint")
 				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
-				fmt.Println("Get distance ok")
 			} else {
-				fmt.Println("Checkpoint no empty")
 				e := ball.Checkpoints.Front()
 				coord = e.Value.(Checkpoint).Coord
 				ball.Stats.NbrKm += ball.GetDistance(coord.Lon, coord.Lat)
@@ -330,41 +322,15 @@ func (Lst_ball *All_ball) Move_ball(Lst_wd *owm.All_data) (er error) {
 			Lon := ball.Scoord.Value.(Checkpoint).Coord.Lon
 			Lat := ball.Scoord.Value.(Checkpoint).Coord.Lat
 			if ball.Itinerary.Len() == 0 || ball.GetDistance(Lon, Lat) > 1.0 {
-				fmt.Println("Add on Itinerary")
 				ball.Edited = true
 				ball.Itinerary.PushBack(ball.Coord.Value.(Checkpoint))
 				ball.Scoord = ball.Coord
 			}
-			fmt.Println("Coord de ball apres move: ", ball.Coord.Value.(Checkpoint))
 			ball.Unlock()
 		}
 	}
 	return nil
 }
-
-/**
-** Fin de l'implementation a grande echelle
-**/
-/**
-** Cette section est implemente pour la beta uniquement.
-**/
-/* Apply the function Get_checkpointlist all ballons */
-/*func (Lst_ball *All_ball) Create_checkpointBeta(Lst_wd *owm.All_data) error {
-	var station owm.Weather_data
-
-	station = Lst_wd.Get_Paris()
-	Lst_ball.Lock()
-	defer Lst_ball.Unlock()
-	eball := Lst_ball.Blist.Front()
-	for eball != nil {
-		eball.Value.(*Ball).Get_checkpointList(station)
-		eball = eball.Next()
-	}
-	return nil
-}*/
-/**
-** Fin de la section Beta
-**/
 
 /* Add_new_ballon to list */
 func (Lst_ball *All_ball) Add_new_ballon(new_ball Ball) {
@@ -377,10 +343,7 @@ func Print_all_message(lst *list.List) {
 
 	for emess != nil {
 		mess := emess.Value.(Message)
-		fmt.Println("Message ...")
-		fmt.Println(mess.Id)
-		fmt.Println(mess.Size)
-		fmt.Println(mess.Content)
+		fmt.Println("Message: ", mess)
 		emess = emess.Next()
 	}
 }
@@ -390,10 +353,7 @@ func Print_all_checkpoints(check *list.List) {
 
 	for echeck != nil {
 		tcheck := echeck.Value.(Checkpoint)
-		fmt.Println("Checkpoint ...")
-		fmt.Println(tcheck.Coord.Lon)
-		fmt.Println(tcheck.Coord.Lat)
-		fmt.Println(tcheck.Date)
+		fmt.Println("Checkpoint: ", tcheck)
 		echeck = echeck.Next()
 	}
 }
@@ -403,8 +363,7 @@ func Print_users_follower(ulist *list.List) {
 
 	for euser != nil {
 		user := euser.Value.(*list.Element).Value.(*users.User)
-		fmt.Println("User ...")
-		fmt.Println(user.Mail)
+		fmt.Println("UserFollower: ", user)
 		euser = euser.Next()
 	}
 }
@@ -448,23 +407,22 @@ insert checkpoints(
        magnet boolean)
 */
 /* Set on itinary list, creation point of ball */
-func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB) {
+func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB, logg *log.Logger) {
 	var Idb int64
 	coord := ball.Stats.CoordCreated
 	row, err := Db.Query("SELECT id from container WHERE ianix = $1", ball.Id_ball)
 	if err != nil {
-		log.Print(err)
+		logg.Print(err)
+		return
 	}
 	defer row.Close()
 	if row.Next() != false {
 		row.Scan(&Idb)
 		trow, err := Db.Query("SELECT insertcheckpoints($1, $2, $3, $4, $5)", ball.Stats.CreationDate, coord.Lon, coord.Lat, Idb, 0)
 		if err != nil {
-			fmt.Println(err)
+			logg.Println(err)
 		}
 		trow.Close()
-	} else {
-		fmt.Println(err)
 	}
 }
 
@@ -727,7 +685,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 
 func (Lb *All_ball) GetDateFormat(qdate string) (fdate time.Time) {
 	f := func(c rune) bool {
-		return c == '"'
+		return c == ')' || c == '"'
 	}
 	fields := strings.FieldsFunc(qdate, f)
 	for _, value := range fields {

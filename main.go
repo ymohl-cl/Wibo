@@ -81,7 +81,7 @@ func Manage_goroutines(Serv *server.Server, base *db.Env) {
 	}()
 	go func() {
 		for {
-			time.Sleep(1 * time.Hour)
+			time.Sleep(10 * time.Minute)
 			channelfuncweatherdata <- true
 		}
 	}()
