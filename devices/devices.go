@@ -7,7 +7,6 @@ import (
 	"container/list"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 )
@@ -29,28 +28,24 @@ type All_Devices struct {
 }
 
 func (Devices *All_Devices) GetDevice(request *list.Element, Db *sql.DB, Ulist *users.All_users) (dvc *list.Element, er error) {
-	fmt.Println("Number Device: ", Devices.Dlist.Len())
 	req := request.Value.(*protocol.Request)
 	ed := Devices.Dlist.Front()
 	er = nil
 
 	if len(req.IdMobile) == 1 {
 		er = errors.New("Id mobile bad format")
-		fmt.Println(er)
+		Devices.Logger.Println("Error on GetDevice: ", er)
 		return nil, er
 	}
 	for ed != nil && strings.Compare(ed.Value.(*Device).Id, req.IdMobile) != 0 {
-		fmt.Println("ID Device: ", ed.Value.(*Device).Id)
-		fmt.Println("Compare with: ", req.IdMobile)
 		ed = ed.Next()
 	}
 	if ed == nil {
 		ed, er = Devices.AddDeviceOnBdd(req, Ulist, Db)
 		if er != nil {
-			fmt.Println("Echec add device on bdd")
+			Devices.Logger.Println("Error on GetDevice: ", er)
 		}
 	}
-	fmt.Println("Found: ", ed)
 	return ed, er
 }
 
@@ -82,6 +77,7 @@ func (dlist *All_Devices) Get_devices(LstU *users.All_users, base *db.Env) error
 	}
 	rows, err := base.Db.Query("SELECT id, idclient, user_id_user FROM device;")
 	if err != nil {
+		dlist.Logger.Println("Error on Get_devices: ", err)
 		return err
 	}
 	defer rows.Close()
@@ -102,25 +98,22 @@ func (Devices *All_Devices) AddDeviceOnBdd(req *protocol.Request, Ulist *users.A
 	newDevice.Id = req.IdMobile
 	newDevice.UserDefault = Ulist.AddNewDefaultUser(Db, req)
 	if newDevice.UserDefault == nil {
-		return nil, errors.New("Add new default user not permission")
-	}
-	newDevice.IdUserDefault = newDevice.UserDefault.Value.(*users.User).Id
-	if err != nil {
+		err = errors.New("Add new default user not permission")
+		Devices.Logger.Println("Error AddDeviceOnBdd: ", err)
 		return nil, err
 	}
+	newDevice.IdUserDefault = newDevice.UserDefault.Value.(*users.User).Id
 	newDevice.UserSpec = nil
 	rows, err := Db.Query("INSERT INTO device (id_type_d, typename, idclient, user_id_user) VALUES ($1, $2, $3, $4) RETURNING id;", 1, "device_default", newDevice.Id, newDevice.IdUserDefault)
 	if err != nil {
-		fmt.Println("Db query pas content")
-		fmt.Println(err)
+		Devices.Logger.Println("Error Query on AddDeviceOnBdd: ", err)
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(&newDevice.Idbdd)
 		if err != nil {
-			fmt.Println("Rows scan pas content")
-			fmt.Println(err)
+			Devices.Logger.Println("Error Scan on AddDeviceOnBdd: ", err)
 			return nil, err
 		}
 	}
