@@ -246,8 +246,6 @@ func (Ball *Ball) CreateCheckpoint(Lst_wd *owm.All_data) error {
 	}
 	Ball.Wind.Speed = station.Wind.Speed
 	Ball.Wind.Degress = station.Wind.Degress
-	Ball.Coord = Ball.Checkpoints.Front()
-	Ball.Checkpoints.Remove(Ball.Coord)
 	return nil
 }
 
@@ -282,9 +280,6 @@ func (Ball *Ball) InitCoord(Lon float64, Lat float64, Magnet int16, Wd *owm.All_
 	check.Coord.Lat = Lat
 	check.Date = time.Now()
 	check.MagnetFlag = Magnet
-	Ball.Coord = lst.PushBack(check)
-	Ball.Scoord = Ball.Coord
-	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
 	Ball.Coord = lst.PushBack(check)
 	Ball.Scoord = Ball.Coord
 	Ball.Itinerary.PushBack(Ball.Coord.Value.(Checkpoint))
@@ -400,35 +395,19 @@ insert checkpoints(
        idcont integer,
        magnet boolean)
 */
-/* Set on itinary list, creation point of ball */
-func (ball *Ball) SetCreationCoordOnItinerary(Db *sql.DB, logg *log.Logger) {
-	var Idb int64
-	coord := ball.Stats.CoordCreated
-	row, err := Db.Query("SELECT id from container WHERE ianix = $1", ball.Id_ball)
-	if err != nil {
-		logg.Print(err)
-		return
-	}
-	defer row.Close()
-	if row.Next() != false {
-		row.Scan(&Idb)
-		trow, err := Db.Query("SELECT public.insertcheckpoints($1, $2, $3, $4, $5);", ball.Stats.CreationDate, coord.Lon, coord.Lat, Idb, false)
-		if err != nil {
-			logg.Println(err)
-		}
-		trow.Close()
-	}
-}
 
 func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 	var Idb int64
+	fmt.Println("Set to: ", b.Value.(*Ball).Id_ball)
 	err := Db.QueryRow("SELECT container.id FROM container WHERE container.ianix=$1;", b.Value.(*Ball).Id_ball).Scan(&Idb)
 	if err != nil {
 		Lb.Logger.Println(err)
 		return
 	}
 	if Idb != 0 {
+		fmt.Println("Nmbre d'itineraire dans la liste: ", b.Value.(*Ball).Itinerary.Len())
 		for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
+			fmt.Println("Record itinerary: ", i.Value.(Checkpoint).Coord)
 			trow, err := Db.Query("SELECT public.insertcheckpoints($1, $2, $3, $4, $5);", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
 			if err != nil {
 				fmt.Println(err)
@@ -443,6 +422,7 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 }
 
 func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
+	fmt.Println("Get to: ", Ball.Id_ball)
 	var err error
 	Itinerary := list.New()
 	var idB int64
@@ -464,8 +444,9 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 			}
 			tempCoord := getExtraInfo(result[2], tdate, ism)
 			checkp := new(Checkpoint)
-			checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lon
-			checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lat
+			checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lat // Error lat is lon
+			checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lon // Error lon is lat
+			fmt.Println("Step itinerary: ", checkp.Coord)
 			checkp.Date = tempCoord.Front().Value.(Checkpoint).Date
 			checkp.MagnetFlag = ism
 			Itinerary.PushBack(checkp)
@@ -475,6 +456,7 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 	if elem != nil {
 		Itinerary.Remove(elem)
 	}
+	fmt.Println("Nombre d'itineraire retourne: ", Itinerary.Len())
 	return int32(Itinerary.Len()), Itinerary
 }
 
@@ -491,16 +473,6 @@ func getIdBallMax(base *db.Env) int64 {
 	}
 	return IdMax
 }
-
-/**
-* CheckErr
-* Verify err value to stop execution by panic
-**/
-//func (Lst_ball *All_ball) checkErr(err error) {
-//	if err != nil {
-//		Lst_ball.Logger.Printf("Error: %s", err)
-//	}
-//}
 
 func (Lb *All_ball) GetFollowers(idBall int64, Db *sql.DB, Ulist *list.List) (*list.List, error) {
 	lstFollow := list.New()

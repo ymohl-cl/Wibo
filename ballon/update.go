@@ -5,6 +5,7 @@ import (
 	"Wibo/users"
 	"container/list"
 	"database/sql"
+	_ "fmt"
 	"strings"
 )
 
@@ -63,9 +64,20 @@ func (Lstb *All_ball) SetFollowerBalls(curr_b *Ball, base *db.Env) {
 
 func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	var IdMax int32
-	err := base.Transact(base.Db, func(tx *sql.Tx) error {
+	rows, err := base.Db.Query("SELECT index_m FROM message WHERE index_m=(SELECT max(index_m) FROM message WHERE containerid=$1);", idBall)
+	if err != nil {
+		return IdMax, err
+	}
+	defer rows.Close()
+	if rows.Next() != false {
+		rows.Scan(&IdMax)
+	}
+	return IdMax, err
+}
+
+/*	err := base.Transact(base.Db, func(tx *sql.Tx) error {
 		var err error
-		stm, err := tx.Prepare("SELECT index_m FROM message WHERE index_m=(select max(index_m) FROM  message) AND containerid=$1;")
+		stm, err := tx.Prepare("SELECT index_m FROM message WHERE index_m=(select MAX(index_m)) AND containerid=$1;")
 		if err != nil {
 			return err
 		}
@@ -80,8 +92,13 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 		}
 		return err
 	})
+	if err != nil {
+		fmt.Println("Erreur: ", err)
+	} else {
+		fmt.Println("No erreur")
+	}
 	return IdMax, err
-}
+}*/
 
 /*
 	createcontainer(double precision,double precision,double precision,double precision,integer,character varying,integer,date)
@@ -95,7 +112,8 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	creation date)
 */
 
-func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bool, err error) {
+func (Lst_ball *All_ball) InsertBallon(eball *list.Element, base *db.Env) (executed bool, err error) {
+	NewBall := eball.Value.(*Ball)
 	var IdC int64
 	err = base.Db.QueryRow("SELECT insertcontainer($1, $2, $3, $4, $5, $6, $7, $8)",
 		NewBall.Creator.Value.(*users.User).Id,
@@ -110,13 +128,13 @@ func (Lst_ball *All_ball) InsertBallon(NewBall *Ball, base *db.Env) (executed bo
 		return false, err
 	}
 	Lst_ball.SetStatsBallon(IdC, NewBall.Stats, base.Db)
-	NewBall.SetCreationCoordOnItinerary(base.Db, Lst_ball.Logger)
 	err = Lst_ball.InsertMessages(NewBall.Messages, IdC, base)
 	if err != nil {
 		Lst_ball.Logger.Println("Insert Ball fail")
 		return false, err
 	}
 	Lst_ball.SetFollowerBalls(NewBall, base)
+	Lst_ball.SetItinerary(base.Db, eball)
 	executed = true
 	return executed, err
 }
@@ -155,7 +173,9 @@ AS $function$  BEGIN RETURN QUERY INSERT INTO container (direction, speed, locat
 \*/
 
 func (ball *Ball) addMessage(base *db.Env) error {
-	idMessageMax, er := getIdMessageMax(ball.Id_ball, base)
+	var idB int64
+	base.Db.QueryRow("SELECT id FROM container WHERE ianix=$1;", ball.Id_ball).Scan(&idB)
+	idMessageMax, er := getIdMessageMax(idB, base)
 	if er != nil {
 		return er
 	}
@@ -184,7 +204,7 @@ func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 		ball := e.Value.(*Ball)
 		ball.Lock()
 		if ball.FlagC == true {
-			Lb.InsertBallon(e.Value.(*Ball), base)
+			Lb.InsertBallon(e, base)
 		} else if ball.Edited == true {
 			Lb.SetStatsBallon(ball.Id_ball, ball.Stats, base.Db)
 			Lb.SetItinerary(base.Db, e)

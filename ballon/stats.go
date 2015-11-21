@@ -2,6 +2,7 @@ package ballon
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -41,6 +42,7 @@ func GetCreationCoordDateBall(idBall int64, Db *sql.DB) (*Coordinate, time.Time,
 }
 
 func (Lusr *All_ball) GetStatsBallon(idBall int64, Db *sql.DB) (*StatsBall, error) {
+	fmt.Println("Id ball getStatBallon: ", idBall)
 	rows, err := Db.Query("SELECT num_km, num_catch, num_follow, num_magnet  FROM stats_container  WHERE idball_stats=$1;", idBall)
 	if err != nil {
 		return nil, err
@@ -57,6 +59,7 @@ func (Lusr *All_ball) GetStatsBallon(idBall int64, Db *sql.DB) (*StatsBall, erro
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("Coord created: ", coord)
 		return &StatsBall{CreationDate: date, CoordCreated: coord, NbrKm: nkm, NbrFollow: nfollow, NbrCatch: ncath, NbrMagnet: nmagnet}, nil
 	}
 	return nil, err
