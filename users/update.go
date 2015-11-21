@@ -5,7 +5,7 @@ import (
 )
 
 func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
-	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont, id_g FROM globalstats ORDER BY id_g DESC LIMIT 1;")
+	rows, err := base.Db.Query("SELECT num_users, num_follow, num_message, num_send, num_cont, id_g, nbr_catch FROM globalstats ORDER BY id_g DESC LIMIT 1;")
 	if err != nil {
 		Lu.Logger.Println("err on Get_GlobalStat: ", err)
 		return err
@@ -13,7 +13,7 @@ func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
 	defer rows.Close()
 	var idg int
 	if rows.Next() {
-		rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate, &idg)
+		rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate, &idg, &Lu.GlobalStat.NbrFollow)
 	}
 	return err
 }
@@ -43,12 +43,13 @@ func (lu *All_users) Update_users(base *db.Env) (err error) {
 }
 
 func (lu *All_users) UpdateGlobal(base *db.Env) (err error) {
-	trow, err := base.Db.Query("INSERT INTO globalstats(num_users, num_follow, num_message, num_send, num_cont) VALUES($1, $2, $3, $4, $5);",
+	trow, err := base.Db.Query("INSERT INTO globalstats(num_users, num_follow, num_message, num_send, num_cont, nbr_catch) VALUES($1, $2, $3, $4, $5, $6);",
 		lu.Ulist.Len(),
 		lu.GlobalStat.NbrFollow,
 		lu.GlobalStat.NbrMessage,
 		lu.GlobalStat.NbrSend,
-		lu.GlobalStat.NbrBallCreate)
+		lu.GlobalStat.NbrBallCreate,
+		lu.GlobalStat.NbrCatch)
 	if err != nil {
 		lu.Logger.Println("Update global stat wibo erreur: ", err)
 		return err

@@ -24,6 +24,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -577,6 +578,7 @@ func (Data *Data) Manage_taken(request *list.Element, Wd *owm.All_data) {
 			ball.Stats.NbrKm += ball.GetDistance(rqt.Coord.Lon, rqt.Coord.Lat)
 			ball.InitCoord(rqt.Coord.Lon, rqt.Coord.Lat, rqt.Spec.(protocol.Taken).FlagMagnet, Wd, false)
 			if rqt.Spec.(protocol.Taken).FlagMagnet == 1 {
+				Data.User.Value.(*users.User).Magnet = time.Now()
 				ball.Stats.NbrMagnet++
 			}
 			Lst_answer := Write_contentball(ball, TAKEN)
@@ -748,9 +750,6 @@ func (Data *Data) Manage_magnet(requete *list.Element, Tab_wd *owm.All_data) {
 				tab[i] = rand.Int63n(Data.Lst_ball.Id_max)
 			}
 			list_tmp_2 := Data.Lst_ball.Get_ballbyid_tomagnet(tab, Data.User)
-			if list_tmp_2.Len() > 0 {
-				Data.User.Value.(*users.User).Magnet = time.Now()
-			}
 			eball = list_tmp_2.Front()
 		}
 		for eball != nil {
@@ -978,6 +977,8 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
 		for j := int32(1); j <= NbrItin; j++ {
 			check := eCheck.Value.(*ballon.Checkpoint)
+			fmt.Println("Coord: ", j)
+			fmt.Println("Value: ", check.Coord)
 			binary.Write(Buffer, binary.BigEndian, int32(j))
 			binary.Write(Buffer, binary.BigEndian, int32(check.MagnetFlag))
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lon)

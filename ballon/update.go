@@ -75,31 +75,6 @@ func getIdMessageMax(idBall int64, base *db.Env) (int32, error) {
 	return IdMax, err
 }
 
-/*	err := base.Transact(base.Db, func(tx *sql.Tx) error {
-		var err error
-		stm, err := tx.Prepare("SELECT index_m FROM message WHERE index_m=(select MAX(index_m)) AND containerid=$1;")
-		if err != nil {
-			return err
-		}
-		defer stm.Close()
-		rs, err := stm.Query(idBall)
-		if err != nil {
-			return err
-		}
-		defer rs.Close()
-		if rs.Next() != false {
-			rs.Scan(&IdMax)
-		}
-		return err
-	})
-	if err != nil {
-		fmt.Println("Erreur: ", err)
-	} else {
-		fmt.Println("No erreur")
-	}
-	return IdMax, err
-}*/
-
 /*
 	createcontainer(double precision,double precision,double precision,double precision,integer,character varying,integer,date)
 	createcontainer(directionc double precision,
@@ -202,11 +177,13 @@ func (ball *Ball) addMessage(base *db.Env) error {
 func (Lb *All_ball) Update_balls(ABalls *All_ball, base *db.Env) (er error) {
 	for e := ABalls.Blist.Front(); e != nil; e = e.Next() {
 		ball := e.Value.(*Ball)
+		var idB int64
+		base.Db.QueryRow("SELECT id FROM container WHERE ianix=$1;", ball.Id_ball).Scan(&idB)
 		ball.Lock()
 		if ball.FlagC == true {
 			Lb.InsertBallon(e, base)
 		} else if ball.Edited == true {
-			Lb.SetStatsBallon(ball.Id_ball, ball.Stats, base.Db)
+			Lb.SetStatsBallon(idB, ball.Stats, base.Db)
 			Lb.SetItinerary(base.Db, e)
 			er := ball.addMessage(base)
 			if er != nil {

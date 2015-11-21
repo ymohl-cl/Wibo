@@ -398,19 +398,17 @@ insert checkpoints(
 
 func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 	var Idb int64
-	fmt.Println("Set to: ", b.Value.(*Ball).Id_ball)
 	err := Db.QueryRow("SELECT container.id FROM container WHERE container.ianix=$1;", b.Value.(*Ball).Id_ball).Scan(&Idb)
 	if err != nil {
 		Lb.Logger.Println(err)
 		return
 	}
 	if Idb != 0 {
-		fmt.Println("Nmbre d'itineraire dans la liste: ", b.Value.(*Ball).Itinerary.Len())
 		for i := b.Value.(*Ball).Itinerary.Front(); i != nil; i = i.Next() {
-			fmt.Println("Record itinerary: ", i.Value.(Checkpoint).Coord)
 			trow, err := Db.Query("SELECT public.insertcheckpoints($1, $2, $3, $4, $5);", i.Value.(Checkpoint).Date, i.Value.(Checkpoint).Coord.Lon, i.Value.(Checkpoint).Coord.Lat, Idb, i.Value.(Checkpoint).MagnetFlag)
 			if err != nil {
-				fmt.Println(err)
+				Lb.Logger.Println("Error Query on SetItinerary: ", err)
+				return
 			} else {
 				trow.Close()
 			}
@@ -422,7 +420,6 @@ func (Lb *All_ball) SetItinerary(Db *sql.DB, b *list.Element) {
 }
 
 func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
-	fmt.Println("Get to: ", Ball.Id_ball)
 	var err error
 	Itinerary := list.New()
 	var idB int64
@@ -442,11 +439,10 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 			if strings.ContainsRune(result[1], 't') == true {
 				ism = 1
 			}
-			tempCoord := getExtraInfo(result[2], tdate, ism)
+			tempCoord := Lb.getExtraInfo(result[2], tdate, ism)
 			checkp := new(Checkpoint)
-			checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lat // Error lat is lon
-			checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lon // Error lon is lat
-			fmt.Println("Step itinerary: ", checkp.Coord)
+			checkp.Coord.Lon = tempCoord.Front().Value.(Checkpoint).Coord.Lon
+			checkp.Coord.Lat = tempCoord.Front().Value.(Checkpoint).Coord.Lat
 			checkp.Date = tempCoord.Front().Value.(Checkpoint).Date
 			checkp.MagnetFlag = ism
 			Itinerary.PushBack(checkp)
@@ -456,7 +452,6 @@ func (Ball *Ball) GetItinerary(Db *sql.DB, Lb *All_ball) (int32, *list.List) {
 	if elem != nil {
 		Itinerary.Remove(elem)
 	}
-	fmt.Println("Nombre d'itineraire retourne: ", Itinerary.Len())
 	return int32(Itinerary.Len()), Itinerary
 }
 
@@ -525,7 +520,7 @@ func GetWhomGotBall(idBall int64, LstU *list.List, Db *sql.DB) (*list.Element, e
 	return p, er
 }
 
-func getExtraInfo(position string, date time.Time, magnet int16) *list.List {
+func (Lb *All_ball) getExtraInfo(position string, date time.Time, magnet int16) *list.List {
 
 	f := func(c rune) bool {
 		return c == '(' || c == '(' || c == ')' || c == '"' ||
@@ -536,12 +531,14 @@ func getExtraInfo(position string, date time.Time, magnet int16) *list.List {
 	fields := strings.FieldsFunc(position, f)
 	// Separate into cordinates  with Fields.
 	point := strings.Fields(fields[0])
-	long, err := strconv.ParseFloat(point[0], 15)
+	lat, err := strconv.ParseFloat(point[0], 15)
 	if err != nil {
-		fmt.Println(err)
+		Lb.Logger.Println("Error Parse Float on getExtraInfo: ", err)
 	}
-	var lat float64
-	lat, _ = strconv.ParseFloat(point[1], 15)
+	long, err := strconv.ParseFloat(point[1], 15)
+	if err != nil {
+		Lb.Logger.Println("Error Parse Float on getExtraInfo", err)
+	}
 	lc := list.New()
 	ch := Coordinate{Lon: long, Lat: lat}
 	lc.PushBack(Checkpoint{Coord: ch, Date: date, MagnetFlag: magnet})
@@ -593,7 +590,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 			result := strings.Split(infoCont, ",")
 			idBall := GetIdBall(result[0])
 			magnet, _ := strconv.Atoi(result[8])
-			tempCord := getExtraInfo(result[6], Lb.GetDateFormat(result[9]), int16(magnet))
+			tempCord := Lb.getExtraInfo(result[6], Lb.GetDateFormat(result[9]), int16(magnet))
 			lstIt := list.New()
 			sStat, errT := Lb.GetStatsBallon(int64(idBall), base.Db)
 			if errT != nil {
@@ -699,11 +696,11 @@ func GetCord(position string) (*Coordinate, error) {
 	fields := strings.FieldsFunc(position, f)
 	// Separate into cordinates  with Fields.
 	point := strings.Fields(fields[0])
-	coord.Lon, err = strconv.ParseFloat(point[0], 15)
+	coord.Lat, err = strconv.ParseFloat(point[0], 15)
 	if err != nil {
 		return coord, err
 	}
-	coord.Lat, err = strconv.ParseFloat(point[1], 15)
+	coord.Lon, err = strconv.ParseFloat(point[1], 15)
 	if err != nil {
 		return coord, err
 	}
