@@ -18,6 +18,7 @@ import (
 	"Wibo/server"
 	"container/list"
 	"database/sql"
+	_ "fmt"
 	"io"
 	"log"
 	"net"
@@ -78,14 +79,20 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 					Data.Logger.Printf("Remote Address: %s| Get_answer error: %s\n",
 						Conn.RemoteAddr(), er)
 					Front := Data.Lst_asw.Front()
-					if Front != nil {
-						size, er = Conn.Write(Front.Value.([]byte))
-						Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
-							Conn.RemoteAddr(), size, er)
+					if Front == nil {
+						Data.Logger.Println("Error, not answer available")
+						return
 					}
+					size, er = Conn.Write(Front.Value.([]byte))
+					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
+						Conn.RemoteAddr(), size, er)
 					return
 				} else {
 					Front := Data.Lst_asw.Front()
+					if Front == nil {
+						Data.Logger.Println("Error, not answer available")
+						return
+					}
 					size, er = Conn.Write(Front.Value.([]byte))
 					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
 						Conn.RemoteAddr(), size, er)
@@ -93,6 +100,10 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 				}
 			} else {
 				awr := Data.Get_aknowledgement(Data.Lst_users)
+				if awr == nil {
+					Data.Logger.Println("Error, not answer available")
+					return
+				}
 				size, er = Conn.Write(awr)
 				Data.Logger.Printf("Remote Address: %s| retour de Conn.Write (exhange multiple packets), size: %d, er: %s\n",
 					Conn.RemoteAddr(), size, er)

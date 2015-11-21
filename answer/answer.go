@@ -24,7 +24,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	"fmt"
+	_ "fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -977,8 +977,6 @@ func Write_StatBall(lst *list.List, nbrCheck int32, nbrPack int, ball *ballon.Ba
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 4))
 		for j := int32(1); j <= NbrItin; j++ {
 			check := eCheck.Value.(*ballon.Checkpoint)
-			fmt.Println("Coord: ", j)
-			fmt.Println("Value: ", check.Coord)
 			binary.Write(Buffer, binary.BigEndian, int32(j))
 			binary.Write(Buffer, binary.BigEndian, int32(check.MagnetFlag))
 			binary.Write(Buffer, binary.BigEndian, check.Coord.Lon)
@@ -1023,17 +1021,17 @@ func Write_workball(lst_work *list.List) *list.List {
 	answer.head.pnbr = int32(lst_work.Len())
 	answer.head.pnum = 0
 	for e := lst_work.Front(); e != nil; e = e.Next() {
-		workball := e.Value.(*list.Element).Value.(*ballonwork.WorkBall)
+		workball := e.Value.(*ballonwork.WorkBall)
 		Buffer := Write_header(answer)
 		answer.head.pnum++
-		binary.Write(Buffer, binary.BigEndian, workball.Title)
+		Buffer.WriteString(workball.Title)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-len(workball.Title)))
-		binary.Write(Buffer, binary.BigEndian, workball.Message)
+		Buffer.WriteString(workball.Message)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 656-len(workball.Message)))
 		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lon)
 		binary.Write(Buffer, binary.BigEndian, workball.Coord.Lat)
-		binary.Write(Buffer, binary.BigEndian, workball.Link)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 320-len(workball.Title)))
+		Buffer.WriteString(workball.Link)
+		binary.Write(Buffer, binary.BigEndian, make([]byte, 320-len(workball.Link)))
 		lst_asw.PushBack(Buffer.Bytes())
 	}
 	return lst_asw
@@ -1043,7 +1041,7 @@ func (Data *Data) Manage_WorkBall(request *list.Element) {
 	lst_work := list.New()
 	for e := Data.Lst_work.Wlist.Front(); e != nil; e = e.Next() {
 		workBall := e.Value.(*ballonwork.WorkBall)
-		if workBall.Check_neirbycoord(request) == true {
+		if workBall.Check_nearbycoord(request) == true {
 			lst_work.PushBack(workBall)
 		}
 	}

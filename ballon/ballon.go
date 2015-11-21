@@ -107,7 +107,7 @@ func (ball *Ball) GetDistance(lon_user float64, lat_user float64) float64 {
 	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon
 	lat2 = ball.Coord.Value.(Checkpoint).Coord.Lat * math.Pi / 180
 	lon2 = ball.Coord.Value.(Checkpoint).Coord.Lon * math.Pi / 180
-	rayon = 6378137
+	rayon = 6378137.0
 
 	hvsin := hsin(lat2-lat1) + math.Cos(lat1)*math.Cos(lat2)*hsin(lon2-lon1)
 	return (2 * rayon * math.Asin(math.Sqrt(hvsin))) / 1000

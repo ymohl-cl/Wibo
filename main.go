@@ -154,6 +154,7 @@ func ManageSignal(Serv *server.Server, myDb *db.Env) {
 	Serv.Lst_ball.Logger = nil
 	Serv.Lst_Devices.Logger = nil
 	Serv.Logger = nil
+	fmt.Println()
 	os.Exit(-1)
 }
 

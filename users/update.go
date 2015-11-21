@@ -13,7 +13,7 @@ func (Lu *All_users) Get_GlobalStat(base *db.Env) error {
 	defer rows.Close()
 	var idg int
 	if rows.Next() {
-		rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate, &idg, &Lu.GlobalStat.NbrFollow)
+		rows.Scan(&Lu.NbrUsers, &Lu.GlobalStat.NbrFollow, &Lu.GlobalStat.NbrMessage, &Lu.GlobalStat.NbrSend, &Lu.GlobalStat.NbrBallCreate, &idg, &Lu.GlobalStat.NbrCatch)
 	}
 	return err
 }
