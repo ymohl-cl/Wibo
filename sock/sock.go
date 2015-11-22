@@ -18,7 +18,7 @@ import (
 	"Wibo/server"
 	"container/list"
 	"database/sql"
-	_ "fmt"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -93,6 +93,8 @@ func handleConnection(Conn net.Conn, Db *sql.DB, Logger *log.Logger, Serv *serve
 						Data.Logger.Println("Error, not answer available")
 						return
 					}
+					fmt.Println("Return")
+					fmt.Println(Front.Value.([]byte))
 					size, er = Conn.Write(Front.Value.([]byte))
 					Data.Logger.Printf("Remote Address: %s| retour de Conn.Write, size: %d, er: %s\n",
 						Conn.RemoteAddr(), size, er)

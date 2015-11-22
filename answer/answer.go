@@ -24,7 +24,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
-	_ "fmt"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -335,6 +335,7 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		if int16(msg.Size)+16+pck.head.octets > SIZE_PACKET {
 			pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
 			pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
+			fmt.Println("Number message of packet: ", pck.ptype.(*Contentball).nbrmess)
 			lstP.PushBack(pck)
 			tmp := pck
 			pck = new(Packet)
@@ -347,6 +348,8 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 		var mes Message
 		mes.size = msg.Size
 		mes.id = msg.Id
+		fmt.Println("MessageIdPack:", mes.id)
+		fmt.Println("MessageIdSource:", msg.Id)
 		mes.idcountry = msg.Idcountry
 		mes.idcity = msg.Idcity
 		mes.mess = msg.Content
@@ -356,6 +359,7 @@ func GetPacketsContent(ball *ballon.Ball, typeR int16) *list.List {
 	}
 	pck.ptype.(*Contentball).nbruser = int32(ball.Stats.NbrFollow)
 	pck.ptype.(*Contentball).nbrmess = int32(pck.ptype.(*Contentball).messages.Len())
+	fmt.Println("Number message of packet: ", pck.ptype.(*Contentball).nbrmess)
 	lstP.PushBack(pck)
 	Pnbr := lstP.Len()
 	for e := lstP.Front(); e != nil; e = e.Next() {
@@ -374,6 +378,8 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (Alst *list.List) {
 	houre := int16(Ball.Stats.CreationDate.Hour())
 	minute := int16(Ball.Stats.CreationDate.Minute())
 	sizeTitle := len(Ball.Title)
+	fmt.Println("Title + size: ", Ball.Title)
+	fmt.Println(sizeTitle)
 
 	for ep := lstPack.Front(); ep != nil; ep = ep.Next() {
 		pck := ep.Value.(*Packet)
@@ -386,7 +392,10 @@ func Write_contentball(Ball *ballon.Ball, packettype int16) (Alst *list.List) {
 		binary.Write(Buffer, binary.BigEndian, minute)
 		binary.Write(Buffer, binary.BigEndian, make([]byte, 6))
 		Buffer.WriteString(Ball.Title)
-		binary.Write(Buffer, binary.BigEndian, make([]byte, 16-sizeTitle))
+		fmt.Println("Title ball: ", Ball.Title)
+		if 16-sizeTitle > 0 {
+			binary.Write(Buffer, binary.BigEndian, make([]byte, 16-sizeTitle))
+		}
 		binary.Write(Buffer, binary.BigEndian, pck.ptype.(*Contentball).nbruser)
 		binary.Write(Buffer, binary.BigEndian, pck.ptype.(*Contentball).nbrmess)
 		for em := pck.ptype.(*Contentball).messages.Front(); em != nil; em = em.Next() {

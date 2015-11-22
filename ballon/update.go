@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"database/sql"
 	_ "fmt"
+	sanit "github.com/kennygrant/sanitize"
 	"strings"
 )
 
@@ -19,7 +20,7 @@ func (Lst_ball *All_ball) InsertMessages(messages *list.List, idBall int64, base
 				return err
 			}
 			defer stm.Close()
-			row, err := stm.Query(strings.Trim(e.Value.(Message).Content, "\x00"), idBall, i, e.Value.(Message).Size)
+			row, err := stm.Query(sanit.Accents(strings.Trim(e.Value.(Message).Content, "\x00")), idBall, i, e.Value.(Message).Size)
 			if err != nil {
 				Lst_ball.Logger.Println("Erreur Query: ", err)
 				return err
@@ -95,7 +96,7 @@ func (Lst_ball *All_ball) InsertBallon(eball *list.Element, base *db.Env) (execu
 		NewBall.Coord.Value.(Checkpoint).Coord.Lat,
 		NewBall.Coord.Value.(Checkpoint).Coord.Lon,
 		NewBall.Wind.Degress, NewBall.Wind.Speed,
-		strings.Trim(NewBall.Title, "\x00"),
+		sanit.Accents(strings.Trim(NewBall.Title, "\x00")),
 		NewBall.Id_ball,
 		NewBall.Stats.CreationDate).Scan(&IdC)
 	if err != nil {

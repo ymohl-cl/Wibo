@@ -102,6 +102,7 @@ func (Tab_wd *All_data) Update_weather_data() error {
 	if er != nil {
 		return er
 	}
+	Tab_wd.Print_weatherdata()
 	return nil
 }
 

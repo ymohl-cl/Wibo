@@ -588,6 +588,7 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 				return errT
 			}
 			result := strings.Split(infoCont, ",")
+
 			idBall := GetIdBall(result[0])
 			magnet, _ := strconv.Atoi(result[8])
 			tempCord := Lb.getExtraInfo(result[6], Lb.GetDateFormat(result[9]), int16(magnet))
@@ -616,10 +617,11 @@ func (Lb *All_ball) GetListBallsByUser(userE *list.Element, base *db.Env, Ulist 
 					Lb.Logger.Println("GetFollowers error: ", errT)
 					return errT
 				}
+				tr := '"'
 				lBallon.PushBack(
 					&Ball{
 						Id_ball:     GetIdBall(result[7]),
-						Title:       result[1],
+						Title:       strings.Trim(result[1], string(tr)),
 						Date:        Lb.GetDateFormat(result[5]),
 						Checkpoints: list.New(),
 						Itinerary:   lstIt,
@@ -729,7 +731,6 @@ func GetWin(speed string, direction string) Wind {
 **/
 
 func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, error) {
-	var i int32
 	Mlist := list.New()
 
 	stm, err := Db.Prepare("SELECT id AS containerId, content, id_type_m, size, index_m FROM message WHERE containerid=($1) ORDER BY creationdate ASC")
@@ -742,7 +743,6 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 		return Mlist, err
 	}
 	defer rows.Close()
-	i = 0
 	for rows.Next() {
 		var message string
 		var idm, idType, size, m_idx int32
@@ -750,8 +750,10 @@ func (Lball *All_ball) GetMessagesBall(idBall int64, Db *sql.DB) (*list.List, er
 		if err != nil {
 			return Mlist, err
 		}
-		Mlist.PushBack(Message{Content: message, Type: idType, Id: i, Size: size})
-		i++
+		fmt.Println("Size: ", size)
+		fmt.Println("index: ", m_idx)
+		fmt.Println("message: ", message)
+		Mlist.PushBack(Message{Content: message, Type: idType, Id: m_idx, Size: size})
 	}
 	return Mlist, err
 }
